@@ -15,11 +15,11 @@ const CONFIG = {
   // Map scale: the frame height spans this many km, centred on the data
   // origin plus CENTER_KM (km east, km north).
   KM_VERTICAL: 36,
-  CENTER_KM: [-1.7, 0],
+  CENTER_KM: [-2.2, 0],
   // Timeline: the service day plays over DURATION_FRAMES, with still frames
   // held at both ends so the opening and closing states register.
   DURATION_FRAMES: 1440,
-  HOLD_START: 45,
+  HOLD_START: 20,
   HOLD_END: 60,
   // Time warp: minutes with no bus on the road (and none within
   // TIME_WARP_MARGIN_MIN) get TIME_WARP_EMPTY of the screen time a normal
@@ -27,14 +27,14 @@ const CONFIG = {
   // the video is an empty map. The clock and the sparkline stay honest; the
   // night just goes by faster.
   TIME_WARP: true,
-  TIME_WARP_EMPTY: 0.25,
-  TIME_WARP_MARGIN_MIN: 10,
+  TIME_WARP_EMPTY: 0.15,
+  TIME_WARP_MARGIN_MIN: 30,
   // Trails: one sprite stamp every TRAIL_STEP_S seconds of simulated time
   // over the last TRAIL_MINUTES, fading from TRAIL_ALPHA to 0.
-  TRAIL_MINUTES: 40,
+  TRAIL_MINUTES: 25,
   TRAIL_STEP_S: 15,
   TRAIL_RADIUS: 7,
-  TRAIL_ALPHA: 0.35,
+  TRAIL_ALPHA: 0.7,
   // How trails reach the canvas. 'sprite' stamps one glow sprite per
   // TRAIL_STEP_S sample, the literal look from the contract, but software
   // raster in headless Chromium costs about 3 us per drawImage, so 300 buses
@@ -49,46 +49,50 @@ const CONFIG = {
   // Ribbon widths in px and the shoulder's alpha relative to the core's. The
   // shoulder pass is pure pixel cost, so it only goes on the freshest
   // TRAIL_SHOULDER_BANDS bands, where the trail is bright enough to show it.
-  TRAIL_CORE_W: 5,
-  TRAIL_SHOULDER_W: 13,
-  TRAIL_SHOULDER_ALPHA: 0.4,
-  TRAIL_SHOULDER_BANDS: 3,
+  TRAIL_CORE_W: 6,
+  TRAIL_SHOULDER_W: 22,
+  TRAIL_SHOULDER_ALPHA: 0.6,
+  TRAIL_SHOULDER_BANDS: 7,
   // Sparkline smoothing window in minutes (per-minute counts are spiky).
-  SPARK_SMOOTH_MIN: 21,
+  SPARK_SMOOTH_MIN: 35,
   // Trail layer resolution relative to the frame. Below 1 the trails go to a
   // smaller canvas that is scaled up; the glow is soft so nothing is lost and
   // the per-frame fill cost drops with the square of the factor.
   TRAIL_SCALE: 1,
-  BUS_CORE_R: 4.5,
-  BUS_HALO_R: 14,
+  BUS_CORE_R: 3,
+  BUS_HALO_R: 11,
   BUS_HALO_ALPHA: 0.35,
-  ROUTE_ALPHA: 0.22,
-  ROUTE_WIDTH: 2.5,
+  // The static network stays dim so the glow is earned by trails and the
+  // map actually goes dark at night.
+  ROUTE_ALPHA: 0.13,
+  ROUTE_WIDTH: 1.8,
   OSM_ROUTES: false,
   OSM_ROUTES_ALPHA: 0.10,
   BASEMAP_URL: '../data/built/basemap.json',
   NETWORK_URL: '../data/built/network.json',
   COLORS: {
     bg: '#07080c',
-    water: '#15171c',
-    waterLine: '#1b1e24',
+    water: '#1c1f27',
+    waterLine: '#242831',
     minor: '#23252b',
-    major: '#33363d',
+    major: '#2e3138',
     rail: '#2a2d35',
     boundary: '#2b2e36',
-    route: '#2f6bff',
-    routeRGB: [47, 107, 255],
-    trailRGB: [47, 107, 255],
+    route: '#4864de',
+    routeRGB: [72, 100, 222],
+    // Red close to green so stacked trails and halos add up to white, not cyan.
+    trailRGB: [120, 140, 255],
     title: '#ffffff',
     subtitle: '#8c8f99',
     panel: 'rgba(10,11,16,0.72)',
     clock: '#ffffff',
-    accent: '#f2c230',
+    accent: '#ffe066',
     axis: '#9a9da6',
     credit: '#6f737d',
   },
   ATTRIBUTION: [
-    'Data: Tsukuba City GTFS-JP (CC BY 4.0) · Overture Maps, OSM contributors',
+    'Data: Tsukuba City GTFS-JP (CC BY 4.0)',
+    'Map: Overture Maps · © OpenStreetMap contributors',
     'Made by Katsuma Onishi',
   ],
 };
@@ -107,6 +111,8 @@ if (params.has('trailbands')) CONFIG.TRAIL_BANDS = Number(params.get('trailbands
 if (params.has('shoulder')) CONFIG.TRAIL_SHOULDER_ALPHA = Number(params.get('shoulder')) || 0;
 if (params.has('shoulderbands')) CONFIG.TRAIL_SHOULDER_BANDS = Number(params.get('shoulderbands')) || 0;
 if (params.has('simplify')) CONFIG.TRAIL_SIMPLIFY_PX = Number(params.get('simplify')) || 1;
+if (params.has('trailalpha')) CONFIG.TRAIL_ALPHA = Number(params.get('trailalpha')) || 0.35;
+if (params.has('routealpha')) CONFIG.ROUTE_ALPHA = Number(params.get('routealpha')) || 0.1;
 if (params.has('corew')) CONFIG.TRAIL_CORE_W = Number(params.get('corew')) || 5;
 if (params.has('shoulderw')) CONFIG.TRAIL_SHOULDER_W = Number(params.get('shoulderw')) || 13;
 
@@ -183,11 +189,15 @@ function buildWarp() {
   const w = new Float64Array(n);
   const margin = CONFIG.TIME_WARP_MARGIN_MIN;
   for (let i = 0; i < n; i++) {
-    let active = !CONFIG.TIME_WARP;
-    for (let k = m0 + i - margin; !active && k <= m0 + i + margin; k++) {
-      if (hist[k] > 0) active = true;
+    if (!CONFIG.TIME_WARP) { w[i] = 1; continue; }
+    // Distance in minutes to the nearest minute with a bus on the road; the
+    // weight ramps down across the margin so the clock never jumps speed.
+    let dist = margin + 1;
+    for (let k = 0; k <= margin && dist > margin; k++) {
+      if (hist[m0 + i - k] > 0 || hist[m0 + i + k] > 0) dist = k;
     }
-    w[i] = active ? 1 : CONFIG.TIME_WARP_EMPTY;
+    const e = CONFIG.TIME_WARP_EMPTY;
+    w[i] = dist > margin ? e : e + (1 - e) * (1 - dist / margin);
   }
   const cum = new Float64Array(n + 1);
   for (let i = 0; i < n; i++) cum[i + 1] = cum[i] + w[i];
@@ -434,7 +444,7 @@ function buildRibbons() {
 }
 
 function buildSparkline() {
-  const x0 = 70, x1 = 610, y0 = 1500, y1 = 1620;
+  const x0 = 70, x1 = 610, y0 = 1380, y1 = 1500;
   const mStart = meta.day_start / 60;
   const mEnd = meta.day_end / 60;
   // Centred moving average: the count label stays exact, only the curve is
@@ -489,8 +499,8 @@ async function init() {
   // Canvas text only triggers a font load on first use, so request every
   // face explicitly before waiting on document.fonts.ready.
   const faces = [
-    '500 58px Montserrat', '400 34px Montserrat', '800 118px Montserrat',
-    '600 36px Montserrat', '500 20px Montserrat', '400 20px Inter',
+    '600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum',
+    '600 32px Montserrat', '500 20px Montserrat', '400 18px Inter',
   ];
   await Promise.all(faces.map((f) => document.fonts.load(f).catch(() => null)));
   await document.fonts.ready;
@@ -500,6 +510,7 @@ async function init() {
   await promoteSprites();
   buildRibbons();
   buildSparkline();
+  buildHudStatics();
   return { basemap, network };
 }
 
@@ -529,7 +540,12 @@ function sampleTrail(trip, T, ts, step, count) {
       if (last < 0 || tt + step <= t0) break;
       tt = t0;
     }
-    if (tt > tEnd) continue;
+    if (tt > tEnd) {
+      // Pin the newest sample to the arrival so a finished trip's trail rests
+      // at the terminus instead of creeping as the sample grid slides.
+      if (tt - step > tEnd) continue;
+      tt = tEnd;
+    }
     while (i > 0 && t[i] > tt) i--;
     let dist;
     const dt = t[i + 1] - t[i];
@@ -629,9 +645,9 @@ function drawHUD(T, running) {
 
   // Title with tracking. Chromium adds the spacing after every glyph
   // including the last, so nudge by half a space to keep it optically centred.
-  const spacing = 58 * 0.28;
+  const spacing = 58 * 0.20;
   ctx.fillStyle = C.title;
-  ctx.font = '500 58px Montserrat';
+  ctx.font = '600 58px Montserrat';
   ctx.textAlign = 'center';
   if ('letterSpacing' in ctx) {
     ctx.letterSpacing = `${spacing}px`;
@@ -650,23 +666,21 @@ function drawHUD(T, running) {
   }
   ctx.textAlign = 'center';
   ctx.fillStyle = C.subtitle;
-  ctx.font = '400 34px Montserrat';
-  ctx.fillText(meta.subtitle || '', W / 2, 206);
+  ctx.font = '400 38px Montserrat';
+  ctx.fillText(meta.subtitle || '', W / 2, 210);
 
-  // Bottom-left panel.
-  ctx.fillStyle = C.panel;
-  ctx.beginPath();
-  ctx.roundRect(40, 1240, 600, 460, 24);
-  ctx.fill();
+  // Bottom-left panel, feathered like the reference so routes passing under
+  // its edge fade instead of snapping.
+  ctx.drawImage(panelSprite, 0, 0);
 
   ctx.textAlign = 'left';
   ctx.fillStyle = C.clock;
-  ctx.font = '800 118px Montserrat';
-  ctx.fillText(clockText(T), 70, 1395);
+  ctx.font = '800 108px MontserratTnum';
+  ctx.fillText(clockText(T), 70, 1275);
 
   ctx.fillStyle = C.accent;
-  ctx.font = '600 36px Montserrat';
-  ctx.fillText(`${running} ${running === 1 ? 'bus' : 'buses'} running`, 70, 1455);
+  ctx.font = '600 32px Montserrat';
+  ctx.fillText(`${running} ${running === 1 ? 'bus' : 'buses'} running`, 70, 1342);
 
   // Sparkline up to the current time.
   const sp = spark;
@@ -682,34 +696,59 @@ function drawHUD(T, running) {
   ctx.lineTo(xCur, yCur);
   ctx.lineTo(xCur, sp.y1);
   ctx.closePath();
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = C.accent;
+  ctx.fillStyle = sparkFill;
   ctx.fill();
-  ctx.globalAlpha = 1;
   ctx.beginPath();
   ctx.moveTo(sp.x0, sp.y1 - (Math.min(histAt(sp.mStart), sp.peak) / sp.peak) * (sp.y1 - sp.y0 - 10));
   for (let j = 0; j <= lastIdx && j < sp.xs.length; j++) ctx.lineTo(sp.xs[j], sp.ys[j]);
   ctx.lineTo(xCur, yCur);
   ctx.strokeStyle = C.accent;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 3;
   ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
   ctx.stroke();
+  // Chart floor.
   ctx.beginPath();
-  ctx.arc(xCur, yCur, 4.5, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(sp.x0, sp.y1 + 0.5);
+  ctx.lineTo(sp.x1, sp.y1 + 0.5);
+  ctx.strokeStyle = '#3a3b43';
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
   ctx.fillStyle = C.axis;
   ctx.font = '500 20px Montserrat';
   ctx.textAlign = 'left';
-  ctx.fillText(clockText(meta.day_start), sp.x0, 1650);
+  ctx.fillText(clockText(meta.day_start), sp.x0, 1530);
   ctx.textAlign = 'right';
-  ctx.fillText(clockText(meta.day_end), sp.x1, 1650);
+  ctx.fillText(clockText(meta.day_end), sp.x1, 1530);
 
   ctx.fillStyle = C.credit;
-  ctx.font = '400 20px Inter';
+  ctx.font = '400 18px Inter';
   ctx.textAlign = 'left';
-  ctx.fillText(CONFIG.ATTRIBUTION[0], 70, 1680);
-  ctx.fillText(CONFIG.ATTRIBUTION[1], 70, 1704);
+  for (let i = 0; i < CONFIG.ATTRIBUTION.length; i++) {
+    ctx.fillText(CONFIG.ATTRIBUTION[i], 70, 1562 + i * 23);
+  }
+}
+
+// The panel backdrop and the sparkline gradient are static, so build them
+// once; a Gaussian blur per frame would cost more than the whole map.
+let panelSprite = null;
+let sparkFill = null;
+function buildHudStatics() {
+  panelSprite = document.createElement('canvas');
+  panelSprite.width = W;
+  panelSprite.height = H;
+  const g = panelSprite.getContext('2d');
+  g.filter = 'blur(36px)';
+  g.fillStyle = CONFIG.COLORS.panel;
+  g.beginPath();
+  g.roundRect(40, 1120, 600, 500, 24);
+  g.fill();
+  g.filter = 'none';
+  const grad = ctx.createLinearGradient(0, spark.y0, 0, spark.y1);
+  grad.addColorStop(0, rgba([255, 224, 102], 0.5));
+  grad.addColorStop(1, rgba([255, 224, 102], 0.03));
+  sparkFill = grad;
 }
 
 function renderAt(T) {
@@ -744,7 +783,7 @@ function renderAt(T) {
     if (range < 0) continue;
     const first = Math.floor(range / 1024);
     const last = range % 1024;
-    if (first === 0) {
+    if (first === 0 && T <= t[t.length - 1]) {
       running++;
       buses.push(sampleX[0] / ts, sampleY[0] / ts);
     }
@@ -822,7 +861,7 @@ if (RECORD) {
     const t = parseTime(params.get('t'));
     const f = params.get('frame');
     if (t != null) renderAt(t);
-    else if (f != null) renderFrame(Number(f));
+    else if (f != null && Number.isFinite(Number(f))) renderFrame(Number(f));
     else renderFrame(0);
   });
 } else {

@@ -95,31 +95,39 @@ between points k and k+1. "Buses running" at T = number of running trips.
 
 Frame 1080x1920 (9:16), 30 fps. `render(T)` must be a pure function of T
 so Playwright can request frames in any order. No shadowBlur in the hot
-path: pre-render glow sprites and draw them with `drawImage`.
+path: pre-render glow sprites and the panel backdrop once.
 
 Default map scale: 1920 px covers 36 km north to south (53.33 px/km),
-centre at origin; both tunable from a `CONFIG` object at the top of app.js.
+centre 2.2 km west of origin so the network sits in the middle of the frame;
+both tunable from the `CONFIG` object at the top of app.js. Every number
+below is a CONFIG value or a literal in drawHUD(); the values were measured
+against the Melbourne reference frames at 1.875x.
 
-Layers, back to front (colours from the Melbourne reference frames in
-/tmp/claude-0/-home-user-bus-map/234234d3-649f-5553-9317-24ec9059d733/scratchpad/ref/):
+Layers, back to front:
 
 1. Background `#07080c`.
-2. Water polygons `#15171c`, water lines a touch lighter (`#1b1e24`), rivers 2 px, streams 1 px.
-3. Minor roads `#23252b` 1 px, major roads `#33363d` 1.6 px, rail `#2a2d35` dashed 1.2 px.
-4. City boundary: `#2b2e36` 1 px, 40% alpha.
-5. Static route network: every GTFS shape drawn in blue `#2f6bff` at ~22% alpha, 2.5 px, `lighter` compositing so overlaps add up. (`osm_routes` layer off by default, 10% alpha when on.)
-6. Trails: for each running bus, stamp a soft blue sprite (radius ~7 px) along the last 40 simulated minutes at 15-second steps, alpha decaying from 0.35 to 0, `lighter`. This is what makes busy corridors glow by midday and go dark at night.
-7. Buses: white core 4.5 px radius + soft white halo radius 14 px at 35% alpha, `lighter`.
-8. HUD (plain `source-over`):
-   * Title `TSUKUBA BUSES`, Montserrat 500, 58 px, letter-spacing 0.28 em, white, centred, baseline y=150.
-   * Subtitle `Friday 9th October`, Montserrat 400, 34 px, `#8c8f99`, centred, y=206.
-   * Bottom-left panel: rounded rect x=40..640, y=1240..1700, fill `rgba(10,11,16,0.72)`, radius 24. Inside: clock `5:32 am` Montserrat 800 ~118 px white at (70, 1395); `203 buses running` Montserrat 600 36 px `#f2c230` at (70, 1455); sparkline area x=70..610, y=1500..1620, yellow `#f2c230` fill 85% with 1.5 px top stroke, drawn only up to the current time with a small yellow dot at the head; axis labels `4:30 am` at both ends, Montserrat 500 20 px `#9a9da6`, y=1650; attribution two lines Inter 400 20 px `#6f737d` at y=1680/1704:
-     `Data: Tsukuba City GTFS-JP (CC BY 4.0) · Overture Maps, OSM contributors`
+2. Water polygons `#1c1f27`, water lines `#242831`, rivers 2 px, streams 1 px.
+3. Minor roads `#23252b` 1 px, major roads `#2e3138` 1.6 px, rail `#2a2d35` dashed 1.2 px.
+4. City boundary `#2b2e36` 1 px, 40% alpha.
+5. Dormant route network: every GTFS shape in `#4864de` at 13% alpha, 1.8 px, `lighter` compositing. Kept dim so the glow is earned by trails and the map goes dark at night. (`osm_routes` off by default.)
+6. Trails: for each bus, the last 25 simulated minutes of its path, split into 16 age bands and stroked once per band (6 px core plus a 22 px soft shoulder on the 7 freshest bands), colour `[120,140,255]` fading from 70% alpha to 0, `lighter`. Red is kept close to green so overlaps go white rather than cyan.
+7. Buses: white core 3 px radius plus a halo of radius 11 px at 35% alpha, `lighter`.
+8. HUD (plain `source-over`), all y values are canvas pixels:
+   * Title `TSUKUBA BUSES`, Montserrat 600, 58 px, letter-spacing 0.20 em, white, centred, baseline 150.
+   * Subtitle `Friday 9th October`, Montserrat 400, 38 px, `#8c8f99`, centred, baseline 210.
+   * Bottom-left panel: rounded rect x 40..640, y 1120..1620, radius 24, fill `rgba(10,11,16,0.72)`, blurred 36 px once at init so routes passing under its edge fade instead of snapping.
+   * Clock `5:32 am` in MontserratTnum 800, 108 px, white, left x 70, baseline 1275 (MontserratTnum is the same file with `font-feature-settings: "tnum"` so the digits keep one pitch).
+   * `203 buses running` Montserrat 600 32 px `#ffe066`, baseline 1342.
+   * Sparkline x 70..610, y 1380..1500: 35-minute centred moving average of `hist`, filled with a vertical gradient of the accent from 50% to 3% alpha, 3 px accent stroke, drawn only up to the current time, no head marker, a 1 px `#3a3b43` floor line at y 1500.
+   * Axis labels `4:30 am` at both ends, Montserrat 500 20 px `#9a9da6`, baseline 1530.
+   * Attribution, Inter 400 18 px `#6f737d`, baselines 1562 / 1585 / 1608:
+     `Data: Tsukuba City GTFS-JP (CC BY 4.0)`
+     `Map: Overture Maps · © OpenStreetMap contributors`
      `Made by Katsuma Onishi`
    * Clock text format: `5:32 am`, `12:07 pm`, `12:45 am`, no leading zero, lowercase am/pm.
-9. Timeline: T runs linearly from day_start to day_end across DURATION (48 s = 1440 frames), plus 45 hold frames at the start and 60 at the end. Expose on `window.busmap`: `ready` (Promise), `totalFrames`, `renderFrame(i)` (draws frame i synchronously once ready and returns the simulated T), `renderAt(T)`.
-10. Interactive mode (no `?record` in URL): space toggles play at real-time speed matching the video (24 h in 48 s), a `<input type=range>` scrubs, canvas scales to fit the window with CSS. With `?record=1` the canvas is exactly 1080x1920 at the top-left and nothing else is on the page.
+9. Timeline: playback progress u in [0, 1] runs over DURATION (48 s = 1440 frames) plus 20 hold frames at the start and 60 at the end. u maps to T through a per-minute weight table: a minute with a bus on the road (or within 30 minutes of one) weighs 1, an empty night minute weighs 0.15, with a linear ramp across the 30-minute margin so the clock never changes speed abruptly. Expose on `window.busmap`: `ready` (Promise), `totalFrames`, `renderFrame(i)` (draws frame i synchronously once ready and returns T), `renderAt(T)`, `frameTime(i)`, `progressAt(T)`, `timeAtProgress(u)`, `config`.
+10. Interactive mode (no `?record` in URL): space toggles play at the video's pace, a `<input type=range>` scrubs in progress space, canvas scales to fit the window with CSS. With `?record=1` the canvas is exactly 1080x1920 at the top-left and nothing else is on the page. Query overrides: `?t=hh:mm`, `?frame=N`, `?data=`, `?basemap=`, `?osm=1`, plus trail tuning knobs.
 
-Fonts live in `web/fonts/` (Montserrat.css, Inter.css already written; the woff2 files are variable fonts covering all weights). Load them via `<link rel=stylesheet>` and wait for `document.fonts.ready` before resolving `busmap.ready`.
+Fonts live in `web/fonts/` as two variable woff2 files with `@font-face` rules in Montserrat.css and Inter.css. Wait for `document.fonts.ready` after loading each face before resolving `busmap.ready`.
 
 Data loading: `fetch('../data/built/basemap.json')` and `fetch('../data/built/network.json')` relative to `web/index.html`; the video script serves the repo root over HTTP so file:// restrictions do not bite.
