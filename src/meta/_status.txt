@@ -1,0 +1,93 @@
+200 779699 https://api-public.odpt.org/api/v4/files/Toei/data/Toei-Train-GTFS.zip
+200 7577018 https://api-public.odpt.org/api/v4/files/Toei/data/ToeiBus-GTFS.zip
+200 29964 https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/Chiyoda_ALLLINES.zip?date=current
+200 49303 https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/AllLines.zip?date=current
+200 33202 https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/KitaAllLines.zip?date=current
+200 78030 https://api-public.odpt.org/api/v4/files/odpt/TokyoTaitoCity/megurinCCBY40.zip?date=current
+200 12154 https://api.gtfs-data.jp/v2/organizations/arakawacity/feeds/sakura/files/feed.zip
+200 7807 https://api.gtfs-data.jp/v2/organizations/katsushikacity/feeds/sakura/files/feed.zip
+200 13933 https://www.city.itabashi.tokyo.jp/_res/projects/default_project/_page_/001/006/732/rinringo_gtfs_20260803.zip
+200 73419 https://shibuya-data.maps.arcgis.com/sharing/rest/content/items/185d0dbc980443b8b60e135349e2ae5e/data
+200 246730 https://gtfs-jp.buskita.com/fxc/gtfs.zip
+200 27773 https://www.city.daito.lg.jp/uploaded/attachment/41955.zip
+200 8137495 https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_kukan.txt
+200 7960095 https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan.txt
+200 582243 https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan_eki.geojson
+200 1090481 https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_eki.txt
+200 2082861 https://gtfs-gis.jp/railway_honsu/20240424_document.pdf
+200 36582 https://gtfs-gis.jp/railway_honsu/
+200 76947 https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07.html
+200 181123 https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07-v2_0.html
+200 27978 https://nlftp.mlit.go.jp/ksj/other/agreement.html
+200 1041980 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_11_GML.zip
+200 1245093 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_12_GML.zip
+200 1285531 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_13_GML.zip
+200 1142356 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_14_GML.zip
+200 501080 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_25_GML.zip
+200 653180 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_26_GML.zip
+200 703053 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_27_GML.zip
+200 1461224 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_28_GML.zip
+200 512855 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-22/N07-22_29_GML.zip
+200 27626591 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-11/N07-11_13_GML.zip
+200 3904084 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-11/N07-11_26_GML.zip
+200 4955938 https://nlftp.mlit.go.jp/ksj/gml/data/N07/N07-11/N07-11_27_GML.zip
+        0  2023-06-23 17:09   N07-22_11_GML/
+    14208  2023-03-10 09:00   N07-22_11_GML/KS-META-N07-22_11.xml
+  8293675  2023-03-10 09:00   N07-22_11_GML/N07-22_11.xml
+---------                     -------
+  8307883                     3 files
+ 39416024  2012-07-20 15:47   N07-11_13_GML/N07-11_13.shp
+    18172  2012-07-20 15:47   N07-11_13_GML/N07-11_13.shx
+ 52116151  2012-07-20 15:47   N07-11_13_GML/N07-11_13.xml
+---------                     -------
+ 92059143                     5 files
+  7511892  2012-07-20 15:47   N07-11_26_GML/N07-11_26.shp
+     7516  2012-07-20 15:47   N07-11_26_GML/N07-11_26.shx
+  9409004  2012-07-20 15:47   N07-11_26_GML/N07-11_26.xml
+---------                     -------
+ 17144168                     5 files
+  9608120  2012-07-20 15:47   N07-11_27_GML/N07-11_27.shp
+    10740  2012-07-20 15:47   N07-11_27_GML/N07-11_27.shx
+ 13353644  2012-07-20 15:47   N07-11_27_GML/N07-11_27.xml
+---------                     -------
+ 23276920                     5 files
+        0  2023-06-23 17:09   N07-22_12_GML/
+    14208  2023-03-10 09:00   N07-22_12_GML/KS-META-N07-22_12.xml
+  9425974  2023-03-10 09:00   N07-22_12_GML/N07-22_12.xml
+---------                     -------
+  9440182                     3 files
+        0  2023-06-23 17:09   N07-22_13_GML/
+    14208  2023-03-10 09:00   N07-22_13_GML/KS-META-N07-22_13.xml
+ 10638249  2023-03-10 09:00   N07-22_13_GML/N07-22_13.xml
+---------                     -------
+ 10652457                     3 files
+        0  2023-06-23 17:09   N07-22_14_GML/
+    14212  2023-03-10 09:00   N07-22_14_GML/KS-META-N07-22_14.xml
+  9143840  2023-03-10 09:00   N07-22_14_GML/N07-22_14.xml
+---------                     -------
+  9158052                     3 files
+        0  2023-06-23 17:09   N07-22_25_GML/
+    14208  2023-03-10 09:00   N07-22_25_GML/KS-META-N07-22_25.xml
+  3538418  2023-03-10 09:00   N07-22_25_GML/N07-22_25.xml
+---------                     -------
+  3552626                     3 files
+        0  2023-06-23 17:09   N07-22_26_GML/
+    14208  2023-03-10 09:00   N07-22_26_GML/KS-META-N07-22_26.xml
+  4615893  2023-03-10 09:00   N07-22_26_GML/N07-22_26.xml
+---------                     -------
+  4630101                     3 files
+        0  2023-06-23 17:09   N07-22_27_GML/
+    14208  2023-03-10 09:00   N07-22_27_GML/KS-META-N07-22_27.xml
+  5402954  2023-03-10 09:00   N07-22_27_GML/N07-22_27.xml
+---------                     -------
+  5417162                     3 files
+        0  2023-06-23 17:09   N07-22_28_GML/
+    14208  2023-03-10 09:00   N07-22_28_GML/KS-META-N07-22_28.xml
+  9776825  2023-03-10 09:00   N07-22_28_GML/N07-22_28.xml
+---------                     -------
+  9791033                     3 files
+        0  2023-06-23 17:09   N07-22_29_GML/
+    14208  2023-03-10 09:00   N07-22_29_GML/KS-META-N07-22_29.xml
+  3424835  2023-03-10 09:00   N07-22_29_GML/N07-22_29.xml
+---------                     -------
+  3439043                     3 files
