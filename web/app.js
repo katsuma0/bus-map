@@ -97,13 +97,15 @@ const CONFIG = {
   LARGE_FRAME_KM: 60,
   LARGE_FRAME: {
     TRAIL_MINUTES: 12,
-    TRAIL_ALPHA: 0.5,
-    TRAIL_CORE_W: 4,
-    TRAIL_SHOULDER_W: 9,
+    TRAIL_ALPHA: 0.35,
+    TRAIL_CORE_W: 3,
+    TRAIL_SHOULDER_W: 12,
+    TRAIL_SHOULDER_ALPHA: 0.35,
     TRAIL_SHOULDER_BANDS: 5,
+    TRAIL_LAYER_ALPHA: 0.65,
     TRAIL_BLEND: 'bounded',
     ROUTE_BLEND: 'bounded',
-    ROUTE_ALPHA: 0.3,
+    ROUTE_ALPHA: 0.2,
     // Two thousand halos in the old city add up even when the trails do
     // not, so the dots get smaller and dimmer too.
     BUS_HALO_ALPHA: 0.12,
@@ -119,6 +121,7 @@ const CONFIG = {
   // different modes still go white.
   TRAIL_BLEND: 'add',
   ROUTE_BLEND: 'add',
+  TRAIL_LAYER_ALPHA: 1,
   COLORS: {
     bg: '#07080c',
     water: '#1c1f27',
@@ -190,7 +193,8 @@ const KNOBS = [
 const pinned = new Set();
 for (const [param, key, fallback] of KNOBS) {
   if (!params.has(param)) continue;
-  CONFIG[key] = Number(params.get(param)) || fallback;
+  const v = Number(params.get(param));
+  CONFIG[key] = Number.isFinite(v) ? v : fallback;
   pinned.add(key);
 }
 // Applied after meta so a test can put the panel on either side of any city.
@@ -244,7 +248,9 @@ let bandPaths = null;      // [mode][band] Path2D, rebuilt each frame
 // ---------------------------------------------------------------- helpers
 
 function fetchJSON(url) {
-  const gz = CONFIG.GZIP || /\.gz$/i.test(url.split(/[?#]/)[0]);
+  const path = url.split(/[?#]/)[0];
+  // A .gz URL always inflates; a plain .json override on a gzip city does not.
+  const gz = /\.gz$/i.test(path) || (CONFIG.GZIP && !/\.json$/i.test(path));
   return fetch(url).then((r) => {
     if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
     // The static server hands .gz files over as application/gzip with no
@@ -446,6 +452,14 @@ function buildBase(basemap, network) {
     if (tracePolyline(g, ring)) g.closePath();
   }
   g.fill();
+  if (basemap.water.holes) {
+    g.fillStyle = C.bg;
+    g.beginPath();
+    for (const ring of basemap.water.holes) {
+      if (tracePolyline(g, ring)) g.closePath();
+    }
+    g.fill();
+  }
 
   g.strokeStyle = C.waterLine;
   const byClass = { river: [], canal: [], stream: [] };
@@ -489,16 +503,28 @@ function buildBase(basemap, network) {
     g.lineWidth = CONFIG.ROUTE_WIDTH;
   }
   if (CONFIG.ROUTE_BLEND === 'bounded') {
-    // One pass per mode, later modes on top, so a subway line under a bus
-    // corridor still shows its own colour instead of adding up to white.
+    // Each mode's shapes are unioned at full alpha in their own layer, then
+    // the layer lands once at ROUTE_ALPHA: thirty overlapping Bloor shapes
+    // read exactly as dim as one lone suburban line. Later modes on top so a
+    // subway line under a bus corridor keeps its own colour.
     g.globalCompositeOperation = 'source-over';
     for (let m = 0; m < modes.length; m++) {
-      g.strokeStyle = rgba(modes[m].color, CONFIG.ROUTE_ALPHA);
+      const ml = modeLayer(m);
+      ml.globalCompositeOperation = 'source-over';
+      ml.globalAlpha = 1;
+      ml.clearRect(0, 0, W, H);
+      ml.lineCap = 'round';
+      ml.lineJoin = 'round';
+      ml.lineWidth = CONFIG.ROUTE_WIDTH;
+      ml.strokeStyle = rgba(modes[m].color, 1);
+      ml.beginPath();
       for (let i = 0; i < network.shapes.length; i++) {
-        if (shapeMode[i] !== m) continue;
-        g.beginPath();
-        if (tracePolyline(g, network.shapes[i].xy)) g.stroke();
+        if (shapeMode[i] === m) tracePolyline(ml, network.shapes[i].xy);
       }
+      ml.stroke();
+      g.globalAlpha = CONFIG.ROUTE_ALPHA;
+      g.drawImage(ml.canvas, 0, 0);
+      g.globalAlpha = 1;
     }
     return c;
   }
@@ -641,28 +667,34 @@ function buildHudLayout() {
   // The mode breakdown line sits under the count and pushes the chart down.
   const shift = multi ? 30 : 0;
   const lines = Array.isArray(meta.attribution) && meta.attribution.length ? meta.attribution : CONFIG.ATTRIBUTION;
-  const attrY = 1562 + shift;
+  // A city can push the whole block down (meta.frame.hud_top) so it sits on
+  // water rather than on its downtown.
+  const top = (meta.frame && Number(meta.frame.hud_top)) || 1120;
+  const dy = top - 1120;
+  const attrY = 1562 + shift + dy;
   const lastBaseline = attrY + (lines.length - 1) * 23;
   hud = {
     dx,
     multi,
     lines,
     panelX: 40 + dx,
-    panelY: 1120,
+    panelY: top,
     panelW: 600,
     // 12 px under the last attribution baseline: with the three Tsukuba lines
     // that is the 1620 the frames were measured with.
-    panelH: lastBaseline + 12 - 1120,
+    panelH: lastBaseline + 12 - top,
     textX: 70 + dx,
-    clockY: 1275,
-    countY: 1342,
-    breakdownY: 1374,
-    breakdownFont: '500 24px Montserrat',
+    clockY: 1275 + dy,
+    countY: 1342 + dy,
+    breakdownY: 1374 + dy,
+    // Tabular digits on both count lines when the number changes every frame.
+    breakdownFont: multi ? '500 24px MontserratTnum' : '500 24px Montserrat',
+    countFont: multi ? '600 32px MontserratTnum' : '600 32px Montserrat',
     sparkX0: 70 + dx,
     sparkX1: 610 + dx,
-    sparkY0: 1380 + shift,
-    sparkY1: 1500 + shift,
-    axisY: 1530 + shift,
+    sparkY0: 1380 + shift + dy,
+    sparkY1: 1500 + shift + dy,
+    axisY: 1530 + shift + dy,
     attrY,
   };
   const maxTextW = 540;
@@ -676,11 +708,11 @@ function buildHudLayout() {
       return `${withCommas(peak)} ${peak === 1 ? m.singular : m.label}`;
     }).join(' · ');
     for (let size = 24; size >= 14; size--) {
-      hud.breakdownFont = `500 ${size}px Montserrat`;
+      hud.breakdownFont = `500 ${size}px MontserratTnum`;
       ctx.font = hud.breakdownFont;
       if (ctx.measureText(widest).width <= maxTextW) break;
     }
-    if (hud.breakdownFont !== '500 24px Montserrat') console.warn(`breakdown line "${widest}" needs ${hud.breakdownFont} to fit ${maxTextW} px`);
+    if (hud.breakdownFont !== '500 24px MontserratTnum') console.warn(`breakdown line "${widest}" needs ${hud.breakdownFont} to fit ${maxTextW} px`);
   }
   ctx.font = '400 18px Inter';
   for (const line of lines) {
@@ -749,7 +781,7 @@ async function init() {
   // face explicitly before waiting on document.fonts.ready.
   const faces = [
     '600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum',
-    '600 32px Montserrat', '500 24px Montserrat', '500 20px Montserrat', '400 18px Inter',
+    '600 32px Montserrat', '500 24px Montserrat', '600 32px MontserratTnum', '500 24px MontserratTnum', '500 20px Montserrat', '400 18px Inter',
   ];
   await Promise.all(faces.map((f) => document.fonts.load(f).catch(() => null)));
   await document.fonts.ready;
@@ -949,7 +981,7 @@ function drawHUD(T, running) {
   ctx.fillText(clockText(T), tx, hud.clockY);
 
   ctx.fillStyle = C.accent;
-  ctx.font = '600 32px Montserrat';
+  ctx.font = hud.countFont;
   if (hud.multi) {
     ctx.fillText(`${withCommas(running)} ${running === 1 ? 'vehicle' : 'vehicles'} running`, tx, hud.countY);
     ctx.fillStyle = C.breakdown;
@@ -1092,7 +1124,11 @@ function renderAt(T) {
       ml.clearRect(0, 0, W, H);
       strokeRibbons(ml, 1, m);
       ctx.globalCompositeOperation = 'lighter';
+      // The layer saturates to the full trail colour wherever four vehicles
+      // overlap; the ceiling keeps that below white once halos land on it.
+      ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
       ctx.drawImage(ml.canvas, 0, 0);
+      ctx.globalAlpha = 1;
     }
   } else {
     if (!sprite) strokeRibbons(layer, ts);

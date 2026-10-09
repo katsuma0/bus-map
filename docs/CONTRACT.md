@@ -20,6 +20,7 @@ renderer. Conversion used by the builders:
       },
       "water": {
         "poly": [[x,y,x,y,...], ...],    // outer rings of ponds/reservoirs/river polygons
+        "holes": [[x,y,...], ...],       // islands: interior rings above the area threshold, only present when there are any; the renderer fills them with the land colour
         "line": [{"c":"river"|"canal"|"stream", "xy":[x,y,...]}, ...]
       },
       "boundary": [[x,y,...]],           // Tsukuba city outline, one ring
@@ -181,7 +182,7 @@ must emit a byte-identical `data/built/basemap.json` (md5 d58a5eae00cd4270aa9a28
     routes[i].mode    = mode id, chosen by route_type; a route_type in no mode's list falls into the first mode and is reported in the build summary
     routes[i].feed    = feed id
 
-A trip is kept only if its shape's bounding box touches the city clip box
+A trip is kept only if its shape's bounding box touches the 9:16 frame (frame km_vertical and center_km, plus a 1 km margin, intersected with the clip box; the clip box alone when a config has no frame)
 (GO trains to Niagara or Kitchener are cut where they leave; a trip entirely
 outside is dropped and not counted in hist). `d` is rounded to 3 decimals
 (metres) and `xy` to 3 decimals unless the config's `decimals` says otherwise;
@@ -195,7 +196,7 @@ prints, per feed, trips on that date, and says plainly when a feed has none
 
 Gzip: when the config says `gzip: true`, the builders write
 `<built_dir>/network.json.gz` and `<built_dir>/basemap.json.gz` (gzip level
-6) and no plain file. The page fetches the `.gz` name when
+6, mtime 0 so a no-change rebuild is byte-identical) and no plain file. The page fetches the `.gz` name when
 `?city=<id>` names a config with gzip, and inflates with
 `new DecompressionStream('gzip')`. The static server must serve `.gz` files
 as `application/gzip` without a Content-Encoding header.
@@ -207,10 +208,10 @@ as `application/gzip` without a Content-Encoding header.
 * Title and attribution come from meta when present.
 * Modes: static route lines, trails and dot halos take the colour of the route's mode (`meta.modes[...]`); the halo is the mode's `trail` colour under the white 3 px core, and with one mode it stays white as today. With one mode everything renders as today. Ribbon trails keep one Path2D per (mode, band) and stroke per mode.
 * HUD with more than one mode: the count line reads `2,058 vehicles running` (thousands separator) and a second line below it, Montserrat 500 24 px `#9a9da6`, reads `1,842 buses · 120 streetcars · 96 trains` at baseline 1374 in mode order using each mode's `label` (singular form when the count is 1); its size is fixed once at init so the widest line the day can produce (every mode at its `hist_by_mode` peak) fits 540 px, and the page warns on the console when it had to shrink. The sparkline, axis labels and attribution shift down by 30 px when that line is present. With one mode the HUD is unchanged (`24 buses running`).
-* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 12 px (Tsukuba: 1608 + 12 = 1620, the panel bottom the frames were measured with), panel top stays 1120.
+* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 12 px. The panel top is `meta.frame.hud_top` (default 1120) and every HUD y moves with it, so a city can put the block on its water (the GTA uses 1200).
 * `hud_side: "right"` moves the whole panel block right by 400 px (panel x 440..1040, text x 470, sparkline x 470..1010); text stays left-aligned inside the panel.
 * Performance target: a GTA frame at the morning peak (roughly 3,000 running vehicles, 60k trips in the file) in under 400 ms including raster in headless Chromium. Trips are sorted by start time, so stop scanning once `t[0] > T`.
-* Large frames: when `meta.frame.km_vertical` is `CONFIG.LARGE_FRAME_KM` (60 km) or more, the trail values in `CONFIG.LARGE_FRAME` replace the ones in the visual spec: 12-minute trails at 30% alpha, 4 px core, 12 px shoulder on the 5 freshest bands. The literal Tsukuba values (25 min, 70%, 6 px, 22 px, 7 bands) were measured at 53 px/km with 27 buses; at 17 px/km with about 2,900 vehicles on headways shorter than the trail they fuse central Toronto into one white mass and cost 440 ms a frame, the profile keeps corridors legible at about 300 ms. A trail knob given in the query (`?trailmin=`, `?corew=`, ...) is pinned and wins over the profile. Frames under 60 km, Tsukuba included, are untouched.
+* Large frames (`CONFIG.LARGE_FRAME_KM` = 60 km and up) take `CONFIG.LARGE_FRAME`: 12-minute trails, `TRAIL_ALPHA` 0.35, 3 px core, 12 px shoulder at 0.35 on the 5 freshest bands, `TRAIL_BLEND` and `ROUTE_BLEND` `bounded`, `TRAIL_LAYER_ALPHA` 0.65, `ROUTE_ALPHA` 0.2, `BUS_HALO_ALPHA` 0.12, `BUS_HALO_R` 8, `BUS_CORE_R` 2.2. Bounded blending: each mode's trails are stroked with normal alpha into their own layer (so one mode never exceeds its own trail colour), the layer lands on the frame with `lighter` at `TRAIL_LAYER_ALPHA`; the dormant network is unioned per mode at full alpha in a layer and composited once at `ROUTE_ALPHA`, so thirty overlapping shapes are as dim as one. Frames under 60 km keep the additive `add` blend and the values above, so Tsukuba is unchanged. A query knob given explicitly is pinned against the profile; `?knob=0` is honoured.
 
 ### Video script
 
