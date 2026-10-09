@@ -26,16 +26,32 @@ jobs:
             "https://api.gtfs-data.jp/v2/organizations/tsuchiuracity/feeds/tsuchimarubus/files/feed.zip" || rm -f data/gtfs/tsuchimaru.zip
           for z in data/gtfs/*.zip; do echo "== $z"; unzip -l "$z"; done
       - name: Download OSM bus route relations around Tsukuba (ODbL)
+        # overpass-api.de refuses GitHub runner IPs, so walk a list of mirrors
+        # and keep going without OSM if every one of them says no.
+        continue-on-error: true
         run: |
-          set -eux
+          set -ux
           mkdir -p data/osm
           cat > /tmp/q.overpass <<'Q'
           [out:json][timeout:300];
           relation["route"="bus"](35.85,139.85,36.35,140.35);
           out body geom;
           Q
-          curl -fsS --retry 2 --data-urlencode "data@/tmp/q.overpass" \
-            https://overpass-api.de/api/interpreter -o /tmp/overpass.json
+          ok=0
+          for ep in https://overpass.kumi.systems/api/interpreter \
+                    https://overpass.private.coffee/api/interpreter \
+                    https://lz4.overpass-api.de/api/interpreter \
+                    https://overpass-api.de/api/interpreter \
+                    https://overpass.osm.jp/api/interpreter; do
+            echo "== $ep"
+            if curl -sS -A "bus-map-fetch/1.0 (github.com/katsuma0/bus-map)" -H "Accept: */*" \
+                 --max-time 400 --data-urlencode "data@/tmp/q.overpass" "$ep" \
+                 -o /tmp/overpass.json -w "http %{http_code}\n" && python3 -c "import json,sys; d=json.load(open('/tmp/overpass.json')); sys.exit(0 if d.get('elements') else 1)"; then
+              ok=1; break
+            fi
+            head -c 400 /tmp/overpass.json || true; echo
+          done
+          test "$ok" = 1
           python3 scripts/osm_routes_to_geojson.py /tmp/overpass.json data/osm/bus_routes.geojson
           ls -la data/osm
       - name: Commit fetched data back to the branch
