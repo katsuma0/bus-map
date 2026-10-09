@@ -20,7 +20,7 @@ import time
 
 import numpy as np
 import shapely
-from shapely.geometry import shape, box
+from shapely.geometry import shape, box, Polygon
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, ".."))
@@ -127,6 +127,12 @@ def build_water(feats, clip, proj, cfg):
                 if pg.area < cfg["min_water_area_km2"]:
                     continue
                 water["poly"].append(flat(pg.exterior.coords))
+                # Islands: holes in a lake polygon get filled back with land
+                # by the renderer. Only emitted when something qualifies, so
+                # a city without any keeps its old file byte for byte.
+                for ring in pg.interiors:
+                    if Polygon(ring).area >= cfg["min_water_area_km2"]:
+                        water.setdefault("holes", []).append(flat(ring.coords))
         elif gtype in ("LineString", "MultiLineString"):
             if p["class"] not in line_classes:
                 continue
@@ -203,7 +209,7 @@ def build(city):
     if city.get("gzip"):
         path = os.path.join(out_dir, "basemap.json.gz")
         with open(path, "wb") as fh:
-            fh.write(gzip.compress(text.encode("utf-8"), compresslevel=6))
+            fh.write(gzip.compress(text.encode("utf-8"), compresslevel=6, mtime=0))
     else:
         path = os.path.join(out_dir, "basemap.json")
         with open(path, "w", encoding="utf-8") as fh:

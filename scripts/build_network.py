@@ -348,6 +348,24 @@ def bbox_touches(b, clip):
     return b[0] <= clip[2] and b[2] >= clip[0] and b[1] <= clip[3] and b[3] >= clip[1]
 
 
+def frame_box(city):
+    """The 9:16 frame in degrees, with a 1 km margin, intersected with the
+    basemap clip; the clip alone when the config has no frame."""
+    frame = city.get("frame") or {}
+    kmv = frame.get("km_vertical")
+    if not kmv:
+        return city["clip"]
+    cx, cy = frame.get("center_km") or [0, 0]
+    lon0, lat0 = city["origin"]
+    kx = 111.32 * math.cos(math.radians(lat0))
+    ky = 110.574
+    hw = kmv * 9 / 16 / 2 + 1
+    hh = kmv / 2 + 1
+    box = (lon0 + (cx - hw) / kx, lat0 + (cy - hh) / ky, lon0 + (cx + hw) / kx, lat0 + (cy + hh) / ky)
+    c = city["clip"]
+    return (max(box[0], c[0]), max(box[1], c[1]), min(box[2], c[2]), min(box[3], c[3]))
+
+
 # ---------------------------------------------------------------- building
 
 
@@ -373,7 +391,10 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
     stats = {"id": feed.id, "trips_in_file": 0, "trips_on_date": 0, "skipped_short": 0, "dropped_clip": 0,
              "forced_monotone": 0, "time_fixes": 0, "shape_from_stops": 0, "blank_filled": 0,
              "spread": 0, "first": None, "last": None, "trips": [], "no_service": None}
-    clip = city["clip"]
+    # Trips are kept when they touch the frame itself, not the wider basemap
+    # clip: a DRT route in Oshawa is 12 km off the right edge and would only
+    # add to the running count. Without a frame the clip box is the test.
+    clip = frame_box(city)
     # Output precision in km. Three decimals (metres) is all the renderer can
     # use, but Tsukuba keeps its pre-v2 four: a rounding change shifts every
     # stroke by a fraction of a pixel and the Tsukuba frames must stay as they are.
@@ -712,7 +733,8 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     raw = json.dumps(out, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     with open(out_path, "wb") as fh:
-        fh.write(gzip.compress(raw, compresslevel=6) if out_path.endswith(".gz") else raw)
+        # mtime=0 keeps a no-change rebuild byte-identical in git.
+        fh.write(gzip.compress(raw, compresslevel=6, mtime=0) if out_path.endswith(".gz") else raw)
 
     print(f"\n{city['title']}  service date {meta['service_date']} ({meta['subtitle']})   feeds: {', '.join(wanted)}")
     print(f"{'feed':<11s}{'name':<36s}{'in file':>8s}{'on date':>8s}{'first':>7s}{'last':>7s}{'peak':>6s}{'at':>7s}  notes")

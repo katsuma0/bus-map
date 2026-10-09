@@ -30,15 +30,15 @@ Nights are sped up. Tsukuba has no bus between 23:10 and 5:50, so a minute with 
 | Brampton Transit | 5,312 |
 | York Region Transit | 4,798 |
 | GO Transit (train and bus) | 1,833 |
-| Durham Region Transit | 1,589 |
+| Durham Region Transit | 817, the rest runs east of the frame |
 | Oakville Transit | 1,535 |
 | Milton Transit | 540 |
 | UP Express | 160 |
 | Burlington Transit | 0, its feed starts 1 November |
 
-61,818 trips, 2,880 vehicles on the road at the 5:10 pm peak (2,519 buses, 223 streetcars at 5:22, 151 trains at 8:00 am). The frame is 64 km wide, Oakville to Pickering, Lake Ontario to Bradford, so Oshawa and Burlington's far ends are cut. TTC Line 5 and Line 6 are route type 0 in the feed and count as streetcars.
+61,046 trips once the ones that never enter the frame are dropped, and 2,848 vehicles on the road at the 5:10 pm peak (about 2,490 buses, 214 streetcars, 150 trains). The frame is 64 km wide, Oakville to Pickering, Lake Ontario to Bradford, so Oshawa and Burlington's far ends are cut. TTC Line 5 and Line 6 are route type 0 in the feed and count as streetcars.
 
-The feeds come from each agency's own open data URL through `.github/workflows/fetch-gta.yml`, which drops the 85 MB of zips on an orphan branch `data/gta-gtfs` rather than in this history. The built network is `data/gta/built/network.json.gz`, 17 MB, and the page inflates it in the browser. A dense city needs different drawing: trails and the dormant network blend per mode with normal alpha instead of adding, and dots are smaller, otherwise old Toronto burns to a white square. That switches on for any frame 60 km or taller.
+The feeds come from each agency's own open data URL through `.github/workflows/fetch-gta.yml`, which drops the 85 MB of zips on an orphan branch `data/gta-gtfs` rather than in this history. The built network is `data/gta/built/network.json.gz`, 17 MB, and the page inflates it in the browser. A dense city needs different drawing: trails and the dormant network blend per mode with normal alpha instead of adding, the dormant lines are drawn once per mode so thirty overlapping Bloor shapes are as dim as one, and the dots are smaller. Otherwise old Toronto burns to a white square. That switches on for any frame 60 km or taller, and the HUD moves down to sit on the lake.
 
 ## How it is built
 
