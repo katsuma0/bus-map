@@ -1,0 +1,134 @@
+{
+  "id": "kyoto-buses",
+  "title": "KYOTO BUSES",
+  "subtitle": "A weekday · bus routes as of 2010",
+  "service_date": "2026-10-16",
+  "origin": [
+    135.765,
+    34.995
+  ],
+  "frame": {
+    "km_vertical": 28,
+    "center_km": [
+      0,
+      0
+    ],
+    "hud_side": "left",
+    "hud_top": 1200
+  },
+  "clip": [
+    135.55,
+    34.82,
+    135.95,
+    35.18
+  ],
+  "gtfs_dir": "data/kyoto/gtfs",
+  "built_dir": "data/kyoto-buses/built",
+  "basemap_dir": "data/kyoto/basemap",
+  "basemap_city": "kyoto",
+  "gzip": true,
+  "boundary": null,
+  "feeds": [
+    {
+      "id": "model_bus",
+      "name": "Modelled buses",
+      "publisher": "MLIT National Land Numerical Information N07 (2010)",
+      "license": "non-commercial",
+      "modelled": true
+    },
+    {
+      "id": "model_tram",
+      "name": "Randen",
+      "publisher": "gtfs-gis.jp (Nishizawa)",
+      "license": "CC BY 4.0",
+      "modelled": true
+    }
+  ],
+  "optional_feeds": [],
+  "modes": [
+    {
+      "id": "bus",
+      "label": "buses",
+      "singular": "bus",
+      "route_types": [
+        3,
+        700,
+        701,
+        702,
+        704,
+        11
+      ],
+      "color": [
+        235,
+        170,
+        70
+      ],
+      "trail": [
+        255,
+        215,
+        130
+      ]
+    },
+    {
+      "id": "streetcar",
+      "label": "streetcars",
+      "singular": "streetcar",
+      "route_types": [
+        0,
+        5,
+        900
+      ],
+      "color": [
+        165,
+        110,
+        235
+      ],
+      "trail": [
+        205,
+        165,
+        255
+      ]
+    }
+  ],
+  "attribution": [
+    "Buses modelled from 国土数値情報 バスルート (MLIT, 2010 survey,",
+    "non-commercial) · Randen modelled from train counts, gtfs-gis.jp",
+    "Map: Overture Maps · © OpenStreetMap contributors",
+    "Made by Katsuma Onishi"
+  ],
+  "basemap": {
+    "simplify_km": {
+      "major": 0.006,
+      "minor": 0.01,
+      "rail": 0.008,
+      "water": 0.008,
+      "water_line": 0.012
+    },
+    "min_water_area_km2": 0.02,
+    "min_road_km": 0.04,
+    "water_lines": [
+      "river",
+      "canal"
+    ],
+    "min_stream_km": 1.0,
+    "water_polys": [
+      "water",
+      "lake",
+      "pond",
+      "reservoir",
+      "river",
+      "ocean",
+      "sea",
+      "bay",
+      "lagoon",
+      "harbour"
+    ]
+  },
+  "include_route_types": [
+    0,
+    3
+  ],
+  "theme": {
+    "accent": "#c9a4ff"
+  }
+}

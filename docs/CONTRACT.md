@@ -216,3 +216,164 @@ as `application/gzip` without a Content-Encoding header.
 ### Video script
 
 `--city <id>` appends `city=<id>` to the page query and defaults the output to `out/<id>.mp4` (Tsukuba keeps `out/tsukuba-buses.mp4` when no city is given).
+
+## v3: Japan, six videos (Tokyo, Kyoto, Osaka; trains and buses+streetcars)
+
+Everything above still holds. Tsukuba and GTA must render exactly as they
+do now (pixel-identical frames for Tsukuba frame 200 against
+`/tmp/claude-0/-home-user-bus-map/234234d3-649f-5553-9317-24ec9059d733/scratchpad/render2/frames/frame_00200.png`,
+and the GTA network/basemap gz files byte-identical after a rebuild).
+
+### Data situation (why most of this is modelled)
+
+Open timetables in the three cities: Toei only (subway, Arakawa tram,
+Nippori-Toneri liner, Toei Bus) plus small ward community buses in Tokyo,
+and Daito City's community bus in Osaka. Tokyo Metro, Kyoto City Bus and the
+big private bus operators need an ODPT key; JR East and Kyoto's subway are
+challenge-only; Osaka Metro, JR West and the private railways publish
+nothing. Two open national datasets fill the gaps:
+
+* `data/japan-src/honsu/unkohonsu2026_rosen_kukan.txt` (tab separated, utf-8,
+  CC BY 4.0, gtfs-gis.jp, A. Nishizawa): one row per line section with
+  `事業者名` (operator), `路線名` (operating line name, e.g. 山手線,
+  京浜東北・根岸線), `区間コード`, `起点駅`, `終点駅`, `距離` (m, from geometry),
+  `営業キロ`, `順方向運行本数2024` and `逆方向運行本数2024` (weekday trains per
+  day in the section's forward and reverse direction; the column name says
+  2024 but this is the 2026 edition), `geometry` (WKT LINESTRING, lon lat).
+  Sections are cut at stations where trains start or end. Weekday regular
+  trains only; trains that need a limited-express or reserved-seat fee are
+  excluded. `unkohonsu2026_rosen_eki.txt` has the stations per line with
+  points.
+* `data/japan-src/n07/n07_11_26.zip` and `n07_11_27.zip`: MLIT 国土数値情報
+  バスルート N07, 2011 edition (survey around July 2010), GML (JPGIS 2.1),
+  licence non-commercial. Per route feature: `N07_001` bus class code (1
+  private route bus, 2 public route bus, 3 community bus, 4 demand bus, 5
+  other), `N07_002` operator, `N07_003` route (系統), `N07_004` weekday
+  trips per day (average, real), `N07_005` Saturday, `N07_006` Sunday,
+  `N07_007` remarks; geometry is a gml:Curve whose posList is **lat lon**
+  order. The 2022 edition (`n07_<pref>.zip`) has no trip counts and is not used.
+
+### scripts/model_gtfs.py --area tokyo|kyoto|osaka|all
+
+Reads `cities/japan_model.json` and writes into the area's `gtfs_dir`:
+
+1. Copies of each `real_feeds` zip from `data/japan-src/gtfs/`.
+2. For each `shape_real_feeds` entry, a copy of that feed named `out` with a
+   `shapes.txt` added and `trips.shape_id` filled: each GTFS route (matched
+   by `route_long_name` or `route_short_name` through `route_names`) gets
+   one shape per direction built by chaining that operator/line's sections
+   from the counts file, oriented to run from the trip's first stop to its
+   last stop and trimmed to the stretch between them. Toei's train feed has
+   no shapes, and straight station-to-station lines look wrong on a map.
+3. `model_rail.zip` (every counted line touching `bbox` except
+   `exclude_operators` and `streetcar_lines`) and `model_tram.zip` (only
+   `streetcar_lines`). Model, deterministic, no randomness:
+   * Per (operator, line): order the sections into chains (a section follows
+     another when its 起点駅 equals the previous 終点駅; branches start new
+     chains), and orient each WKT so it runs 起点駅 to 終点駅 (compare the
+     ends against the station points).
+   * Per chain and direction, decompose the per-section counts into service
+     patterns by levels: for L = 1..max count, every maximal run of
+     consecutive sections with count >= L is one train running that run end
+     to end. Merge equal runs into (pattern, number of trains).
+   * Departure times: the n trains of a pattern leave at the times where
+     the weekday departure profile's cumulative share reaches (k + phase)/n,
+     k = 0..n-1, with phase in [0,1) from a stable hash of
+     (operator, line, pattern, direction) so lines do not all depart
+     together. The profile is the per-minute count of first departures of
+     the weekday (2026-10-16) trips in `profiles.rail` (Toei's real train
+     GTFS), smoothed over 15 minutes.
+   * Running time: section length / speed, speed by kind: subway or metro
+     operator 32 km/h, JR and private railways 42 km/h, monorail and
+     automated guideway 28 km/h, streetcar 13 km/h. Stops at every section
+     end with times proportional to distance (no dwell). The shape is the
+     chain's concatenated section geometry.
+   * GTFS output: agency per operator (agency_name = 事業者名), route per
+     line (route_long_name = 路線名, route_color from `cities/line_colors.json`
+     keyed "事業者名:路線名", falling back to a per-operator colour, then grey),
+     route_type 0 for streetcars, 1 for subway/metro operators, 2 for
+     everything else; one weekday service id with calendar Mon-Fri
+     20260101-20271231; feed_info.feed_publisher_name mentions the model.
+4. `model_bus.zip` from the N07 2010 file when the area has a `bus` block:
+   one route per (operator, 系統); weekday trips N07_004 rounded (minimum 1)
+   split as evenly as possible between the two directions of the curve;
+   departures spread by the weekday profile of `profiles.bus` (Toei Bus
+   real GTFS) the same way; 13 km/h; demand buses (class 4) and routes
+   longer than 60 km dropped; operators in `exclude_operators` dropped.
+   route_color "ffffff", route_type 3, agency per operator.
+5. A summary per area: lines and sections used, trains per weekday, peak
+   trains running and when, buses likewise, and a list of counted lines in
+   the bbox that got no colour from line_colors.json.
+
+### cities/line_colors.json
+
+`{"operators": {"JR東日本": "#...", ...}, "lines": {"JR東日本:山手線": "#80C241", ...}}`
+with the official line colours: JR East operating lines (Yamanote, Keihin-
+Tohoku, Chuo rapid, Chuo-Sobu local, Saikyo, Shonan-Shinjuku, Tokaido,
+Yokosuka/Sobu rapid, Joban, Keiyo, Musashino, Nambu, Yokohama, Tsurumi, ...),
+Tokyo Metro, Toei (for the shaped feed's route_color check), Tokyu per line,
+Odakyu, Keio, Seibu, Tobu, Keisei, Keikyu, Sotetsu, TX, Rinkai, Yurikamome,
+Tokyo Monorail, Tama Monorail, Yokohama Municipal; JR West (Osaka Loop,
+JR Kyoto/Kobe line = 東海道線, Hanwa, Yamatoji = 関西線, Gakkentoshi = 片町線,
+JR Tozai, Osaka Higashi, Sakurajima, Fukuchiyama, Nara, Kosei, Sagano =
+山陰線, ...), Osaka Metro (all nine), Kita-Osaka Kyuko, Kyoto Municipal
+Subway, Hankyu, Hanshin, Keihan, Nankai, Kintetsu, Eiden, Randen, Hankai,
+Osaka Monorail. Colours must be readable on #07080c (lighten very dark
+official colours such as Hibiya grey or Hankyu maroon toward luminance 45%
+and say so in a `notes` key).
+
+### City config additions (cities/<video>.json)
+
+    "basemap_city": "tokyo"          // build_basemap writes data/tokyo/built/basemap.json.gz once; every video of the area uses it
+    "subtitle": "A weekday in October"   // shown under the title instead of the date when present
+    "include_route_types": [1, 2, 12]     // routes of other types are dropped before anything else (Toei's feed carries both the subway and the tram)
+    "color_by": "route"              // static lines, trails and halos take routes[].color; default "mode"
+    "group_by": {"field": "agency", "groups": [{"id","label","match": [agency names]}], "default": {"id","label"}}
+    "theme": {"accent": "#9ad04a"}   // HUD count, sparkline
+    "render": {...}                  // optional CONFIG overrides passed through meta.render
+    feeds[].modelled: true           // carried to meta.feeds and routes[].modelled
+
+### network.json additions
+
+    meta.subtitle (from config when present), meta.theme, meta.render, meta.color_by,
+    meta.groups = [{"id","label"}] in config order then default,
+    meta.hist_by_group = {"jr": [1800], ...}, routes[i].group, routes[i].agency, routes[i].modelled.
+
+`routes[].color` keeps the GTFS route_color (lowercase hex, no #) as today.
+
+### build_basemap.py
+
+With `basemap_city`, write `data/<basemap_city>/built/basemap.json(.gz)`
+(origin = the area's first config's origin is wrong for the other video,
+so basemap coordinates for a shared basemap are in km from
+`cities/japan_model.json` area bbox centre and the network meta records
+`basemap_origin`; the renderer offsets the basemap by
+(basemap_origin - origin) in km). Build the three area basemaps from
+`data/<area>/basemap/*.geojson` (Overture; the extraction may still be
+running, wait for the file `.../scratchpad/ov_japan.done`).
+
+### Renderer additions (web/app.js)
+
+* `CITIES` gains the six ids: network `../data/<id>/built/network.json.gz`,
+  basemap `../data/<area>/built/basemap.json.gz`.
+* Basemap offset from `meta.basemap_origin` when present.
+* `meta.render` overrides CONFIG after the LARGE_FRAME profile and before
+  query knobs; `meta.theme.accent` overrides COLORS.accent.
+* `color_by: "route"`: the dormant network is drawn per route colour
+  (union per colour at full alpha into one layer, composited once at
+  ROUTE_ALPHA, so overlaps do not compound); trails are stroked per
+  (route colour, band) with normal `source-over` into one layer that lands
+  on the frame with `source-over` at TRAIL_LAYER_ALPHA (line colours stay
+  true where lines share track); halos use the route colour under a white
+  core. Quantise colours to the distinct route colours, not per route.
+* HUD with groups: count line `1,204 trains running` (mode label of the
+  single mode), breakdown line from `hist_by_group` in group order:
+  `412 JR · 380 Metro · 120 Toei · 292 private`, with the same fit-once and
+  tabular-digit rules as the mode breakdown. Groups win over modes when both
+  exist.
+* Subtitle from meta.subtitle.
+* Performance: under 400 ms per frame at the peak for every video.
+
+### Video script
+
+`--city tokyo-trains` etc. as today; outputs `out/<id>.mp4`.

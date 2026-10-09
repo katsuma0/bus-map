@@ -1,0 +1,193 @@
+{
+  "id": "tokyo-buses",
+  "title": "TOKYO BUSES",
+  "subtitle": "Friday 16th October",
+  "service_date": "2026-10-16",
+  "origin": [
+    139.765,
+    35.7
+  ],
+  "frame": {
+    "km_vertical": 36,
+    "center_km": [
+      0,
+      0
+    ],
+    "hud_side": "right",
+    "hud_top": 1200
+  },
+  "clip": [
+    139.3,
+    35.42,
+    140.1,
+    36.02
+  ],
+  "gtfs_dir": "data/tokyo/gtfs",
+  "built_dir": "data/tokyo-buses/built",
+  "basemap_dir": "data/tokyo/basemap",
+  "basemap_city": "tokyo",
+  "gzip": true,
+  "boundary": null,
+  "feeds": [
+    {
+      "id": "toei_bus",
+      "name": "Toei Bus",
+      "publisher": "Bureau of Transportation, Tokyo Metropolitan Government",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "toei_train_shaped",
+      "name": "Tokyo Sakura Tram",
+      "publisher": "Bureau of Transportation, Tokyo Metropolitan Government",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "chiyoda_kazaguruma",
+      "name": "Kazaguruma",
+      "publisher": "Chiyoda City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "bunkyo_bgururu",
+      "name": "B-guru",
+      "publisher": "Bunkyo City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "kita_kbus",
+      "name": "K-bus",
+      "publisher": "Kita City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "taito_megurin",
+      "name": "Megurin",
+      "publisher": "Taito City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "arakawa_sakura",
+      "name": "Sakura",
+      "publisher": "Arakawa City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "katsushika_sakura",
+      "name": "Sakura",
+      "publisher": "Katsushika City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "itabashi_rinrin",
+      "name": "Rinrin-go",
+      "publisher": "Itabashi City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "shibuya_hachiko",
+      "name": "Hachiko Bus",
+      "publisher": "Shibuya City",
+      "license": "CC BY 4.0"
+    },
+    {
+      "id": "minato_chiibus",
+      "name": "Chii Bus",
+      "publisher": "Fuji Express / Minato City",
+      "license": "open data"
+    },
+    {
+      "id": "model_tram",
+      "name": "Tokyu Setagaya Line",
+      "publisher": "gtfs-gis.jp (Nishizawa)",
+      "license": "CC BY 4.0",
+      "modelled": true
+    }
+  ],
+  "optional_feeds": [],
+  "modes": [
+    {
+      "id": "bus",
+      "label": "buses",
+      "singular": "bus",
+      "route_types": [
+        3,
+        700,
+        701,
+        702,
+        704,
+        11
+      ],
+      "color": [
+        60,
+        190,
+        180
+      ],
+      "trail": [
+        130,
+        240,
+        220
+      ]
+    },
+    {
+      "id": "streetcar",
+      "label": "streetcars",
+      "singular": "streetcar",
+      "route_types": [
+        0,
+        5,
+        900
+      ],
+      "color": [
+        255,
+        105,
+        160
+      ],
+      "trail": [
+        255,
+        170,
+        205
+      ]
+    }
+  ],
+  "attribution": [
+    "Toei Bus, Sakura Tram: GTFS, Tokyo Metropolitan Government (CC BY 4.0)",
+    "Ward community buses: GTFS from 9 city offices · Setagaya Line",
+    "modelled from train counts, gtfs-gis.jp · Map: Overture, © OSM",
+    "Made by Katsuma Onishi"
+  ],
+  "basemap": {
+    "simplify_km": {
+      "major": 0.006,
+      "minor": 0.01,
+      "rail": 0.008,
+      "water": 0.008,
+      "water_line": 0.012
+    },
+    "min_water_area_km2": 0.02,
+    "min_road_km": 0.04,
+    "water_lines": [
+      "river",
+      "canal"
+    ],
+    "min_stream_km": 1.0,
+    "water_polys": [
+      "water",
+      "lake",
+      "pond",
+      "reservoir",
+      "river",
+      "ocean",
+      "sea",
+      "bay",
+      "lagoon",
+      "harbour"
+    ]
+  },
+  "include_route_types": [
+    0,
+    3
+  ],
+  "theme": {
+    "accent": "#ff8fbf"
+  }
+}

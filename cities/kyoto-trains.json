@@ -1,0 +1,133 @@
+{
+  "id": "kyoto-trains",
+  "title": "KYOTO TRAINS",
+  "subtitle": "A weekday in October",
+  "service_date": "2026-10-16",
+  "origin": [
+    135.765,
+    34.965
+  ],
+  "frame": {
+    "km_vertical": 34,
+    "center_km": [
+      0,
+      0
+    ],
+    "hud_side": "left",
+    "hud_top": 1200
+  },
+  "clip": [
+    135.55,
+    34.82,
+    135.95,
+    35.18
+  ],
+  "gtfs_dir": "data/kyoto/gtfs",
+  "built_dir": "data/kyoto-trains/built",
+  "basemap_dir": "data/kyoto/basemap",
+  "basemap_city": "kyoto",
+  "gzip": true,
+  "boundary": null,
+  "feeds": [
+    {
+      "id": "model_rail",
+      "name": "Modelled lines",
+      "publisher": "gtfs-gis.jp (Nishizawa)",
+      "license": "CC BY 4.0",
+      "modelled": true
+    }
+  ],
+  "optional_feeds": [],
+  "modes": [
+    {
+      "id": "rail",
+      "label": "trains",
+      "singular": "train",
+      "route_types": [
+        1,
+        2,
+        12,
+        100,
+        109,
+        400,
+        405
+      ],
+      "color": [
+        150,
+        160,
+        190
+      ],
+      "trail": [
+        220,
+        225,
+        240
+      ]
+    }
+  ],
+  "attribution": [
+    "Trains modelled from 2026 weekday train counts per line section,",
+    "gtfs-gis.jp (CC BY 4.0)",
+    "Map: Overture Maps · © OpenStreetMap contributors",
+    "Made by Katsuma Onishi"
+  ],
+  "basemap": {
+    "simplify_km": {
+      "major": 0.006,
+      "minor": 0.01,
+      "rail": 0.008,
+      "water": 0.008,
+      "water_line": 0.012
+    },
+    "min_water_area_km2": 0.02,
+    "min_road_km": 0.04,
+    "water_lines": [
+      "river",
+      "canal"
+    ],
+    "min_stream_km": 1.0,
+    "water_polys": [
+      "water",
+      "lake",
+      "pond",
+      "reservoir",
+      "river",
+      "ocean",
+      "sea",
+      "bay",
+      "lagoon",
+      "harbour"
+    ]
+  },
+  "include_route_types": [
+    1,
+    2,
+    12
+  ],
+  "color_by": "route",
+  "group_by": {
+    "field": "agency",
+    "groups": [
+      {
+        "id": "jr",
+        "label": "JR",
+        "match": [
+          "JR西日本"
+        ]
+      },
+      {
+        "id": "subway",
+        "label": "subway",
+        "match": [
+          "京都市"
+        ]
+      }
+    ],
+    "default": {
+      "id": "private",
+      "label": "private"
+    }
+  },
+  "theme": {
+    "accent": "#ff7a45"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "_comment": "Inputs for scripts/model_gtfs.py, one block per area. Each area's gtfs_dir receives copies of the real feeds plus the modelled zips.",
+  "areas": {
+    "tokyo": {
+      "gtfs_dir": "data/tokyo/gtfs",
+      "bbox": [
+        139.3,
+        35.42,
+        140.1,
+        36.02
+      ],
+      "real_feeds": [
+        "toei_train",
+        "toei_bus",
+        "chiyoda_kazaguruma",
+        "bunkyo_bgururu",
+        "kita_kbus",
+        "taito_megurin",
+        "arakawa_sakura",
+        "katsushika_sakura",
+        "itabashi_rinrin",
+        "shibuya_hachiko",
+        "minato_chiibus"
+      ],
+      "shape_real_feeds": {
+        "toei_train": {
+          "out": "toei_train_shaped",
+          "operator": "東京都",
+          "route_names": {
+            "浅草線": "浅草線",
+            "三田線": "三田線",
+            "新宿線": "新宿線",
+            "大江戸線": "大江戸線",
+            "日暮里・舎人ライナー": "日暮里・舎人線",
+            "東京さくらトラム（都電荒川線）": "荒川線"
+          }
+        }
+      },
+      "rail": {
+        "exclude_operators": [
+          "東京都"
+        ],
+        "streetcar_lines": [
+          "東急電鉄:世田谷線"
+        ]
+      },
+      "bus": null
+    },
+    "kyoto": {
+      "gtfs_dir": "data/kyoto/gtfs",
+      "bbox": [
+        135.55,
+        34.82,
+        135.95,
+        35.18
+      ],
+      "real_feeds": [],
+      "shape_real_feeds": {},
+      "rail": {
+        "exclude_operators": [],
+        "streetcar_lines": [
+          "京福電気鉄道:嵐山本線",
+          "京福電気鉄道:北野線"
+        ]
+      },
+      "bus": {
+        "source": "data/japan-src/n07/n07_11_26.zip",
+        "exclude_operators": []
+      }
+    },
+    "osaka": {
+      "gtfs_dir": "data/osaka/gtfs",
+      "bbox": [
+        135.25,
+        34.42,
+        135.8,
+        34.98
+      ],
+      "real_feeds": [],
+      "shape_real_feeds": {},
+      "rail": {
+        "exclude_operators": [],
+        "streetcar_lines": [
+          "阪堺電気軌道:阪堺線",
+          "阪堺電気軌道:上町線"
+        ]
+      },
+      "bus": {
+        "source": "data/japan-src/n07/n07_11_27.zip",
+        "exclude_operators": []
+      }
+    }
+  },
+  "rail_counts": "data/japan-src/honsu/unkohonsu2026_rosen_kukan.txt",
+  "rail_stations": "data/japan-src/honsu/unkohonsu2026_rosen_eki.txt",
+  "profiles": {
+    "rail": "data/japan-src/gtfs/toei_train.zip",
+    "bus": "data/japan-src/gtfs/toei_bus.zip",
+    "profile_date": "20261016"
+  },
+  "line_colors": "cities/line_colors.json"
+}
