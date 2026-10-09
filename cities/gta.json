@@ -29,10 +29,10 @@
     {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 100, 109, 400], "color": [205, 165, 60], "trail": [255, 215, 120]}
   ],
   "attribution": [
-    "Data: GTFS from TTC, GO Transit, UP Express, YRT, MiWay, Brampton",
-    "Transit, DRT, Oakville, Burlington and Milton Transit",
+    "Data: GTFS from TTC, GO Transit, UP Express, YRT, MiWay,",
+    "Brampton Transit, DRT, Oakville, Burlington and Milton Transit",
     "Map: Overture Maps · © OpenStreetMap contributors",
     "Made by Katsuma Onishi"
   ],
-  "basemap": {"simplify_km": {"major": 0.012, "minor": 0.02, "rail": 0.015, "water": 0.015, "water_line": 0.02}, "min_water_area_km2": 0.05, "min_road_km": 0.08, "water_lines": ["river", "canal"], "min_stream_km": 1.0}
+  "basemap": {"simplify_km": {"major": 0.012, "minor": 0.02, "rail": 0.015, "water": 0.015, "water_line": 0.02}, "min_water_area_km2": 0.05, "min_road_km": 0.08, "water_polys": ["water", "lake", "pond", "reservoir", "river"], "water_lines": ["river", "canal"], "min_stream_km": 1.0}
 }

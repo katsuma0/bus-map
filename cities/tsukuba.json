@@ -9,7 +9,9 @@
   "built_dir": "data/built",
   "basemap_dir": "data/basemap",
   "gzip": false,
+  "decimals": {"xy": 4, "d": 4},
   "boundary": "tsukuba",
+  "osm_routes": "data/osm/bus_routes.geojson",
   "feeds": [
     {"id": "tsukubus", "name": "つくバス", "publisher": "つくば市", "license": "CC BY 4.0"},
     {"id": "tsukubane", "name": "つくばね号", "publisher": "つくば市", "license": "CC BY 4.0"}
@@ -25,5 +27,5 @@
     "Map: Overture Maps · © OpenStreetMap contributors",
     "Made by Katsuma Onishi"
   ],
-  "basemap": {"simplify_km": {"major": 0.003, "minor": 0.005, "rail": 0.004, "water": 0.004, "water_line": 0.006}, "min_water_area_km2": 0.004, "min_road_km": 0.02, "water_lines": ["river", "canal", "stream"], "min_stream_km": 0.3}
+  "basemap": {"simplify_km": {"major": 0.003, "minor": 0.005, "rail": 0.004, "water": 0.004, "water_line": 0.006, "osm": 0.004}, "min_water_area_km2": 0.004, "min_road_km": 0.02, "water_polys": ["water", "lake", "oxbow", "pond", "reservoir", "river", "stream", "canal", "ditch", "moat", "ocean", "sea"], "water_lines": ["river", "canal", "stream"], "min_stream_km": 0.3, "min_osm_km": 0.05}
 }

@@ -41,6 +41,8 @@ npm run render:canvas                       # out/tsukuba-buses.mp4, about 4 min
 npm run serve                               # then open the printed URL for the live version
 ```
 
+Other cities are a config in `cities/`: `python3 scripts/build_basemap.py --city gta`, `python3 scripts/build_network.py --city gta`, then `npm run render -- --city gta` writes `out/gta.mp4`, and the live page takes `web/index.html?city=gta`.
+
 The renderer expects Chromium at `/opt/pw-browsers/chromium`; set `PLAYWRIGHT_CHROMIUM` or edit the path at the top of `scripts/render_video.mjs` if yours is elsewhere. `docs/CONTRACT.md` has the JSON formats and the pixel spec.
 
 ## Data notes

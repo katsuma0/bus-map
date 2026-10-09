@@ -1,47 +1,47 @@
-"""Turn the GTFS-JP zips in data/gtfs/ into data/built/network.json.
+"""Turn the GTFS zips of one city into the network.json the renderer animates.
 
 The renderer only needs, for one service day, every trip as a list of
 (time, km-along-shape) pairs plus the shapes themselves, so this script
 resolves the calendar, snaps stops onto shapes, fills blank times and
 writes the compact structure described in docs/CONTRACT.md.
 
-    python3 scripts/build_network.py [--date 20261009] [--feeds tsukuba|all]
-                                     [--inspect TRIP_ID]
+    python3 scripts/build_network.py [--city tsukuba|gta] [--date 20261009]
+                                     [--feeds default|all|a,b] [--no-smooth]
+                                     [--inspect TRIP_ID] [--out PATH] [--gtfs-dir DIR]
+
+Everything city-specific (origin, clip box, feeds, modes, output directory,
+gzip) comes from cities/<id>.json; the command line only overrides it.
 """
 import argparse
 import csv
 import datetime as dt
+import gzip
 import io
 import json
 import math
 import os
 import re
+import resource
 import sys
+import time
 import zipfile
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-GTFS_DIR = os.path.join(HERE, "..", "data", "gtfs")
-OUT_PATH = os.path.join(HERE, "..", "data", "built", "network.json")
+ROOT = os.path.normpath(os.path.join(HERE, ".."))
 
-ORIGIN = (140.085, 36.09)
-KX = 111.32 * math.cos(math.radians(ORIGIN[1]))
-KY = 110.574
 DAY_START = 16200    # 04:30
 DAY_END = 102600     # 28:30, the next morning
 HIST_MINUTES = 1800  # 30 h of one-minute bins
-MAX_KM_FROM_ORIGIN = 40.0
 
-# Attribution is per publisher, not per the vendor named in feed_info, so it is
-# pinned here. Feeds not listed fall back to feed_info and are treated as
-# outside Tsukuba (only included with --feeds all).
-FEEDS = {
-    "tsukubus": {"publisher": "つくば市", "license": "CC BY 4.0", "tsukuba": True},
-    "tsukubane": {"publisher": "つくば市", "license": "CC BY 4.0", "tsukuba": True},
-    "tsuchimaru": {"publisher": "土浦市", "license": "CC BY 4.0", "tsukuba": False},
-}
+# The projection is process-wide state set from the city config in main();
+# the Tsukuba values keep the module importable on its own.
+ORIGIN = (140.085, 36.09)
+KX = 111.32 * math.cos(math.radians(ORIGIN[1]))
+KY = 110.574
 
 # Stops are matched to a shape by a monotone chain over near-optimal
 # candidates; these bound what counts as a candidate.
@@ -50,33 +50,66 @@ CAND_MAX = 8
 MONOTONE_PENALTY_KM = 1.0
 
 
+def set_origin(origin):
+    global ORIGIN, KX, KY
+    ORIGIN = (float(origin[0]), float(origin[1]))
+    KX = 111.32 * math.cos(math.radians(ORIGIN[1]))
+    KY = 110.574
+
+
 def to_km(lon, lat):
     return (lon - ORIGIN[0]) * KX, (lat - ORIGIN[1]) * KY
+
+
+def load_city(city_id):
+    with open(os.path.join(ROOT, "cities", f"{city_id}.json"), encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 # ---------------------------------------------------------------- reading
 
 
 class Feed:
+    """One GTFS zip. Small tables come out as lists of dicts; stop_times and
+    shapes come out as string DataFrames, because TTC's stop_times alone is
+    207 MB and a dict per row would need gigabytes and minutes to build."""
+
     def __init__(self, feed_id, path):
         self.id = feed_id
         self.path = path
-        self.tables = {}
-        with zipfile.ZipFile(path) as zf:
-            for info in zf.infolist():
-                base, ext = os.path.splitext(os.path.basename(info.filename))
-                if ext.lower() not in (".txt", ".csv") or not base:
-                    continue
-                with zf.open(info) as fh:
-                    text = io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")
-                    rows = list(csv.DictReader(text))
-                # Header cells sometimes carry stray spaces or quotes.
-                self.tables[base] = [
-                    {(k or "").strip(): (v or "").strip() for k, v in r.items()} for r in rows
-                ]
+        self.zf = zipfile.ZipFile(path)
+        self.members = {}
+        for info in self.zf.infolist():
+            # GTFS-JP files may be .txt or .csv and may sit in a folder.
+            base, ext = os.path.splitext(os.path.basename(info.filename))
+            if ext.lower() in (".txt", ".csv") and base and base not in self.members:
+                self.members[base] = info
 
     def table(self, name):
-        return self.tables.get(name, [])
+        info = self.members.get(name)
+        if info is None:
+            return []
+        with self.zf.open(info) as fh:
+            text = io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")
+            rows = list(csv.DictReader(text))
+        # Header cells sometimes carry stray spaces or quotes.
+        return [{(k or "").strip(): (v or "").strip() for k, v in r.items()} for r in rows]
+
+    def frame(self, name, columns):
+        """The named columns as strings, blank where a column is missing."""
+        info = self.members.get(name)
+        if info is None:
+            return pd.DataFrame({c: pd.Series(dtype=object) for c in columns})
+        wanted = set(columns)
+        with self.zf.open(info) as fh:
+            df = pd.read_csv(fh, dtype=str, usecols=lambda c: c.strip() in wanted, keep_default_na=False,
+                             na_filter=False, encoding="utf-8-sig", skipinitialspace=True)
+        df.columns = [c.strip() for c in df.columns]
+        for c in columns:
+            if c not in df.columns:
+                df[c] = ""
+        # Rows shorter than the header leave NaN behind even with na_filter off.
+        return df[list(columns)].fillna("")
 
 
 def parse_time(s):
@@ -88,6 +121,15 @@ def parse_time(s):
         parts.append("0")
     h, m, sec = (int(p) for p in parts)
     return h * 3600 + m * 60 + sec
+
+
+def parse_times(series):
+    """Vectorised parse_time: float seconds with NaN for blank or malformed cells."""
+    m = series.str.strip().str.extract(r"^(\d+):(\d{1,2})(?::(\d{1,2}))?$")
+    h = pd.to_numeric(m[0])
+    mi = pd.to_numeric(m[1])
+    sec = pd.to_numeric(m[2]).fillna(0.0)
+    return (h * 3600 + mi * 60 + sec).to_numpy(dtype=float)
 
 
 def active_services(feed, date):
@@ -111,6 +153,37 @@ def active_services(feed, date):
         elif row.get("exception_type") == "2":
             active.discard(row["service_id"])
     return active
+
+
+def service_span(feed):
+    """'2026-11-01 to 2026-12-19': the dates the feed has any service at all."""
+    days = []
+    for row in feed.table("calendar"):
+        days += [row.get("start_date", ""), row.get("end_date", "")]
+    days += [row.get("date", "") for row in feed.table("calendar_dates") if row.get("exception_type") == "1"]
+    days = sorted(d for d in days if len(d) == 8)
+    if not days:
+        return "no calendar at all"
+    fmt = lambda d: f"{d[:4]}-{d[4:6]}-{d[6:]}"
+    return f"{fmt(days[0])} to {fmt(days[-1])}"
+
+
+def grouped(keys, *order):
+    """Stable sort rows by key then by `order` columns; return (perm, {key: (start, end)}).
+
+    Ranges index into arrays permuted by `perm`, so each group is a contiguous
+    slice and no per-row Python objects are created.
+    """
+    codes, uniq = pd.factorize(keys)
+    if len(codes) == 0:
+        return np.zeros(0, dtype=np.int64), {}
+    perm = np.lexsort(tuple(reversed(order)) + (codes,))
+    sorted_codes = codes[perm]
+    cuts = np.flatnonzero(np.diff(sorted_codes)) + 1
+    starts = np.concatenate([[0], cuts])
+    ends = np.concatenate([cuts, [len(perm)]])
+    ranges = {uniq[sorted_codes[s]]: (int(s), int(e)) for s, e in zip(starts, ends)}
+    return perm, ranges
 
 
 # ---------------------------------------------------------------- geometry
@@ -203,13 +276,12 @@ def project_stops(xy, cum, stops_xy):
     return d, sum(forced)
 
 
-def fill_times(times, d):
-    """Fill None entries by linear interpolation along shape distance.
+def fill_times(t, d):
+    """Fill NaN entries by linear interpolation along shape distance.
 
     Leading or trailing blanks (not valid GTFS, but seen in the wild) are
     extrapolated at the speed of the nearest filled interval.
     """
-    t = np.array([np.nan if v is None else float(v) for v in times])
     known = np.flatnonzero(~np.isnan(t))
     if len(known) == len(t):
         return t
@@ -271,34 +343,45 @@ def split_route_name(short, long):
     return short.strip(), long
 
 
+def bbox_touches(b, clip):
+    """b and clip are (west, south, east, north) in degrees."""
+    return b[0] <= clip[2] and b[2] >= clip[0] and b[1] <= clip[3] and b[3] >= clip[1]
+
+
 # ---------------------------------------------------------------- building
 
 
-def expand_frequencies(feed, trips_by_id, stop_times):
+def expand_frequencies(feed, trips_by_id, first_time):
     """Return extra (trip_id, template_trip_id, offset_seconds) for frequencies.txt."""
     extra = []
     for row in feed.table("frequencies"):
         tid = row.get("trip_id")
-        if tid not in trips_by_id or tid not in stop_times:
+        if tid not in trips_by_id or first_time.get(tid) is None:
             continue
         start, end, headway = parse_time(row.get("start_time")), parse_time(row.get("end_time")), int(row.get("headway_secs") or 0)
         if start is None or end is None or headway <= 0:
             continue
-        first = next((parse_time(r.get("departure_time") or r.get("arrival_time")) for r in stop_times[tid]), None)
-        if first is None:
-            continue
         n = 0
         while start + n * headway < end:
-            extra.append((f"{tid}#{n}", tid, start + n * headway - first))
+            extra.append((f"{tid}#{n}", tid, start + n * headway - first_time[tid]))
             n += 1
     return extra
 
 
-def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True):
+def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=True):
     """Append this feed's routes/shapes/trips to the shared lists; return stats."""
-    stats = {"id": feed.id, "trips_in_file": 0, "trips_on_date": 0, "skipped_short": 0,
+    stats = {"id": feed.id, "trips_in_file": 0, "trips_on_date": 0, "skipped_short": 0, "dropped_clip": 0,
              "forced_monotone": 0, "time_fixes": 0, "shape_from_stops": 0, "blank_filled": 0,
-             "spread": 0, "first": None, "last": None, "trips": []}
+             "spread": 0, "first": None, "last": None, "trips": [], "no_service": None}
+    clip = city["clip"]
+    # Output precision in km. Three decimals (metres) is all the renderer can
+    # use, but Tsukuba keeps its pre-v2 four: a rounding change shifts every
+    # stroke by a fraction of a pixel and the Tsukuba frames must stay as they are.
+    decimals = city.get("decimals") or {}
+    xy_decimals = int(decimals.get("xy", 3))
+    d_decimals = int(decimals.get("d", 3))
+    type_to_mode = {rt: m["id"] for m in city["modes"] for rt in m["route_types"]}
+    first_mode = city["modes"][0]["id"]
 
     agency = feed.table("agency")
     info = feed.table("feed_info")
@@ -306,72 +389,107 @@ def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True
     stats["version"] = info[0].get("feed_version", "") if info else ""
     stats["publisher_in_feed"] = info[0].get("feed_publisher_name", "") if info else ""
 
-    stops = {}
+    stops, stop_xy = {}, {}
     for r in feed.table("stops"):
         try:
-            stops[r["stop_id"]] = (float(r["stop_lon"]), float(r["stop_lat"]), r.get("stop_name", ""))
+            lon, lat = float(r["stop_lon"]), float(r["stop_lat"])
         except (KeyError, ValueError):
             continue
-
-    raw_shapes = defaultdict(list)
-    for r in feed.table("shapes"):
-        try:
-            raw_shapes[r["shape_id"]].append((int(float(r["shape_pt_sequence"])), float(r["shape_pt_lon"]), float(r["shape_pt_lat"])))
-        except (KeyError, ValueError):
-            continue
-    shape_km = {}
-    for sid, pts in raw_shapes.items():
-        pts.sort()
-        xy, cum = polyline_km(np.array([(p[1], p[2]) for p in pts]))
-        if len(xy) >= 2:
-            shape_km[sid] = (xy, cum)
-
-    stop_times = defaultdict(list)
-    for r in feed.table("stop_times"):
-        stop_times[r["trip_id"]].append(r)
-    for rows in stop_times.values():
-        rows.sort(key=lambda r: int(float(r.get("stop_sequence") or 0)))
+        stops[r["stop_id"]] = (lon, lat, r.get("stop_name", ""))
+        stop_xy[r["stop_id"]] = to_km(lon, lat)
 
     active = active_services(feed, date)
     trips = feed.table("trips")
     stats["trips_in_file"] = len(trips)
     trips_by_id = {t["trip_id"]: t for t in trips}
+    active_ids = {t["trip_id"] for t in trips if t.get("service_id") in active}
+    if not active_ids:
+        stats["no_service"] = service_span(feed)
+        return stats
+
+    # Only the active trips' stop rows are kept, which for TTC cuts 5 million
+    # rows to the one weekday's worth before any string work happens.
+    st = feed.frame("stop_times", ["trip_id", "arrival_time", "departure_time", "stop_id", "stop_sequence"])
+    st = st[st["trip_id"].str.strip().isin(active_ids)]
+    st = st.assign(trip_id=st["trip_id"].str.strip(), stop_id=st["stop_id"].str.strip())
+    st = st[st["stop_id"].isin(stops.keys())]
+    seq = pd.to_numeric(st["stop_sequence"].str.strip(), errors="coerce").fillna(0).to_numpy(dtype=np.int64)
+    perm, st_ranges = grouped(st["trip_id"].to_numpy(), seq)
+    st_stop = st["stop_id"].to_numpy()[perm]
+    st_arr = parse_times(st["arrival_time"])[perm]
+    st_dep = parse_times(st["departure_time"])[perm]
+    del st, seq, perm
+
+    def first_time(tid):
+        rng = st_ranges.get(tid)
+        if rng is None:
+            return None
+        a = rng[0]
+        v = st_dep[a] if not np.isnan(st_dep[a]) else st_arr[a]
+        return None if np.isnan(v) else int(v)
 
     # Frequency-based trips become ordinary trips with shifted times; the trip
     # named in frequencies.txt is only a template and is not scheduled itself.
-    freq = [x for x in expand_frequencies(feed, trips_by_id, stop_times) if trips_by_id[x[1]]["service_id"] in active]
+    freq = [x for x in expand_frequencies(feed, trips_by_id, {t: first_time(t) for t in active_ids})]
     templates = {x[1] for x in freq}
-    schedule = [(t["trip_id"], t["trip_id"], 0) for t in trips if t["service_id"] in active and t["trip_id"] not in templates]
+    schedule = [(t["trip_id"], t["trip_id"], 0) for t in trips if t["trip_id"] in active_ids and t["trip_id"] not in templates]
     schedule += freq
+
+    used_shapes = {trips_by_id[tmpl].get("shape_id", "") for _tid, tmpl, _off in schedule}
+    sh = feed.frame("shapes", ["shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"])
+    sh = sh.assign(shape_id=sh["shape_id"].str.strip())
+    sh = sh[sh["shape_id"].isin(used_shapes)]
+    sh_seq = pd.to_numeric(sh["shape_pt_sequence"], errors="coerce").to_numpy(dtype=float)
+    sh_lon = pd.to_numeric(sh["shape_pt_lon"], errors="coerce").to_numpy(dtype=float)
+    sh_lat = pd.to_numeric(sh["shape_pt_lat"], errors="coerce").to_numpy(dtype=float)
+    ok = ~(np.isnan(sh_seq) | np.isnan(sh_lon) | np.isnan(sh_lat))
+    sh_seq, sh_lon, sh_lat = np.trunc(sh_seq[ok]), sh_lon[ok], sh_lat[ok]
+    perm, sh_ranges = grouped(sh["shape_id"].to_numpy()[ok], sh_seq, sh_lon, sh_lat)
+    sh_lon, sh_lat = sh_lon[perm], sh_lat[perm]
+    del sh, sh_seq, perm
+    shape_km = {}
+    for sid, (a, b) in sh_ranges.items():
+        lonlat = np.column_stack([sh_lon[a:b], sh_lat[a:b]])
+        xy, cum = polyline_km(lonlat)
+        if len(xy) >= 2:
+            bbox = (float(lonlat[:, 0].min()), float(lonlat[:, 1].min()), float(lonlat[:, 0].max()), float(lonlat[:, 1].max()))
+            shape_km[sid] = (xy, cum, bbox)
 
     route_rows = {r["route_id"]: r for r in feed.table("routes")}
     pattern_cache = {}
 
     for trip_id, template_id, offset in schedule:
         trip = trips_by_id[template_id]
-        rows = [r for r in stop_times.get(template_id, []) if r.get("stop_id") in stops]
-        if len(rows) < 2:
+        rng = st_ranges.get(template_id)
+        if rng is None or rng[1] - rng[0] < 2:
             stats["skipped_short"] += 1
             continue
-
-        stop_ids = tuple(r["stop_id"] for r in rows)
-        stops_xy = np.array([to_km(stops[s][0], stops[s][1]) for s in stop_ids])
+        a, b = rng
+        stop_ids = tuple(st_stop[a:b])
+        stops_xy = np.array([stop_xy[s] for s in stop_ids])
 
         shape_id = trip.get("shape_id", "")
         if shape_id in shape_km:
             key = (feed.id, "shape", shape_id)
-            xy, cum = shape_km[shape_id]
+            xy, cum, bbox = shape_km[shape_id]
         else:
             # No usable shape: the stop sequence itself becomes the polyline.
             key = (feed.id, "stops") + stop_ids
-            xy, cum = polyline_km(np.array([(stops[s][0], stops[s][1]) for s in stop_ids]))
+            lonlat = np.array([stops[s][:2] for s in stop_ids])
+            xy, cum = polyline_km(lonlat)
             if len(xy) < 2:
                 stats["skipped_short"] += 1
                 continue
+            bbox = (float(lonlat[:, 0].min()), float(lonlat[:, 1].min()), float(lonlat[:, 0].max()), float(lonlat[:, 1].max()))
             stats["shape_from_stops"] += 1
+        # A trip that never enters the clip box (GO's Kitchener locals, say)
+        # would only cost bytes and inflate the running count.
+        if not bbox_touches(bbox, clip):
+            stats["dropped_clip"] += 1
+            continue
         if key not in shape_index:
             shape_index[key] = len(shapes)
-            shapes.append({"xy": np.round(xy.ravel(), 4).tolist(), "cum": np.round(cum, 4).tolist()})
+            shapes.append({"xy": np.round(xy.ravel(), xy_decimals).tolist(), "cum": np.round(cum, 4).tolist()})
         s_idx = shape_index[key]
 
         pkey = (key, stop_ids)
@@ -381,11 +499,10 @@ def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True
         d_stop, forced = pattern_cache[pkey]
         stats["forced_monotone"] += forced
 
-        arr = [parse_time(r.get("arrival_time")) for r in rows]
-        dep = [parse_time(r.get("departure_time")) for r in rows]
-        arr = [a if a is not None else b for a, b in zip(arr, dep)]
-        dep = [b if b is not None else a for a, b in zip(arr, dep)]
-        stats["blank_filled"] += sum(1 for a in arr if a is None)
+        arr, dep = st_arr[a:b], st_dep[a:b]
+        arr = np.where(np.isnan(arr), dep, arr)
+        dep = np.where(np.isnan(dep), arr, dep)
+        stats["blank_filled"] += int(np.isnan(arr).sum())
         arr_f = fill_times(arr, d_stop)
         dep_f = fill_times(dep, d_stop)
         if arr_f is None or dep_f is None:
@@ -395,13 +512,13 @@ def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True
             arr_f, dep_f, moved = spread_same_minute(arr_f, dep_f, d_stop)
             stats["spread"] += moved
 
-        # A stop where the bus waits contributes two entries at the same d.
+        # A stop where the vehicle waits contributes two entries at the same d.
         t_list, d_list = [], []
-        for a, b, dd in zip(arr_f, dep_f, d_stop):
-            a, b = int(round(a)) + offset, int(round(b)) + offset
-            t_list.append(a); d_list.append(dd)
-            if b > a:
-                t_list.append(b); d_list.append(dd)
+        for a_, b_, dd in zip(arr_f, dep_f, d_stop):
+            a_, b_ = int(round(a_)) + offset, int(round(b_)) + offset
+            t_list.append(a_); d_list.append(dd)
+            if b_ > a_:
+                t_list.append(b_); d_list.append(dd)
         t_arr = np.array(t_list, dtype=np.int64)
         fixed = np.maximum.accumulate(t_arr)
         stats["time_fixes"] += int((fixed != t_arr).sum())
@@ -413,16 +530,21 @@ def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True
             rr = route_rows.get(route_id, {})
             short, long = split_route_name(rr.get("route_short_name", ""), rr.get("route_long_name", "") or route_id)
             color = (rr.get("route_color") or "2f6bff").lower()
+            rt = rr.get("route_type", "").strip()
+            mode = type_to_mode.get(int(rt)) if rt.isdigit() else None
+            if mode is None:
+                unknown_types[(feed.id, rt)].append(route_id)
+                mode = first_mode
             route_index[rkey] = len(routes)
-            routes.append({"id": rkey, "short": short, "long": long, "color": color, "feed": feed.id})
+            routes.append({"id": rkey, "short": short, "long": long, "color": color, "feed": feed.id, "mode": mode})
 
         stats["trips"].append({
             "r": route_index[rkey], "s": s_idx,
-            "t": t_arr.tolist(), "d": np.round(np.array(d_list), 4).tolist(),
+            "t": t_arr.tolist(), "d": np.round(np.array(d_list), d_decimals).tolist(),
             "_id": trip_id, "_stops": [stops[s][2] for s in stop_ids],
         })
         stats["trips_on_date"] += 1
-        t0, t1 = int(t_arr[0]), int(t_arr[-1])
+        t0 = int(t_arr[0])
         stats["first"] = t0 if stats["first"] is None else min(stats["first"], t0)
         stats["last"] = t0 if stats["last"] is None else max(stats["last"], t0)
 
@@ -430,7 +552,7 @@ def build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=True
 
 
 def histogram(trips):
-    """Running buses per minute: trip is running when t[0] <= T <= t[-1]."""
+    """Running vehicles per minute: trip is running when t[0] <= T <= t[-1]."""
     hist = np.zeros(HIST_MINUTES, dtype=np.int64)
     for tr in trips:
         lo = math.ceil(tr["t"][0] / 60)
@@ -456,14 +578,17 @@ def ordinal(n):
     return f"{n}{suf}"
 
 
-def validate(shapes, trips):
+def validate(shapes, trips, clip):
+    w, s = to_km(clip[0], clip[1])
+    e, n = to_km(clip[2], clip[3])
     for i, sh in enumerate(shapes):
         xy = np.array(sh["xy"]).reshape(-1, 2)
         cum = np.array(sh["cum"])
         assert len(xy) >= 2, f"shape {i} has {len(xy)} points"
         assert len(cum) == len(xy), f"shape {i} cum/xy length mismatch"
         assert np.all(np.diff(cum) >= 0), f"shape {i} cum decreases"
-        assert np.all(np.hypot(xy[:, 0], xy[:, 1]) <= MAX_KM_FROM_ORIGIN), f"shape {i} has a point > {MAX_KM_FROM_ORIGIN} km from origin"
+        lo, hi = xy.min(axis=0), xy.max(axis=0)
+        assert lo[0] <= e and hi[0] >= w and lo[1] <= n and hi[1] >= s, f"shape {i} lies outside the clip box"
     for i, tr in enumerate(trips):
         t, d = tr["t"], tr["d"]
         assert len(t) == len(d) >= 2, f"trip {i} has {len(t)} times / {len(d)} distances"
@@ -474,48 +599,72 @@ def validate(shapes, trips):
         assert 0 <= tr["r"] and 0 <= tr["s"] < len(shapes), f"trip {i} bad indices"
 
 
+def parse_date(s):
+    for fmt in ("%Y%m%d", "%Y-%m-%d"):
+        try:
+            return dt.datetime.strptime(s, fmt).date()
+        except ValueError:
+            pass
+    sys.exit(f"bad date {s!r}; use YYYYMMDD")
+
+
 def main():
+    t_start = time.time()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--date", default="20261009", help="service date YYYYMMDD (default 20261009)")
-    ap.add_argument("--feeds", default="tsukuba", help="'tsukuba' (default), 'all', or comma-separated zip base names")
-    ap.add_argument("--out", default=OUT_PATH, help="output path (default data/built/network.json)")
-    ap.add_argument("--gtfs-dir", default=GTFS_DIR, help="directory of GTFS zips (default data/gtfs)")
+    ap.add_argument("--city", default="tsukuba", help="city id, reads cities/<id>.json (default tsukuba)")
+    ap.add_argument("--date", default=None, help="service date YYYYMMDD (default: the config's service_date)")
+    ap.add_argument("--feeds", default=None, help="'default' (the config's feeds), 'all' (plus optional_feeds), or comma-separated zip base names")
+    ap.add_argument("--out", default=None, help="output path (default <built_dir>/network.json, .gz when the config says gzip)")
+    ap.add_argument("--gtfs-dir", default=None, help="directory of GTFS zips (default: the config's gtfs_dir)")
     ap.add_argument("--no-smooth", action="store_true", help="keep raw minute-resolution times for stops that share a minute")
-    ap.add_argument("--inspect", default=None, help="print stop-by-stop times and distances for this trip_id")
+    ap.add_argument("--inspect", default=None, help="print stop-by-stop times and distances for these comma-separated trip_ids")
     args = ap.parse_args()
 
-    date = dt.datetime.strptime(args.date, "%Y%m%d").date()
-    gtfs_dir = args.gtfs_dir
+    city = load_city(args.city)
+    set_origin(city["origin"])
+    date = parse_date(args.date or city["service_date"])
+    gtfs_dir = args.gtfs_dir or os.path.join(ROOT, city["gtfs_dir"])
     zips = sorted(f for f in os.listdir(gtfs_dir) if f.lower().endswith(".zip"))
     all_ids = [os.path.splitext(f)[0] for f in zips]
-    if args.feeds == "all":
-        wanted = all_ids
-    elif args.feeds == "tsukuba":
-        wanted = [f for f in all_ids if FEEDS.get(f, {}).get("tsukuba")]
+    configured = {f["id"]: f for f in city["feeds"] + city.get("optional_feeds", [])}
+    default_ids = [f["id"] for f in city["feeds"]]
+    if args.feeds in (None, "default", city["id"]):
+        wanted = default_ids
+    elif args.feeds == "all":
+        wanted = list(configured)
     else:
         wanted = [f.strip() for f in args.feeds.split(",") if f.strip()]
     missing = [f for f in wanted if f not in all_ids]
     if missing:
         sys.exit(f"no such feed zip in {gtfs_dir}: {missing}")
+    # Feeds go in id order whatever the config says, so route and shape indices
+    # do not move when a config entry is reordered.
+    wanted = sorted(set(wanted), key=all_ids.index)
 
     routes, route_index, shapes, shape_index = [], {}, [], {}
+    unknown_types = defaultdict(list)
     feed_stats = []
     for fid in wanted:
+        t0 = time.time()
         feed = Feed(fid, os.path.join(gtfs_dir, fid + ".zip"))
-        feed_stats.append(build_feed(feed, date, routes, route_index, shapes, shape_index, smooth=not args.no_smooth))
+        st = build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=not args.no_smooth)
+        feed_stats.append(st)
+        print(f"  {fid}: {st['trips_on_date']} trips in {time.time() - t0:.0f}s", file=sys.stderr, flush=True)
 
     trips = [t for st in feed_stats for t in st["trips"]]
     trips.sort(key=lambda t: (t["t"][0], t["r"]))
     hist = histogram(trips)
     peak_min = int(np.argmax(hist)) if len(trips) else 0
+    mode_ids = [m["id"] for m in city["modes"]]
+    hist_by_mode = {m: histogram([t for t in trips if routes[t["r"]]["mode"] == m]) for m in mode_ids}
 
-    if args.inspect:
-        found = [t for t in trips if t["_id"] == args.inspect]
+    for want in (args.inspect.split(",") if args.inspect else []):
+        found = [t for t in trips if t["_id"] == want]
         if not found:
-            print(f"trip {args.inspect!r} not on {date}", file=sys.stderr)
+            print(f"trip {want!r} not on {date}", file=sys.stderr)
         for tr in found:
             route = routes[tr["r"]]
-            print(f"\ntrip {tr['_id']}  route {route['short']} {route['long']}  shape #{tr['s']} ({shapes[tr['s']]['cum'][-1]:.2f} km)")
+            print(f"\ntrip {tr['_id']}  route {route['short']} {route['long']} ({route['mode']})  shape #{tr['s']} ({shapes[tr['s']]['cum'][-1]:.2f} km)")
             print(f"  {'time':>8s}  {'d km':>7s}  {'step km':>8s}  stop")
             names = iter(tr["_stops"])
             prev_d, prev_t = None, None
@@ -527,21 +676,24 @@ def main():
                 prev_d, prev_t = d, t
 
     public_trips = [{"r": t["r"], "s": t["s"], "t": t["t"], "d": t["d"]} for t in trips]
-    validate(shapes, public_trips)
+    validate(shapes, public_trips, city["clip"])
 
     meta = {
         "service_date": date.isoformat(),
-        "title": "TSUKUBA BUSES",
+        "title": city["title"],
         "subtitle": f"{date.strftime('%A')} {ordinal(date.day)} {date.strftime('%B')}",
         "origin": list(ORIGIN),
         "day_start": DAY_START,
         "day_end": DAY_END,
+        "frame": city["frame"],
+        "modes": city["modes"],
+        "attribution": city["attribution"],
         "feeds": [
             {
                 "id": st["id"],
-                "name": st["name"],
-                "publisher": FEEDS.get(st["id"], {}).get("publisher", st["publisher_in_feed"]),
-                "license": FEEDS.get(st["id"], {}).get("license", ""),
+                "name": configured.get(st["id"], {}).get("name", st["name"]),
+                "publisher": configured.get(st["id"], {}).get("publisher", st["publisher_in_feed"]),
+                "license": configured.get(st["id"], {}).get("license", ""),
                 "version": st["version"],
                 "trips_on_date": st["trips_on_date"],
             }
@@ -549,19 +701,29 @@ def main():
         ],
         "trips_total": len(public_trips),
         "peak": {"count": int(hist[peak_min]), "time": peak_min * 60},
+        "hist_by_mode": {m: h.tolist() for m, h in hist_by_mode.items()},
     }
     out = {"meta": meta, "routes": routes, "shapes": shapes, "trips": public_trips, "hist": hist.tolist()}
 
-    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, ensure_ascii=False, separators=(",", ":"))
+    if args.out:
+        out_path = args.out
+    else:
+        out_path = os.path.join(ROOT, city["built_dir"], "network.json" + (".gz" if city.get("gzip") else ""))
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    raw = json.dumps(out, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    with open(out_path, "wb") as fh:
+        fh.write(gzip.compress(raw, compresslevel=6) if out_path.endswith(".gz") else raw)
 
-    print(f"\nservice date {meta['service_date']} ({meta['subtitle']})   feeds: {', '.join(wanted)}")
+    print(f"\n{city['title']}  service date {meta['service_date']} ({meta['subtitle']})   feeds: {', '.join(wanted)}")
     print(f"{'feed':<11s}{'name':<36s}{'in file':>8s}{'on date':>8s}{'first':>7s}{'last':>7s}{'peak':>6s}{'at':>7s}  notes")
     for st in feed_stats:
         fh_ = histogram(st["trips"]) if st["trips"] else np.zeros(1, dtype=int)
         pk = int(np.argmax(fh_))
         notes = []
+        if st["no_service"]:
+            notes.append(f"NO SERVICE on {date.isoformat()}: the feed covers {st['no_service']}")
+        if st["dropped_clip"]:
+            notes.append(f"{st['dropped_clip']} trips dropped (shape outside clip box)")
         if st["skipped_short"]:
             notes.append(f"{st['skipped_short']} skipped (<2 stops)")
         if st["shape_from_stops"]:
@@ -581,9 +743,25 @@ def main():
     print(f"{'total':<11s}{'':<36s}{sum(s['trips_in_file'] for s in feed_stats):>8d}{len(public_trips):>8d}"
           f"{fmt_time(min(firsts) if firsts else None):>7s}{fmt_time(max(lasts) if lasts else None):>7s}"
           f"{meta['peak']['count']:>6d}{fmt_time(meta['peak']['time']):>7s}")
-    print(f"routes {len(routes)}, shapes {len(shapes)}, trips {len(public_trips)}, "
+    if len(mode_ids) > 1:
+        print(f"\n{'mode':<11s}{'routes':>7s}{'trips':>8s}{'peak':>6s}{'at':>7s}")
+        for m in mode_ids:
+            h = hist_by_mode[m]
+            pk = int(np.argmax(h))
+            n_routes = sum(1 for r in routes if r["mode"] == m)
+            n_trips = sum(1 for t in trips if routes[t["r"]]["mode"] == m)
+            print(f"{m:<11s}{n_routes:>7d}{n_trips:>8d}{int(h[pk]):>6d}{fmt_time(pk * 60):>7s}")
+    if unknown_types:
+        for (fid, rt), rids in sorted(unknown_types.items()):
+            print(f"route_type {rt or '(blank)'} in {fid} is in no mode's list; {len(rids)} routes ({', '.join(rids[:6])}{'...' if len(rids) > 6 else ''}) fell into '{mode_ids[0]}'")
+    else:
+        print("every route_type is covered by the mode lists")
+    dropped = sum(st["dropped_clip"] for st in feed_stats)
+    print(f"routes {len(routes)}, shapes {len(shapes)}, trips {len(public_trips)} ({dropped} dropped by the clip box), "
           f"hist bins {len(hist)} (running at 04:30 {hist[DAY_START // 60]}, at 28:29 {hist[-1]})")
-    print(f"wrote {os.path.abspath(args.out)}  {os.path.getsize(args.out) / 1e6:.2f} MB")
+    rss_gb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
+    print(f"wrote {os.path.abspath(out_path)}  {os.path.getsize(out_path) / 1e6:.2f} MB on disk, {len(raw) / 1e6:.2f} MB of JSON, "
+          f"{time.time() - t_start:.0f}s wall, peak rss {rss_gb:.1f} GB")
 
 
 if __name__ == "__main__":

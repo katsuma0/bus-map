@@ -149,13 +149,21 @@ One file per city, read by both builders (`--city <id>`) and mirrored into
       "clip": [west, south, east, north],              // basemap clip in degrees
       "gtfs_dir": "data/gta/gtfs", "built_dir": "data/gta/built", "basemap_dir": "data/gta/basemap",
       "gzip": true,                                    // write network.json.gz and basemap.json.gz instead of .json
+      "decimals": {"xy": 3, "d": 3},                   // optional output rounding of shape xy and trip d in km (default 3)
       "boundary": null,                                // "tsukuba" keeps the city outline logic, null skips it
+      "osm_routes": null,                              // path of an OSM bus-route GeoJSON for the faint optional layer, absent or null skips it
       "feeds": [{"id":"ttc","name":"TTC","publisher":"...","license":"..."}],   // id = zip base name in gtfs_dir
       "optional_feeds": [...],                         // only with --feeds all
       "modes": [{"id":"bus","label":"buses","singular":"bus","route_types":[3,...],"color":[r,g,b],"trail":[r,g,b]}, ...],
       "attribution": ["line 1", "line 2", ...],        // any number of lines, each must fit 540 px at Inter 400 18 px
-      "basemap": {"simplify_km": {...}, "min_water_area_km2": 0.05, "min_road_km": 0.08, "water_lines": ["river","canal"], "min_stream_km": 1.0}
+      "basemap": {"simplify_km": {...}, "min_water_area_km2": 0.05, "min_road_km": 0.08, "water_polys": ["water","lake","pond","reservoir","river"], "water_lines": ["river","canal"], "min_stream_km": 1.0}
     }
+
+`water_polys` lists the Overture water classes kept as polygons (Tsukuba's list
+reproduces its pre-v2 rule of everything but pools, wastewater and basins).
+A city with `osm_routes` also gives `simplify_km.osm` and `min_osm_km`.
+Feeds are processed in zip-name order whatever the config order, so route and
+shape indices do not depend on how the feed list is written.
 
 `cities/tsukuba.json` reproduces the current Tsukuba build exactly: with it,
 `build_network.py --city tsukuba` must emit the same `routes/shapes/trips/hist`
@@ -176,7 +184,10 @@ must emit a byte-identical `data/built/basemap.json` (md5 d58a5eae00cd4270aa9a28
 A trip is kept only if its shape's bounding box touches the city clip box
 (GO trains to Niagara or Kitchener are cut where they leave; a trip entirely
 outside is dropped and not counted in hist). `d` is rounded to 3 decimals
-(metres) and `xy` to 3 decimals; everything else as before.
+(metres) and `xy` to 3 decimals unless the config's `decimals` says otherwise;
+`cities/tsukuba.json` keeps its pre-v2 4 because a rounding change moves every
+stroke by a fraction of a pixel and the Tsukuba frames must not change.
+Everything else as before.
 
 Service date: `--date` defaults to the config's `service_date`. The summary
 prints, per feed, trips on that date, and says plainly when a feed has none
@@ -194,11 +205,12 @@ as `application/gzip` without a Content-Encoding header.
 * `?city=<id>` picks `../data/<built_dir>/…`; without it the page behaves exactly as now (Tsukuba). The built dir and gzip flag per city are a small table at the top of app.js: `{tsukuba: {dir: '../data/built', gz: false}, gta: {dir: '../data/gta/built', gz: true}}`.
 * Frame (`KM_VERTICAL`, `CENTER_KM`) comes from `meta.frame` when present, else CONFIG.
 * Title and attribution come from meta when present.
-* Modes: static route lines, trails and dot halos take the colour of the route's mode (`meta.modes[...]`). With one mode everything renders as today. Ribbon trails keep one Path2D per (mode, band) and stroke per mode.
-* HUD with more than one mode: the count line reads `2,058 vehicles running` (thousands separator) and a second line below it, Montserrat 500 24 px `#9a9da6`, reads `1,842 buses · 120 streetcars · 96 trains` in mode order using each mode's `label` (singular form when the count is 1). The sparkline, axis labels and attribution shift down by 30 px when that line is present. With one mode the HUD is unchanged (`24 buses running`).
-* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 14 px, panel top stays 1120.
+* Modes: static route lines, trails and dot halos take the colour of the route's mode (`meta.modes[...]`); the halo is the mode's `trail` colour under the white 3 px core, and with one mode it stays white as today. With one mode everything renders as today. Ribbon trails keep one Path2D per (mode, band) and stroke per mode.
+* HUD with more than one mode: the count line reads `2,058 vehicles running` (thousands separator) and a second line below it, Montserrat 500 24 px `#9a9da6`, reads `1,842 buses · 120 streetcars · 96 trains` at baseline 1374 in mode order using each mode's `label` (singular form when the count is 1); its size is fixed once at init so the widest line the day can produce (every mode at its `hist_by_mode` peak) fits 540 px, and the page warns on the console when it had to shrink. The sparkline, axis labels and attribution shift down by 30 px when that line is present. With one mode the HUD is unchanged (`24 buses running`).
+* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 12 px (Tsukuba: 1608 + 12 = 1620, the panel bottom the frames were measured with), panel top stays 1120.
 * `hud_side: "right"` moves the whole panel block right by 400 px (panel x 440..1040, text x 470, sparkline x 470..1010); text stays left-aligned inside the panel.
 * Performance target: a GTA frame at the morning peak (roughly 3,000 running vehicles, 60k trips in the file) in under 400 ms including raster in headless Chromium. Trips are sorted by start time, so stop scanning once `t[0] > T`.
+* Large frames: when `meta.frame.km_vertical` is `CONFIG.LARGE_FRAME_KM` (60 km) or more, the trail values in `CONFIG.LARGE_FRAME` replace the ones in the visual spec: 12-minute trails at 30% alpha, 4 px core, 12 px shoulder on the 5 freshest bands. The literal Tsukuba values (25 min, 70%, 6 px, 22 px, 7 bands) were measured at 53 px/km with 27 buses; at 17 px/km with about 2,900 vehicles on headways shorter than the trail they fuse central Toronto into one white mass and cost 440 ms a frame, the profile keeps corridors legible at about 300 ms. A trail knob given in the query (`?trailmin=`, `?corew=`, ...) is pinned and wins over the profile. Frames under 60 km, Tsukuba included, are untouched.
 
 ### Video script
 
