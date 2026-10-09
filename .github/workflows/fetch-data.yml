@@ -1,0 +1,47 @@
+# Pulls the open data this project needs onto the branch. GitHub's runners
+# can reach gtfs-data.jp and Overpass; the cloud sandbox this was built in
+# could not, so the fetch lives here instead of in a local script.
+name: fetch-data
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feat/tsukuba-bus-timelapse"]
+    paths: [".github/workflows/fetch-data.yml"]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Tsukuba City GTFS-JP feeds (CC BY 4.0)
+        run: |
+          set -eux
+          mkdir -p data/gtfs
+          curl -fsSL --retry 3 -o data/gtfs/tsukubus.zip \
+            "https://api.gtfs-data.jp/v2/organizations/tsukubacity/feeds/TSUKUBUS/files/feed.zip"
+          curl -fsSL --retry 3 -o data/gtfs/tsukubane.zip \
+            "https://api.gtfs-data.jp/v2/organizations/tsukubacity/feeds/TSUKUBANEGO/files/feed.zip"
+          curl -fsSL --retry 3 -o data/gtfs/tsuchimaru.zip \
+            "https://api.gtfs-data.jp/v2/organizations/tsuchiuracity/feeds/tsuchimarubus/files/feed.zip" || rm -f data/gtfs/tsuchimaru.zip
+          for z in data/gtfs/*.zip; do echo "== $z"; unzip -l "$z"; done
+      - name: Download OSM bus route relations around Tsukuba (ODbL)
+        run: |
+          set -eux
+          mkdir -p data/osm
+          cat > /tmp/q.overpass <<'Q'
+          [out:json][timeout:300];
+          relation["route"="bus"](35.85,139.85,36.35,140.35);
+          out body geom;
+          Q
+          curl -fsS --retry 2 --data-urlencode "data@/tmp/q.overpass" \
+            https://overpass-api.de/api/interpreter -o /tmp/overpass.json
+          python3 scripts/osm_routes_to_geojson.py /tmp/overpass.json data/osm/bus_routes.geojson
+          ls -la data/osm
+      - name: Commit fetched data back to the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/gtfs data/osm
+          git commit -m "chore: fetch tsukuba gtfs and osm routes" || echo "nothing new"
+          git push
