@@ -1,0 +1,7 @@
+node_modules/
+# raw Overture pulls, 140 MB; scripts/fetch_overture.py regenerates them
+data/basemap/*.geojson
+# frame dumps from the video renderer
+out/frames/
+*.pyc
+__pycache__/
