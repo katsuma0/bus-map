@@ -8,3 +8,5 @@ out/frames/
 __pycache__/
 # GTA feeds are 85 MB; they live on the data/gta-gtfs branch, fetched by fetch-gta.yml
 data/gta/gtfs/*.zip
+# Japan source data lives on the data/japan-src branch, fetched by fetch-japan.yml
+data/japan-src/
