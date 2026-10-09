@@ -1,0 +1,700 @@
+<html lang="ja" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+	<meta name="description"content="京都府の公共交通GTFS・標準的なバス情報フォーマット(GTFS-JP)オープンデータ更新状況一覧。各収録バス停を地図表示可能 完全無料。" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	
+	<!-- Twitterカードの設定用 -->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:site" content="@bustei_kensaku" />
+	<meta property="og:title" content="京都府の公共交通GTFSオープンデータ一覧｜バス時刻検索" />
+	<meta property="og:description" content="京都府の公共交通GTFS・標準的なバス情報フォーマット(GTFS-JP)オープンデータ更新状況一覧。各収録バス停を地図表示可能" />
+	<meta property="og:url" content="https://bustime.jp/GtfsAgency/gtfs_list/?p1=26" />
+	<meta property="og:image" content="https://bustime.jp/img/ogp_image.png" />
+
+    <title>京都府の公共交通GTFSオープンデータ一覧｜バス時刻検索</title>
+    <link href="/favicon.ico" type="image/x-icon" rel="icon"/><link href="/favicon.ico" type="image/x-icon" rel="shortcut icon"/>
+
+    <!-- <link rel="stylesheet" href="/css/base.css"/> -->
+    <link rel="stylesheet" href="/css/new2023/style.css"/>	<!-- tuika 2024/02/16 -->
+	<link rel="stylesheet" href="/css/table_sort.css"/>
+<script src="/js/table_sort.js"></script>
+    <!--          -->
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-65CB2Z34YE"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-65CB2Z34YE');
+</script>
+
+
+<!-- Clarity tracking code for https://bustime.jp/ -->
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "hem3rmutw4");
+</script>
+
+
+
+<!-- GDPR等の対応 -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
+<!-- GDPR等の対応 -->
+
+<script type="application/ld+json">
+[
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+  {
+    "@type": "ListItem",
+    "position": 1,
+    "name": "バス時刻検索",
+    "item": "https://bustime.jp/"
+  },
+  {
+    "@type": "ListItem",
+    "position": 2,
+    "name": "GTFSオープンデータ利用状況",
+    "item": "https://bustime.jp/GtfsAgency/data_list/"
+  },
+  {
+    "@type": "ListItem",
+    "position": 3,
+    "name": "全国GTFSオープンデータ一覧",
+    "item": "https://bustime.jp/GtfsAgency/gtfs_list/"
+  },
+  {
+    "@type": "ListItem",
+    "position": 4,
+    "name": "京都府",
+    "item": "https://bustime.jp/GtfsAgency/gtfs_list/?p1=26"
+  }  ]
+}]
+</script>
+
+<script type="text/javascript"><!--
+	var url2 = "https://bustime.jp/";
+	function showMap(position) {
+		var url = "https://buste.in/search/bus/?lat1=";
+		url += position.coords.latitude + "&lng1=";
+		url += position.coords.longitude + "&gtfs=1";
+		location.assign(url); /* リダイレクトする */
+	}
+
+	function noMap() {
+		document.write('<p><a href="' + url2 + '">元のページへ戻る</a>＞位置情報を取得</p><b>※位置情報を取得出来ませんでした。</b><br><br><hr><a href="' + url2 + '">元のページへ戻る</a>');
+	}
+
+	function getGeoLocation(){
+		navigator.geolocation.getCurrentPosition(showMap, noMap)
+	}
+--></script>
+
+</head>
+<body>
+	<ul class="top">
+		<li class="title">
+			<a href="https://bustime.jp/">バス時刻検索</a>
+		</li>
+		<li class="search-box" style="text-align: center;">
+			<!--検索ボックス欄-->
+<!--
+			<form action="cgi-bin/example.cgi" method="post">
+				<input type="search" name="search" placeholder="バス停名検索">
+				<input type="submit" name="submit" value="検索">
+			</form>
+-->
+		</li>
+		<li class="gps">
+		<a title="位置情報から最寄りバス停を検索する" href="javascript:void(0);" onclick="getGeoLocation();"><img src="https://bustime.jp/img/gps.png" alt="現在地周辺のバス停を探す"></a>
+		</li>
+	</ul>
+
+    <!--パンくずリスト-->
+	<p class="breadcrumbs"><a href="https://bustime.jp/">バス時刻検索</a>＞<a href="https://bustime.jp/GtfsAgency/gtfs_list/">全国GTFSオープンデータ一覧</a>＞京都府</p>
+<!--パンくずリスト-->
+
+<h1>京都府の公共交通GTFSオープンデータ一覧</h1>
+<p>「バス時刻検索」で日々更新版を調べ取り込んでいる日本国内の路線バス(一部鉄道、定期旅客船あり)GTFS・「GTFS-JP(標準的なバス情報フォーマット)」オープンデータの更新日や有効期間等をまとめた一覧です。<br />
+</p>
+
+<h4>注意点など</h4>
+<ul>
+<li>・例外を除き、全国のGTFSオープンデータ網羅を目指しています。
+　<a href="#caution_more">＞注意点の続き読む</a></li>
+
+</ul>
+<br />
+
+
+<!-- ▼ソーシャルボタンリンク -->
+<div>
+	<a href="https://b.hatena.ne.jp/entry/https://bustime.jp/GtfsAgency/gtfs_list/?p1=26" class="hatena-bookmark-button" data-hatena-bookmark-title="バス時刻検索" data-hatena-bookmark-layout="standard" title="このエントリーをはてなブックマークに追加"> <img src="https://b.st-hatena.com/images/entry-button/button-only.gif" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text="バス時刻検索 京都府の公共交通GTFS・標準的なバス情報フォーマット(GTFS-JP)オープンデータ一覧 #GTFS @bustei_kensakuより" data-url="https://bustime.jp/GtfsAgency/gtfs_list/?p1=26" data-hashtags="バス時刻検索" data-related="" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script><!-- 2023/08/22時点の最新コード -->
+</div>
+<!-- ▲ソーシャルボタンリンク -->
+
+<h3>更新情報</h3>
+<ul>
+<li>◆2026/10/09　新規追加：茨城県：ひたちなか市「スマイルあおぞらバス」
+<br />
+　更新：静岡県：掛川市コミュニティバス(掛川大須賀線)
+、広島県：広島バス
+
+</li>
+
+</ul>
+
+<details><summary>もっと更新状況を見る</summary>
+<br />
+<ul>
+<li>◆2026/10/08　更新：岩手県：岩手県北バス(高速バス)
+、福島県：福島交通(空港連絡バス)、福島交通(高速バス)、会津バス
+、茨城県：茨城交通(高速バス)、茨城交通(空港連絡バス)
+、東京都：東京メトロ
+、新潟県：燕市循環バス「スワロー号」、「やひこ号」、燕市循環バス「スワロー号」、「やひこ号」
+、岐阜県：[未来]本巣市営バス
+、静岡県：伊豆箱根バス
+、広島県：広電バス(広島電鉄)、広電バス(広島電鉄)、おのみちバス
+、山口県：船鉄バス(船木鉄道)
+、徳島県：[未来]徳島バス
+、高知県：[未来]高知西南交通(一般路線)、宿毛市 はなちゃんバス
+
+</li>
+<li>◆2026/10/07　更新：山口県：船鉄バス(船木鉄道)、船鉄バス(船木鉄道)、船鉄バス(船木鉄道)、船鉄バス(船木鉄道)
+
+</li>
+<li>◆2026/10/06　更新：北海道：網走バス
+、岩手県：岩手県北バス
+、秋田県：秋田中央交通
+、山形県：上山市営バス	
+、茨城県：茨城交通
+、栃木県：関東自動車
+、東京都：東海汽船
+、富山県：なんバス(南砺市営バス)
+、岐阜県：多治見市「ききょうバス」
+、三重県：名張市コミュニティバス
+、和歌山県：那智勝浦町営バス
+、広島県：広電バス(広島電鉄)、廿日市市自主運行バス
+、福岡県：宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス
+、大分県：高速バス（大分バス幹事）、高速バス（大分交通幹事）、高速バス（亀の井バス幹事）、由布市コミュニティバス、竹田市コミュニティバス
+、沖縄県：カリー観光、宮古協栄バス
+
+</li>
+<li>◆2026/10/05　更新：北海道：[未来]網走バス
+、京都府：京都市営バス
+、岡山県：勝央町ふれあいバス
+、広島県：おのみちバス
+、福岡県：宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス、宗像市ふれあいバス
+
+</li>
+<li>◆2026/10/04　更新：千葉県：[未来]香取市循環バス
+、兵庫県：[未来]明石市 たこバス
+、徳島県：徳島バス
+、福岡県：[未来]新宮町コミュニティバス「マリンクス」
+
+</li>
+<li>◆2026/10/03　更新：秋田県：男鹿市内路線バス
+、山口県：岩国市生活交通バス・由宇地区バス
+、長崎県：長崎県営バス
+、沖縄県：中央交通（宮古島営業所）
+
+</li>
+<li>◆2026/10/02　更新：三重県：鳥羽市 市営定期船
+
+</li>
+<li>◆2026/10/01　更新：北海道：北海道中央バス、じょうてつバス、道南バス、北海道拓殖バス(一般路線バス・コミュニティバス)、くしろバス
+、秋田県：秋田中央交通、秋北バス、[未来]羽後交通(田沢湖地区)
+、山形県：鮭川村営バス
+、福島県：柳津町町民バス「ふれあい号」
+、栃木県：矢板市営バス
+、群馬県：上信観光バス、藤岡市めぐるん
+、千葉県：君津市経由路線バス
+、東京都：西武バス、西武観光バス、瑞穂町コミュニティバス
+、富山県：富山地鉄バス、なんバス(南砺市営バス)
+、長野県：飯山市内バス
+、岐阜県：東鉄バス(東濃鉄道)多治見営業所管内、御嵩町　ふれあいバス、多治見市「ききょうバス」
+、静岡県：三島市コミュニティバス
+、愛知県：一宮市　i-バス
+、大阪府：[未来]名門大洋フェリー
+、兵庫県：洲本市コミュニティバス
+、奈良県：橿原市コミュニティバス
+、和歌山県：田辺市住民バス
+、広島県：広電バス(広島電鉄)、広電バス(広島電鉄)、広島バス、広島バス、広島交通、広島交通、ボンバス(エイチ・ディー西広島)、ボンバス(エイチ・ディー西広島)、備北交通、備北交通、江田島バス、廿日市市自主運行バス、廿日市市自主運行バス、呉市生活バス、朝日交通「阿戸線(阿戸〜熊野)」、朝日交通「阿戸線(阿戸〜熊野)」、斎島汽船(久比(大崎下島)〜斎島、三角島)
+、山口県：船鉄バス(船木鉄道)
+、愛媛県：伊予鉄バス
+、高知県：とさでん交通 路線バス、とさでん交通 路線バス、とさでん交通 空港連絡バス
+、佐賀県：佐賀市営バス、昭和バス(昭和自動車)、祐徳バス(祐徳自動車)、佐賀市三瀬地区コミュニティバス等、嬉野市乗合タクシー
+、大分県：大分バス、大分交通、亀の井バス、臼津交通、大交北部バス、国東観光バス、高速バス（日田バス幹事）、日田バス、臼杵市コミュニティバス
+、沖縄県：国頭村営バス、久米島町営バス、座間味村　クイーンざまみ・フェリーざまみ・村営バス
+
+</li>
+<li>◆2026/09/30　新規追加：長野県：長野市乗合タクシー
+<br />
+　更新：北海道：道北バス、ふらのバス、阿寒バス、北海道北見バス、しおかぜライン(岩宇地域)、白老町コミュニティ
+、岩手県：岩手県北バス(高速バス)、一関市営バス
+、宮城県：仙台市営バス、タケヤ交通
+、秋田県：男鹿市内路線バス
+、福島県：福島交通(空港連絡バス)、福島交通(高速バス)
+、茨城県：茨城交通(空港連絡バス)、茨城交通(高速バス)
+、東京都：目黒区東部地区地域交通バス(さんまバス)、大田区コミュニティバス(たまちゃんバス)、品川区コミュニティバス(しなバス)
+、長野県：長野市営バス・循環バス
+、兵庫県：加西市　宇仁ふれあいバス/とみバス
+、和歌山県：海南市コミュニティバス
+、香川県：琴参バス(坂出路線)、丸亀コミュニティバス
+、愛媛県：宇和島運輸フェリー
+、高知県：安田町 やすら号(東谷線、東島線)
+、佐賀県：佐賀市営バス
+、鹿児島県：鹿児島市営バス
+、沖縄県：中城村　護佐丸バス、東村コミュニティバス、水納海運、とかしき観光バス、多良間海運、竹富島交通、由布島 水牛車
+
+</li>
+<li>◆2026/09/29　更新：宮城県：仙台市営バス
+、茨城県：大洗町内循環バス「海遊号・なっちゃん号」
+、長野県：大鹿村(大鹿線)(南信州公共交通システム)
+、静岡県：伊豆箱根バス
+、福岡県：阪九フェリー(泉大津、神戸〜新門司)
+、沖縄県：ジャングリア エクスプレス(沖東交通グループ)、神谷観光 フェリー、久高島フェリー（久高海運）、大神海運、浦内川観光
+
+</li>
+<li>◆2026/09/28　更新：北海道：道南バス、十勝バス(空港連絡バス)
+、山形県：尾花沢市路線バス
+、茨城県：つくば市 筑波地区支線型バス「つくばね号」
+、神奈川県：川崎市バス
+、富山県：富山地鉄バス、滑川市　のる my car
+、福井県：京福バス
+、愛知県：知多バス
+、奈良県：橿原市コミュニティバス
+、和歌山県：くしもと観光周遊バス まぐトル号
+、高知県：とさでん交通 路面電車
+、沖縄県：ゆいレール（沖縄都市モノレール）
+
+</li>
+<li>◆2026/09/27　更新：青森県：下北交通
+、秋田県：秋北バス
+、山形県：長井市営バス、鶴岡市 羽黒地域市営バス、朝日地域市営バス
+、東京都：京王バス、西東京バス
+、岐阜県：羽島市コミュニティバス、美濃加茂市コミュニティバス「あい愛バス」、飛騨市営バス「ひだまる」
+、静岡県：伊豆箱根バス、[未来]藤枝市自主運行バス
+、愛知県：東浦町運行バス「う・ら・ら」、佐久島渡船(西尾市)
+、徳島県：徳島バス
+、高知県：とさでん交通 路面電車、高知観光コンベンション協会　MY遊バス、南国市 NACOバス
+、佐賀県：昭和バス(昭和自動車)、祐徳バス(祐徳自動車)
+
+</li>
+<li>◆2026/09/26　更新：東京都：板橋区コミュニティバス
+、沖縄県：沖縄エアポートシャトルLLP
+
+</li>
+<li>◆2026/09/25　更新：青森県：弘前市乗合タクシー(北星交通)、弘南鉄道
+、群馬県：上信観光バス
+、東京都：瑞穂町デマンド交通「チョイソコみずほまち」(GTFS Flex)
+、岐阜県：笠松町公共施設巡回町民バス
+、愛知県：名鉄東部交通バス
+、三重県：熊野市バス、御浜町自主運行バス
+
+</li>
+<li>◆2026/09/24　更新：福島県：福島交通
+、群馬県：永井バス(永井運輸)一般路線
+、東京都：京王バス、小田急バス、東海汽船
+、石川県：小松市コミュニティバス木場潟線
+、愛知県：東海市循環バス「らんらんバス」
+、京都府：京都バス
+、高知県：とさでん交通 空港連絡バス、高知西南交通(一般路線)、高知駅前観光 空港連絡バス
+、福岡県：直方市コミュニティバス
+、鹿児島県：マルエーフェリー 那覇〜鹿児島航路
+、沖縄県：八千代バス・タクシー、共和バス、渡嘉敷村 フェリー、安栄観光、福山海運
+
+</li>
+<li>◆2026/09/23　新規追加：三重県：鈴鹿市コミュニティバス「C-BUS」
+<br />
+　更新：千葉県：香取市循環バス
+、沖縄県：東運輸、八重山観光フェリー
+
+</li>
+<li>◆2026/09/22　更新：静岡県：小山町コミュニティバス
+
+</li>
+<li>◆2026/09/21　更新：東京都：都営地下鉄、東京さくらトラム(都電荒川線)、日暮里・舎人ライナー(東京都交通局)、東京メトロ、つくばエクスプレス(首都圏新都市鉄道)、東京臨海高速鉄道、多摩都市モノレール
+、鳥取県：日本交通、日ノ丸自動車、鳥取市(循環バス(くる梨)、ループ麒麟獅子、気高循環線、絹見線、らっちゃんバス)
+、沖縄県：西表島交通
+
+</li>
+<li>◆2026/09/20　更新：青森県：十和田観光電鉄(一般路線)
+、岐阜県：本巣市営バス
+、静岡県：伊豆箱根バス
+、三重県：松阪市コミュニティ交通、南伊勢町　町営バス、志摩マリンレジャー(あご湾定期船)
+、福岡県：宗像市コミュニティバス(宮若・宗像線)
+、大分県：中津市コミュニティバス 耶馬溪地域 山移南線、中津市コミュニティバス 本耶馬渓地域 西谷線、中津市コミュニティバス 本耶馬渓地域 東谷線、中津市コミュニティバス 耶馬溪地域 大島台金吉線、中津市コミュニティバス 耶馬溪地域 上ノ川内柾木線、中津市コミュニティバス 耶馬溪地域 深耶馬西線、中津市コミュニティバス 耶馬溪地域 深耶馬東線、中津市コミュニティバス 耶馬溪地域 樋山路鎌城線、中津市コミュニティバス 耶馬溪地域 城井線、中津市コミュニティバス 本耶馬渓地域 屋形線、中津市コミュニティバス 耶馬溪地域 大島伊福線、中津市コミュニティバス 耶馬溪地域 川原口線、中津市コミュニティバス 耶馬溪地域 山移北線
+
+</li>
+<li>◆2026/09/19　更新：東京都：東京メトロ
+、島根県：松江市営バス、一畑バス
+
+</li>
+<li>◆2026/09/18　更新：北海道：ニセコバス、旭川電気軌道、網走バス、網走バス
+、岩手県：岩手県北バス
+、愛知県：春日井市 かすがいシティバス
+、山口県：岩国市生活交通バス・由宇地区バス
+
+</li>
+<li>◆2026/09/17　更新：青森県：十和田観光電鉄(八戸～三沢空港線)
+、岩手県：岩手県北バス(高速バス)、花巻市コミュニティバス、奥州市コミュニティバス
+、山形県：上山市営バス	、大蔵村営バス、戸沢村営バス、南陽市内循環バス
+、福島県：福島交通(空港連絡バス)、福島交通(高速バス)
+、茨城県：茨城交通(空港連絡バス)、茨城交通(高速バス)
+、東京都：都営地下鉄、東京さくらトラム(都電荒川線)、日暮里・舎人ライナー(東京都交通局)、京王バス、ウィラーエクスプレス(豊島区・IKEBUS)、大島バス
+、富山県：[未来]立山町営バス
+、山梨県：市川三郷町コミュニティバス
+、長野県：飯山市内バス
+、岐阜県：名阪近鉄バス、郡上市自主運行バス
+、愛知県：あおい交通、南知多町　海っ子バス、おでかけ北設(設楽町・東栄町・豊根村)
+、和歌山県：中紀バス、明光バス
+、高知県：高知駅前観光 高速バス(スマイルライナー)、室戸市コミュニティバス
+、宮崎県：延岡市コミュニティバス・乗合タクシー「さわやか号」
+
+</li>
+<li>◆2026/09/15　更新：山形県：山交バス
+、群馬県：[未来]群馬バス
+、新潟県：頸城自動車
+、長野県：上田バス
+、岐阜県：北恵那交通
+、兵庫県：加古川市　かこバス・かこバスミニ
+、高知県：高知西南交通(一般路線)、黒岩観光
+
+</li>
+<li>◆2026/09/14　更新：東京都：京王バス
+
+</li>
+<li>◆2026/09/13　更新：東京都：京王バス、西東京バス
+、岐阜県：恵那市自主運行バス
+
+</li>
+<li>◆2026/09/12　更新：東京都：TOKYO CRUISE(東京都観光汽船)
+、和歌山県：明光バス
+、沖縄県：カリー観光
+
+</li>
+<li>◆2026/09/11　更新：鳥取県：日ノ丸自動車、米子市循環バス(だんだんバス)、淀江町循環バス(どんぐりコロコロ)、日南町巡回バス(たったもバス)、琴浦町営バス(ことうらバス)、日野町営バス、江府町営バス、三朝町営バス(みささサンサンバス)、南部町営ふれあいバス、岩美町営バス、若桜町営バス(おにっこバス)、八頭町営バス(やずバス)
+、岡山県：勝央町ふれあいバス
+
+</li>
+<li>◆2026/09/10　更新：北海道：倶知安町じゃがりん号等
+、岩手県：岩手県北バス(高速バス)
+、福島県：福島交通(空港連絡バス)、福島交通(高速バス)
+、茨城県：茨城交通(高速バス)、茨城交通(空港連絡バス)
+、群馬県：関越交通、群馬バス
+、長野県：千曲バス、飯山市内バス、飯田市 飯田☆中津川線(南信州公共交通システム)
+、岐阜県：東鉄バス(東濃鉄道)多治見営業所管内
+、静岡県：伊豆箱根バス
+、愛知県：碧南市　くるくるバス
+、京都府：京都バス
+、香川県：ことでんバス
+、高知県：県交北部交通、嶺北観光自動車、四万十交通(一般路線)
+、福岡県：宗像市ふれあいバス
+
+</li>
+</ul>
+<a href="#">▲ページトップへ</a>
+</details>
+
+<hr />
+
+<p>
+<form method="get" accept-charset="utf-8" action="/GtfsAgency/gtfs_list">
+○都道府県でデータを絞り込む
+<select name="p1" id="p1"><option value="">全国表示</option><option value="1">北海道</option><option value="2">青森県</option><option value="3">岩手県</option><option value="4">宮城県</option><option value="5">秋田県</option><option value="6">山形県</option><option value="7">福島県</option><option value="8">茨城県</option><option value="9">栃木県</option><option value="10">群馬県</option><option value="11">埼玉県</option><option value="12">千葉県</option><option value="13">東京都</option><option value="14">神奈川県</option><option value="15">新潟県</option><option value="19">山梨県</option><option value="20">長野県</option><option value="16">富山県</option><option value="17">石川県</option><option value="18">福井県</option><option value="22">静岡県</option><option value="21">岐阜県</option><option value="23">愛知県</option><option value="24">三重県</option><option value="25">滋賀県</option><option value="26" selected="selected">京都府</option><option value="27">大阪府</option><option value="28">兵庫県</option><option value="29">奈良県</option><option value="30">和歌山県</option><option value="31">鳥取県</option><option value="32">島根県</option><option value="33">岡山県</option><option value="34">広島県</option><option value="35">山口県</option><option value="36">徳島県</option><option value="37">香川県</option><option value="38">愛媛県</option><option value="39">高知県</option><option value="40">福岡県</option><option value="41">佐賀県</option><option value="42">長崎県</option><option value="43">熊本県</option><option value="44">大分県</option><option value="45">宮崎県</option><option value="46">鹿児島県</option><option value="47">沖縄県</option></select>
+<button type="submit">表示</button></form>
+<a href="/GtfsAgency/gtfs_list/">＞全国表示する</a>(初期表示) </p>
+<p>【GTFS・GTFS-JPデータ数：5個】</p>
+
+<div class="timetable"><!--データ一覧start-->
+<table id="datalistTable" class="yoko"><tr><th class="fixed01" cmanSortBtn>データ名(時刻表)</th><th class="fixed01" >都道府県</th><th class="fixed01" cmanSortBtn>新規追加日</th><th class="fixed01" >配信ページ</th><th class="fixed01" >ダウンロード</th><th class="fixed01" cmanSortBtn>ライセンス</th><th class="fixed01" cmanSortBtn>データ提供者<br>(使用ツール)</th><th class="fixed01" cmanSortBtn>最終更新日</th><th class="fixed01" cmanSortBtn>有効開始日<br />(feed_start_date)</th><th class="fixed01" cmanSortBtn>有効期限<br />(feed_end_date)</th><th class="fixed01" cmanSortBtn>次期データ<br />有効開始日</th><th class="fixed01" cmanSortBtn>GTFS-RT<br />trip_<br />update</th><th class="fixed01" cmanSortBtn>GTFS-RT<br />vehicle_<br />position</th><th class="fixed01" cmanSortBtn>バス停数</th></tr>
+<tr><td><a href="/GtfsAgency/detail1/?id1=804">京都バス(地図)</a></td><td>京都府</td><td>2023-04-05</td><td><a href="https://ckan.odpt.org/dataset/kyoto_bus_all_lines" target="_blank">ODPT</a></td><td><a href="https://api.odpt.org/api/v4/files/odpt/KyotoBus/AllLines.zip?date=current&amp;acl:consumerKey=">DL</a></td><td>ODPT</td><td>京都バス</td><td>2026-09-24</td><td>2026-09-28</td><td >2027-03-31</td><td></td><td><a href="https://api.odpt.org/api/v4/gtfs/realtime/odpt_KyotoBus_AllLines_trip_update?acl:consumerKey=" target="_blank">DL</a></td><td><a href="https://api.odpt.org/api/v4/gtfs/realtime/odpt_KyotoBus_AllLines_vehicle?acl:consumerKey=" target="_blank">DL</a></td><td>626</td></tr>
+<tr><td><a href="/GtfsAgency/detail1/?id1=936">京都市営バス(地図)</a></td><td>京都府</td><td>2024-01-19</td><td><a href="https://ckan.odpt.org/dataset/kyoto_municipal_transportation_kyoto_city_bus_gtfs" target="_blank">ODPT</a></td><td><a href="https://api.odpt.org/api/v4/files/odpt/KyotoMunicipalTransportation/Kyoto_City_Bus_GTFS.zip?date=current&amp;acl:consumerKey=">DL</a></td><td>ODPT</td><td>京都市交通局</td><td>2026-10-05</td><td>2026-09-28</td><td >2027-03-31</td><td></td><td></td><td></td><td>1,677</td></tr>
+<tr><td>南丹市コミュニティ</td><td>京都府</td><td>2023-08-10</td><td><a href="https://www.ptd-hs.jp/" target="_blank">HUB</a></td><td></td><td>PTD-HS</td><td>ジョルダン株式会社</td><td>2026-09-03</td><td>2026-09-01</td><td >2027-02-28</td><td></td><td></td><td></td><td>393</td></tr>
+<tr><td>京丹波町コミュニティ</td><td>京都府</td><td>2023-08-10</td><td><a href="https://www.ptd-hs.jp/" target="_blank">HUB</a></td><td></td><td>PTD-HS</td><td>ジョルダン株式会社</td><td>2026-09-03</td><td>2026-09-01</td><td >2027-02-28</td><td></td><td></td><td></td><td>207</td></tr>
+<tr><td><a href="/GtfsAgency/detail1/?id1=860">宇治田原町「うじたわLIKEはーとバス」(地図)</a></td><td>京都府</td><td>2023-07-03</td><td><a href="https://www.town.ujitawara.kyoto.jp/soshiki/machimiraisozo/oshirase/2857.html" target="_blank">リンク</a></td><td><a href="https://www.town.ujitawara.kyoto.jp/material/files/group/11/heartbusGTFS-JP.zip">DL</a></td><td></td><td>京都府宇治田原町(M)</td><td>2023-07-03</td><td>2023-06-12</td><td  class="gtfs_expired_days">2024-03-31<br /><strong>期限切れ923日経過</strong></td><td></td><td></td><td></td><td>77</td></tr>
+</table>
+
+</div><!--データ一覧end-->
+
+<p style="text-align:center; margin:25px 10px;">
+上記のGTFS一覧は、CSV形式でもダウンロードできます。(無料・登録不要)<br />
+<a href="/GtfsAgency/gtfs_feed_list_download/" class="download_btn">＞ GTFS一覧CSVダウンロードページへ</a><br />
+<span style="font-size:85%; display:inline-block; margin-top:8px;">(クリックすると説明ページへ移動します。利用条件をご確認のうえダウンロードできます)</span>
+</p>
+
+<p>凡例<br>
+<strong>□配信サイト</strong>(配信ページ欄へ記載、ダウンロードURL基準)<br>
+「リポジトリ」：GTFSデータリポジトリ、「ODPT」：公共交通オープンデータセンター、「HUB」：公共交通HUBシステム、「bodik」：オープンデータカタログBODIK、「Bus-Vision」：バスビジョン(両備システムズ)、
+「HODaP」：北海道オープンデータプラットフォーム、「秋田県」：秋田県バス協会、「福井県」：福井県庁、「OTTOP」：Okinawa Transit and Tourism Opendata Platform<br>
+<strong>□使用ツール</strong>(データ提供者欄へ記載)<br>
+「M」：<a href="https://www.rosenzu.com/net/mieru/fm/">見える化共通入力フォーマット GTFSツール</a>、「N」：<a href="https://gtfs-gis.jp/gtfs/">標準的なバス情報フォーマット作成ツール(西沢ツール)</a>、「S」：<a href="https://www.sinjidai.com/sujiya/">その筋屋</a><br>
+</p>
+
+<p id="caution_more"><strong>注意点の続き</strong></p>
+<ul>
+<li>・本日有効データを表示対象としています。<br />
+　(明日以降から適用される「未来データ」は有効開始日を「次期データ有効開始日」欄へ表示)
+</li>
+
+<li>・公開終了や数年間有効期限切れのデータなど、取り込みを止めたGTFSは非掲載です。
+</li>
+
+<li>・オープンデータでは無い、独自条件付き公開データは、「ODPTライセンス適用」や公共交通HUBシステム配信データを含み、利用するリスクが高いと判断したライセンス適用データ(GTFS-RU等)は含みません。
+</li>
+
+<li>・バス会社名のGTFSデータへも該当路線が収録されているHODaP配信「幕別町コミュニティ(十勝バスデータへ収録)」と「音更町コミュニティ(十勝バスと北海道拓殖バスデータへ収録)」GTFSは非掲載です。
+</li>
+
+<li>・ダウンロードが可変URLの場合、最新版の反映まで時間がかかる事も多くあります。
+</li>
+
+<li>・「feed_info.txt」へ変化が無い更新版(「feed_start_date、feed_end_date、feed_version」いずれも変わらず)も、気づきづらく反映まで時間がかかります。
+</li>
+
+<li>・複数サイトで配信している場合は、1カ所のみ表示。<br />
+	　(「オープンデータライセンス適用」→「GTFSデータリポジトリ」→「固定URLで配信するサイト」→「更新版の公開が早いサイト」の順に優先)
+</li>
+
+<li>・管理の都合上、更新版ではないが、一覧の見かけ上で「更新日」が新しくなり更新版扱いと見える場合もあります。(データ管理用の内部情報をお裾分け的に公開している関係)
+</li>
+<br />
+
+<li>・有効開始日や有効終了日が「0000-00-00」の場合、「feed_info.txt」の有効期間が空欄を示す。
+</li>
+
+<li>・「新規追加日」や「最終更新日」は当サイトで取得した日付基準のため、実際のデータ公開日と異なる場合があります。
+</li>
+
+<li>・ライセンス欄「PTD-HS」は「公共交通データHUBシステム」ライセンス適用、「ODPT」は「ODPT」ライセンス適用を示します。
+</li>
+
+<li>・「更新情報」は毎日更新版が公開されるデータを除きます。
+</li>
+
+<li>・「更新情報」でデータ名の頭に「[未来]」と付くものは、明日以降有効開始データのため、GTFS一覧へは表示されません。
+</li>
+
+<li>・「バス停数」は運行データが紐付いているバス停を数えたものです。
+</li>
+
+<li>・時刻表ページ公開中の場合、バス事業者名をクリックすると時刻表ページへ移動します。
+</li>
+
+<li><br />◇本サービスの表示内容について、関連するバス会社等や市町村へ直接問合せはせず、
+<a href="https://buste.in/search/bus/toiawase/?url1=https%3A%2F%2Fbustime.jp%2FGtfsAgency%2Fgtfs_list%2F%3Fp1%3D26">お問い合わせフォーム</a>(バス停検索と兼用)
+よりお願いします。
+</li>
+
+</ul>
+
+<p>・<a href="/GtfsFeed/index/">「feed_info.txt」(GTFSデータ基本情報)更新情報</a>(全国のGTFS更新履歴を新しい順に一覧表示)<br />
+</p>
+<a href="#">▲ページトップへ</a>
+
+
+<h2>GTFSオープンデータ一覧のお知らせ</h2>
+
+<ul class="main">
+	<li>・公開終了と判断していた「小山町コミュニティバス」GTFSデータの新しい配信ページを見つけたため、GTFSデータ取得を再開しました。<br>
+	・「静岡市 両河内線自主運行バス 宍原系統」「四万十市デマンド交通」「北中城村　グスクめぐりん」GTFSデータは収録バス路線廃止のため、「浜松バス(磐田市生活バス路線)」GTFSデータは公開終了と判断し、当データ一覧で掲載終了しました。(2026/09/22)</li>
+	<li>・過去に公開終了扱いとしていた「みどり市路線バス」(2026/07/06頃確認)、「昭島市コミュニティバス「Aバス」」(2026/09/03頃)GTFSデータのオープンデータ公開に伴い情報を追加しました。<br>
+	・「桜島フェリー(鹿児島市)」(2026/07/15頃確認)、「TOKYO CRUISE(東京都観光汽船)」(2026/07/28頃確認)GTFSデータのオープンデータ化に伴い、適用ライセンスを「ODPT基本ライセンス」から「CC BY 4.0」へと変更しました。<br>
+	・「ひがし北海道エクスプレスバス」「関東自動車(高速バス)」「関東自動車(空港連絡バス)」「JR貨物 コンテナ列車時刻表」GTFSデータは公開終了と判断し、当データ一覧で掲載終了しました。(2026/09/21)</li>
+</ul>
+
+<details><summary>過去のお知らせを見る</summary>
+<br>
+
+<ul class="main">
+	<li>・過去に公開終了扱いとしていた「館林市外四町広域公共路線バス」GTFSデータのオープンデータ公開(2026/06/09頃確認)に伴い情報を追加しました。(2026/06/22)</li>
+	<li>・「「蔵王温泉〜山寺」シャトルバス(zaoproject)」「HAKUBAVALLEY Shuttlebus」「富山市 水橋ふれあいコミュニティバス」「富山市 上条コミュニティバス」「宗像満喫周遊バス(宗像市)」「三池島原ライン(やまさ海運)」GTFSデータは運行終了により、<br>
+	「会津バス(高速バス)」(福島交通と経営統合)、「君津市経由路線バス(鹿野山線、富津市役所・君津駅線)」「黒部市内路線バス(新幹線生地線)」GTFSデータはデータ統合により、「小山町コミュニティバス」GTFSデータは公開終了と判断し、当データ一覧で掲載終了しました。(2026/05/05)</li>
+	<li>・過去に公開終了扱いとしていた「外ヶ浜町営バス」「黒石市 ぷらっと号」「平内町民バス」(ここまで3/23追加)、「八戸市営バス」(3/27追加)GTFSデータのオープンデータ公開に伴い情報を追加しました。<br>
+	・「内灘町コミュニティバス」GTFSデータのオープンデータ化に伴い、1/29頃に適用ライセンスを「公共交通データHUBシステム独自」から「CC BY 4.0」へと変更しました。<br>
+	・「豊橋鉄道市内線」と「豊橋鉄道渥美線」データを2/22頃に「豊橋鉄道(市内線、渥美線)」データへ統合、「琴参バス(坂出瀬居線、旧坂出市営バス運行路線)」データを3/21頃に「琴参バス(坂出路線)」データへ統合扱いとしました。<br>
+	・「大田区コミュニティバス(たまちゃんバス)」「品川区コミュニティバス(しなバス)」「目黒区東部地区地域交通バス(さんまバス)」データを1個にまとめて収録から、2/12頃に各区毎の三データへ分割する変更あり。(2026/03/28)</li>
+	<li>・「志賀町コミュニティバス（しかばす）」GTFSデータは収録バス路線廃止と判明し、当データ一覧で掲載終了しました。(2026/01/17)</li>
+	<li>・「会津バス(空港連絡バス)」「ふれあいバス(粕屋町福祉巡回バス)」(2025年11月30日運行終了)データは配信終了と判断し、当データ一覧で掲載終了しました。(2025/12/31)</li>
+	<li>・「文京区コミュニティバス「Bーぐる」」「三宅村営バス」GTFSデータの適用ライセンスが「ODPT基本ライセンス」から「CC BY 4.0」へと変更されました。<br>
+	・本社・本部所在地に合わせて、「阪九フェリー」「マリックスライン」「マルエーフェリー」GTFSデータが属する都道府県を変更しました。<br>
+	・高知県「物部川エリアでの観光博覧会実行委員会 ものべすとシャトルバス」(運行終了)GTFSデータは、改変不可な「CC BY-ND 4.0」ライセンス適用のため、取込み利用は出来ないと判断し、当データ一覧にも非掲載です。<br>
+	・(関連リンク)<a href="https://www.pref.kochi.lg.jp/opendata/bosai_anzen_machizukuri/">高知県防災・安全まちづくりオープンデータ</a>(2025/11/09)</li>
+	<li>・「日本中央バス（奥多野線）」GTFSデータは1つに統合され、「静岡市 駿府浪漫バス」GTFSデータは2025/09/30で運行終了に伴い、当データ一覧でも掲載を終了しました。<br>
+	「船鉄バス(船木鉄道)」GTFSは、適用ライセンスが「CC BY4.0」から「ODPT基本ライセンス」へと変更されました。(2025/11/03)</li>
+	<li>・「青森市市バス」と「あおもりシャトルdeルートバス「ねぶたん号」」GTFSデータが統合されました。<br>
+	・「お台場レインボーバス(kmモビリティサービス)」 GTFSデータが「CC0」適用ライセンスになりました。<br>
+	・「名古屋市 SRT(バス)」GTFSデータが公開されましたが、当データ一覧では有効開始日(2026年春)以降に掲載予定です。(2025/09/04)</li>
+	<li>・「身延町営バス(飯富本栖湖線データとして再開)」(2025/07/11頃公開)、「甲斐市民バス」(2025/07/17頃公開)最新版GTFSデータが公開に伴い、このデータ一覧でも掲載再開しました。(2025/08/09)</li>
+	<li>・「山梨交通」GTFSデータは3年以上更新停止のため、「ぐるっとバス(奈良市)」GTFSデータは2025年4月頃で公開終了と判断し、当データ一覧でも公開終了しました。(2025/07/30)</li>
+	<li>・「十王自動車」(ODPTライセンスへ変更)、「渋川市内バス路線」データの掲載を再開しました。(2025/07/24)</li>
+	<li>・「韮崎市民バス」最新版GTFSデータが「2025/4/30」頃から公開に伴い、このデータ一覧でも掲載再開しました。(2025/06/11)</li>
+	<li>・「大新東(レイディアントシティ横濱)」(データ名を若干変更)GTFSデータがGTFSデータリポジトリでも公開に伴い、データ取得サイトを切り替え、適用ライセンスを「ODPT基本ライセンス」から「CC 0」へ変更しました。(2025/05/23)</li>
+	<li>・「伊予鉄バス」GTFSデータがODPTでも公開に伴い、データ取得サイトを切り替え、適用ライセンスを「公共交通データHUBシステム独自」から「ODPT基本ライセンス」へ変更しました。(2025/05/22)</li>
+	<li>・「じょうてつバス(高速バス)」GTFSデータは「じょうてつバス」データへ統合されたと思われ、公開終了と判断しました。<br>
+	・「外ヶ浜町営バス(三厩線)」GTFSデータは公開終了と判断しました。<br>
+	・「西尾市　いっちゃんバス」GTFSデータは公開終了しました。<br>
+	・「朝来市コミュニティバス(アコバス)」は収録バス路線が2025年3月31日で運行終了し、公開終了しました。(2025/05/05)</li>
+	<li>・「栃木市ふれあいバス」GTFSデータのオープンデータ公開に伴い、適用ライセンスを「公共交通データHUBシステム独自」から「CC BY 4.0」へと変更しました。(2025/04/24)</li>
+	<li>・「品川区コミュニティバス(しなバス)」GTFSデータは掲載終了しました。なお、収録路線は「大田区、品川区、目黒区コミュニティバス」データへ収録されています。<br>
+	・「伊万里市いまりんバス」GTFSデータは2025/4/1より1個へ統合されため、「地域線」「郊外線」データを掲載終了扱いとしました。(2025/04/20)</li>
+	<li>・「境港市循環バス(はまるーぷバス)」GTFSは収録バス路線が2025年3月31日頃で運行終了し、データ公開も終了しました。<br>
+	・「秋田市マイタウン・バス、中心市街地循環バス(ぐるる)」GTFSの適用ライセンスが一旦「ODPT基本ライセンス」へと変更されましたが、その後「CC BY4.0」ライセンスへ戻った事を確認済み。<br>
+	・「掛川市コミュニティバス」GTFSは2025/4/1有効開始分より、3個から2個へ統合されました(2025/04/19)</li>
+
+	<li>・「観音寺市のりあいバス(観音寺市コミュニティ)」GTFSのオープンデータ公開に伴い、適用ライセンスを「公共交通データHUBシステム独自」から「CC 0」へと変更しました。<br>
+	・「函館市電」GTFSデータへ独自の「GTFS-RUライセンス」適用に伴い、「バス停検索」、「バス時刻検索」での利用を取りやめる関係で、データを共有するこのデータ一覧でも該当事業者の情報を公開終了しました。(2025/03/08)</li>
+	<li>・「玉村町乗合タクシー　たまりん」の運行終了(2024/9/30)に伴い、当GTFS一覧からも2025/1/15頃に削除済みです。(2025/02/17)</li>
+	<li>・＜台東区コミュニティバス「めぐりん」＞GTFSの適用ライセンスが「2025/2/13」頃に「CC BY4.0」へ変わりました。<br>
+	・公開終了していた＜伊勢崎市コミュニティバス「あおぞら」＞GTFS(ただし2024/12/31で有効期限切れ)が再公開されました。(2025/02/15)</li>
+
+	<li>・「宇野バス」、「下電バス」GTFSデータへ独自の「GTFS-RUライセンス」適用に伴い、「バス停検索」、「バス時刻検索」での利用を取りやめる関係で、データを共有するこのデータ一覧でも該当事業者の情報を公開終了しました。(2024/12/13)</li>
+	<li>・「斜里町コミュニティ」GTFSデータは公開終了した模様。(2024/12/02)</li>
+	<li>・＜松江市コミュニティバス「宍道線」、「忌部線」＞GTFSは、収録バス路線廃止に伴い公開終了し、当GTFS一覧からも削除しました。(2024/11/09)</li>
+	<li>・「北海道拓殖バス(一般路線バス・コミュニティバス、高速バス・空港連絡バス)」GTFSは、「ODPT基本ライセンス」適用へとライセンス変更されました。(2024/10/14)</li>
+
+	<li>・「宇野バス」GTFSが＜バス利用者への案内用途や交通計画での利用は「ODPT基本ライセンス」適用＞との事で、この一覧でも「ODPTライセンス」へ変更しました。(2024/09/24)</li>
+	<li>・「西東京市コミュニティバス」GTFSが2024/9/2頃にオープンデータ公開されましたが、新規追加日は以前からの「公共交通データHUBシステム」ライセンス適用データを基準としています。(2024/09/16)</li>
+	<li>・名取市「なとりん号」GTFSのオープンデータ公開に伴い、適用ライセンスを「公共交通データHUBシステム独自」から「CC BY 4.0」へと変更しました。(2024/07/03)</li>
+	<li>・最近数ヶ月でバス路線が運行終了やデータ公開終了を確認し、当GTFS一覧でも掲載を止めたGTFSデータがあります。<br>
+	【運行終了】蒲原鉄道(ときライナー)、新潟交通観光バス(ときライナー)、浪岡地区コミュニティバス(青森市)、しおや交通、安芸市観光シャトルバス<br>
+	【公開終了】和木町コミュニティバス（あいあいバス）、浪岡地区コミュニティバス(青森市)(2024/07/03)</li>
+	<li>・GTFS-RT(リアルタイム)情報のダウンロードリンクを追加しました(2024/06/15)</li>
+</ul>
+<a href="#">▲ページトップへ</a>
+</details>
+
+
+<h2>○都道府県でデータを絞り込む</h2>
+<p>
+<a href="/GtfsAgency/gtfs_list/?p1=1">北海道</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=2">青森県</a> <a href="/GtfsAgency/gtfs_list/?p1=3">岩手県</a> <a href="/GtfsAgency/gtfs_list/?p1=4">宮城県</a> <a href="/GtfsAgency/gtfs_list/?p1=5">秋田県</a> <a href="/GtfsAgency/gtfs_list/?p1=6">山形県</a> <a href="/GtfsAgency/gtfs_list/?p1=7">福島県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=8">茨城県</a> <a href="/GtfsAgency/gtfs_list/?p1=9">栃木県</a> <a href="/GtfsAgency/gtfs_list/?p1=10">群馬県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=11">埼玉県</a> <a href="/GtfsAgency/gtfs_list/?p1=12">千葉県</a> <a href="/GtfsAgency/gtfs_list/?p1=13">東京都</a> <a href="/GtfsAgency/gtfs_list/?p1=14">神奈川県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=15">新潟県</a> <a href="/GtfsAgency/gtfs_list/?p1=19">山梨県</a> <a href="/GtfsAgency/gtfs_list/?p1=20">長野県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=16">富山県</a> <a href="/GtfsAgency/gtfs_list/?p1=17">石川県</a> <a href="/GtfsAgency/gtfs_list/?p1=18">福井県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=22">静岡県</a> <a href="/GtfsAgency/gtfs_list/?p1=21">岐阜県</a> <a href="/GtfsAgency/gtfs_list/?p1=23">愛知県</a> <a href="/GtfsAgency/gtfs_list/?p1=24">三重県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=25">滋賀県</a> <a href="/GtfsAgency/gtfs_list/?p1=26">京都府</a> <a href="/GtfsAgency/gtfs_list/?p1=27">大阪府</a> <a href="/GtfsAgency/gtfs_list/?p1=28">兵庫県</a> <a href="/GtfsAgency/gtfs_list/?p1=29">奈良県</a> <a href="/GtfsAgency/gtfs_list/?p1=30">和歌山県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=31">鳥取県</a> <a href="/GtfsAgency/gtfs_list/?p1=32">島根県</a> <a href="/GtfsAgency/gtfs_list/?p1=33">岡山県</a> <a href="/GtfsAgency/gtfs_list/?p1=34">広島県</a> <a href="/GtfsAgency/gtfs_list/?p1=35">山口県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=36">徳島県</a> <a href="/GtfsAgency/gtfs_list/?p1=37">香川県</a> <a href="/GtfsAgency/gtfs_list/?p1=38">愛媛県</a> <a href="/GtfsAgency/gtfs_list/?p1=39">高知県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=40">福岡県</a> <a href="/GtfsAgency/gtfs_list/?p1=41">佐賀県</a> <a href="/GtfsAgency/gtfs_list/?p1=42">長崎県</a> <a href="/GtfsAgency/gtfs_list/?p1=43">熊本県</a> <a href="/GtfsAgency/gtfs_list/?p1=44">大分県</a> <a href="/GtfsAgency/gtfs_list/?p1=45">宮崎県</a> <a href="/GtfsAgency/gtfs_list/?p1=46">鹿児島県</a> </p>
+<p><a href="/GtfsAgency/gtfs_list/?p1=47">沖縄県</a> <br />
+<a href="/GtfsAgency/gtfs_list/">＞全国表示する</a>(初期表示) </p>
+<hr />
+<h3>GTFS関連サイトやツールのリンク</h3>
+<ul>
+<li>・<a href="https://gtfs-data.jp/">GTFSデータリポジトリ</a>(全国数百のGTFSを固定URLでダウンロードできる便利なサイト)</li>
+
+<li>・<a href="https://www.gtfs.site/">見える化共通入力フォーマット GTFSツール(2026/09/22 URL変更)</a>(エクセルベースのGTFS作成ツールの公式サイト)</li>
+
+<li>・<a href="https://gtfs-gis.jp/gtfs/">標準的なバス情報フォーマット作成ツール（西沢ツール）</a>(エクセルベースのGTFS作成ツールの公式サイト)</li>
+
+<li>・<a href="https://www.busdata.or.jp/?page_id=589">GTFSツール情報 | 一般社団法人日本バス情報協会</a></li>
+
+<li>・<a href="https://japanbus.jp/GTFS-validation/">GTFSチェックツール</a>(ブラウザ上で「FeedValidator」を使用したGTFSの書式チェックできる無料サービス)</li>
+
+</ul>
+
+<br />◇一覧表示のため、下記サイトを参考にしています。<br />
+・<a href="https://webparts.cman.jp/table/sort/">HTMLのtableをExeclのようにソートする</a><br />
+・<a href="https://pc-walk.com/css-sticky-table/">CSS テーブル（表）の見出し部分（一部）を固定してスクロール 4パターン | PC-Walk</a><br />
+
+<p><a href="https://bustime.jp/GtfsAgency/list1/?id1=26">・京都府内のバス会社や鉄道会社から時刻表探す</a></p>
+
+<!-- Google検索ボックス -->
+<script async src="https://cse.google.com/cse.js?cx=85bedf6921cd70730"></script>
+<div class="gcse-search"></div>
+
+<!-- ▼ソーシャルボタンリンク -->
+<div>
+	<a href="https://b.hatena.ne.jp/entry/https://bustime.jp/GtfsAgency/gtfs_list/?p1=26" class="hatena-bookmark-button" data-hatena-bookmark-title="バス時刻検索" data-hatena-bookmark-layout="standard" title="このエントリーをはてなブックマークに追加"> <img src="https://b.st-hatena.com/images/entry-button/button-only.gif" alt="このエントリーをはてなブックマークに追加" width="20" height="20" style="border: none;" /></a><script type="text/javascript" src="https://b.st-hatena.com/js/bookmark_button.js" charset="utf-8" async="async"></script>
+
+	<a href="https://twitter.com/share?ref_src=twsrc%5Etfw" class="twitter-share-button" data-text="バス時刻検索 京都府の公共交通GTFS・標準的なバス情報フォーマット(GTFS-JP)オープンデータ一覧 #GTFS @bustei_kensakuより" data-url="https://bustime.jp/GtfsAgency/gtfs_list/?p1=26" data-hashtags="バス時刻検索" data-related="" data-show-count="false">Tweet</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script><!-- 2023/08/22時点の最新コード -->
+</div>
+<!-- ▲ソーシャルボタンリンク -->
+<a href="#">▲ページトップへ</a>
+
+<br /><br />
+
+<h2>お知らせ</h2>
+<ul class="main">
+	<li><strong>岐阜県、愛知県、三重県内でバス停毎の時刻表ページを追加公開しました</strong><br />
+	岐阜＜八幡バス、白鳥交通＞、愛知＜春日井市 かすがいシティバス、名古屋市バス＞、三重＜四日市市自主運行バス、伊勢市沼木地区自主運行バス「沼木バス」、いなべ市福祉バス「アイバス」＞で乗り場毎の時刻表ページを公開しました。<br />
+	・表示例：<a href="https://bustime.jp/GtfsAgency/list1/?id1=21">岐阜県のバス会社から時刻表探す</a>、<a href="https://bustime.jp/GtfsAgency/list1/?id1=23">愛知県のバス会社から時刻表探す</a>、<a href="https://bustime.jp/GtfsAgency/list1/?id1=24">三重県のバス会社から時刻表探す</a>(2025/09/28)</li>
+
+	<li><strong>福島県、群馬県、静岡県、愛知県、福岡県内でバス停毎の時刻表ページを追加公開しました</strong><br />
+	福島＜新常磐交通＞、群馬＜上信観光バス、安中市路線バス＞、静岡＜秋葉バスサービス、森町、静岡市の各コミュニティバス等＞、愛知＜長久手市 N-バス＞、福岡＜久留米市、直方市、豊前市、みやま市、宗像市、須恵町、新宮町、遠賀町、川崎町、添田町の各コミュニティバス、定期旅客船等＞で乗り場毎の時刻表ページを公開しました。<br />
+	・表示例：<a href="https://bustime.jp/GtfsAgency/detail1/?id1=1005">新常磐交通のバス停時刻表探す</a>、<a href="https://bustime.jp/GtfsAgency/list1/?id1=22">静岡県のバス会社から時刻表探す</a>、<a href="https://bustime.jp/GtfsAgency/list1/?id1=40">福岡県のバス会社から時刻表探す</a>(2024/07/28)</li>
+
+</ul>
+<ul class="main">
+<li><a href="https://bustime.jp/Pages/info01">＞過去のお知らせを見る</a></li>
+</ul>
+<br />
+
+
+<div class="image">
+	<a title="位置情報から最寄りバス停を検索する" href="javascript:void(0);" onclick="getGeoLocation();"><img src="https://bustime.jp/img/gps-button.png" alt="現在地周辺のバス停を探す"></a>
+
+<br />
+　(周辺地域に時刻表を表示可能なバス停が存在しない場合もあり。※「<a href="https://buste.in/search/bus/">バス停検索</a>」サービスへリンク)<br />
+</div>
+
+<p>
+<a href="/GtfsAgency/gtfs_list/">・全国のGTFSオープンデータ一覧</a><br />
+<a href="https://bustime.jp/Pages/guide01/">・当サイトの使い方や注意点</a><br />
+<a href="https://bustime.jp/GtfsAgency/data_list/">・使用する時刻表データについて</a><br />
+<a href="https://bustime.jp/Pages/privacy/">・プライバシーに関するポリシー</a><br />
+<a href="https://bustime.jp/Pages/sitemap/">・サイトマップ</a></p>
+
+<p>・当サイトへのご意見、感想等は、<a href="https://buste.in/search/bus/toiawase/?url1=https%3A%2F%2Fbustime.jp%2FGtfsAgency%2Fgtfs_list%2F%3Fp1%3D26">こちらのお問い合わせフォーム</a>(バス停検索と兼用)からお願いします。</p>
+
+<a href="#">▲ページトップへ</a>
+
+<div class="footer">
+	Copyright(c) 2022 バス時刻検索 Inc. All Rights Reserved.
+</div>
+
+<br /><br />
+<br />
+
+
+
+<!-- GDPR等の対応 -->
+<script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js" data-cfasync="false"></script>
+<script>
+window.cookieconsent.initialise({
+  "palette": {
+    "popup": {
+      "background": "#237afc"
+    },
+    "button": {
+      "background": "#fff",
+      "text": "#237afc"
+    }
+  },
+  "content": {
+    "message": "このウェブサイトでは、お客様の利便性向上のためにCookie等を使用しています。このウェブサイトに留まり続けた場合は、同意を示したことになります。",
+    "dismiss": "同意する",
+    "link": "詳細はCookie ポリシーをお読み下さい。",
+    "href": "https://bustime.jp/Pages/privacy/"
+  }
+});
+</script>
+<!-- GDPR等の対応 -->
+
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf8">
+    <title>全国鉄道運行本数データ公開ページ</title>
+    <link rel="stylesheet" type="text/css" href="stylesheet.css">
+</head>
+<body>
+    <h2>全国鉄道運行本数データ公開ページ</h2>
+    <p>
+公共交通のサービス水準を評価するためには運行本数は主要な指標の一つです。そこで、全国の鉄道について区間別、駅別の運行本数データを作成しました。当面ベータ版として公開します。皆様にご利用いただいてデータ誤りの修正を含めてデータを改善していきたいと考えています。<br>
+<b>2024年版データ作成の過程で2023年版データの誤りが見つかったので2023年版データを修正しました。</b><br>
+<b>【2024年1月16日公開開始・2024年2月23日JR西日本の一部データ修正・2024年4月22日 2023年版を大幅修正 ・2024年4月24日 2024年版を公開　・2024年4月27日 京葉線の運行本数修正（駅発着数は修正なし） ・2024年6月5日 佐世保線早岐～佐世保の運行本数修正　・2024年9月17日 京王電鉄笹塚駅の発着本数修正】</b><br>
+<b>【2024年9月24日】次のとおりデータの改修と修正を行った。</b><br>
+・路線の運行本数に区間の営業キロを追加。<br>
+・山陰線東山公園駅の伯備線列車のデータが欠けていたのを修正。富山地方鉄道市内線に区間の重複があったのを修正。<br>
+<b>【2026年3月15日】2025年版データ公開。</b><br>
+<b>【2026年4月29日】2026年版データ公開。2026年版データの作成過程で判明した2025年版データの誤りを修正。</b><br>
+<b>【2026年5月14日】2026年5月11日に熊本電鉄でダイヤ改正（増便）があったため2026年版データを修正</b><br>
+<b>【最終更新：2026年5月14日】</b>
+<hr>
+■<a href="https://gtfs-gis.jp/railway_honsu/20240424_document.pdf">データ説明資料はこちら</a><br>
+■<a href="https://gtfs-gis.jp/railway_honsu/shukei.html">都道府県別、政令市・県庁市別に路線距離、列車運行距離、平均運行本数を集計したデータはこちら</a>（2024年版）<br>
+<hr>
+<table>
+<tr class="map">
+<td><a href="https://gtfs-gis.jp/railway_honsu/map01.png" target=_blank><img src="map01s.jpg"></a></td>
+<td><a href="https://gtfs-gis.jp/railway_honsu/map02.png" target=_blank><img src="map02s.jpg"></a></td>
+<td><a href="https://gtfs-gis.jp/railway_honsu/map03.png" target=_blank><img src="map03s.jpg"></a></td>
+<td>
+<a href="map04.png" target=_blank>富山マップ</a><br>
+<a href="map05.png" target=_blank>熊本マップ</a><br>
+</td>
+</tr>
+</table>
+<b>※上図は、区間別運行本数データ、事業者別・駅別発着本数データ、区間の端の駅データを地図化したものです。</b><br>
+<h3>【公開データ】</h3>
+<h4>【2026年版】</h4>
+<table class="gtfs_table">
+<tr>
+<th>データの種類</th><th>説明</th><th>ダウンロード</th>
+</tr>
+<tr>
+<td width=300>路線別・区間別運行本数データ2026</td>
+<td width=400>路線別・区間別に運行本数を集計したデータ。同一区間に複数の路線データある場合があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_kukan.txt" download="unkohonsu2026_rosen_kukan.txt">路線別・区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_kukan.geojson" download="unkohonsu2026_rosen_kukan.geojson">路線別・区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_kukan_sjis.csv" download="unkohonsu2026_rosen_kukan_sjis.csv">路線別・区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間別運行本数データ2026</td>
+<td width=400>区間別に運行本数を集計したデータ。区間の重複はない。異なる事業者の列車が合算されている区間があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan.txt" download="unkohonsu2026_kukan.txt">区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan.geojson" download="unkohonsu2026_kukan.geojson">区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan_sjis.csv" download="unkohonsu2026_kukan_sjis.csv">区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間の端の駅データ2026</td>
+<td width=400>上の区間の両端の駅データ。マップ上で区間を表示するときに使用できるもの。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_kukan_eki.geojson" download="unkohonsu2026_kukan_eki.geojson">区間の端の駅データ（geojsonファイル:utf8）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>路線別・駅別発着本数データ2026</td>
+<td width=400>路線別・駅別に発着本数を集計したデータ。各駅について２方向の着本数、発本数の計４つのデータがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_eki.txt" download="unkohonsu2026_rosen_eki.txt">路線別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_eki.geojson" download="unkohonsu2026_rosen_eki.geojson">路線別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_rosen_eki_sjis.csv" download="unkohonsu2026_rosen_eki_sjis.csv">路線別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>事業者別・駅別発着本数データ2026</td>
+<td width=400>事業者別・駅別に発着本数を集計したデータ。各駅について当該駅を通る各路線の発着本数データとその合計データがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_eki.txt" download="unkohonsu2026_eki.txt">事業者別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_eki.geojson" download="unkohonsu2026_eki.geojson">事業者別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2026_eki_sjis.csv" download="unkohonsu2026_eki_sjis.csv">事業者別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+</table>
+
+<h4>【2025年版】(2026年4月修正版)</h4>
+<table class="gtfs_table">
+<tr>
+<th>データの種類</th><th>説明</th><th>ダウンロード</th>
+</tr>
+<tr>
+<td width=300>路線別・区間別運行本数データ2025</td>
+<td width=400>路線別・区間別に運行本数を集計したデータ。同一区間に複数の路線データある場合があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_kukan.txt" download="unkohonsu2025_rosen_kukan.txt">路線別・区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_kukan.geojson" download="unkohonsu2025_rosen_kukan.geojson">路線別・区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_kukan_sjis.csv" download="unkohonsu2025_rosen_kukan_sjis.csv">路線別・区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間別運行本数データ2025</td>
+<td width=400>区間別に運行本数を集計したデータ。区間の重複はない。異なる事業者の列車が合算されている区間があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_kukan.txt" download="unkohonsu2025_kukan.txt">区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_kukan.geojson" download="unkohonsu2025_kukan.geojson">区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_kukan_sjis.csv" download="unkohonsu2025_kukan_sjis.csv">区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間の端の駅データ2025</td>
+<td width=400>上の区間の両端の駅データ。マップ上で区間を表示するときに使用できるもの。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_kukan_eki.geojson" download="unkohonsu2025_kukan_eki.geojson">区間の端の駅データ（geojsonファイル:utf8）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>路線別・駅別発着本数データ2025</td>
+<td width=400>路線別・駅別に発着本数を集計したデータ。各駅について２方向の着本数、発本数の計４つのデータがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_eki.txt" download="unkohonsu2025_rosen_eki.txt">路線別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_eki.geojson" download="unkohonsu2025_rosen_eki.geojson">路線別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_rosen_eki_sjis.csv" download="unkohonsu2025_rosen_eki_sjis.csv">路線別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>事業者別・駅別発着本数データ2025</td>
+<td width=400>事業者別・駅別に発着本数を集計したデータ。各駅について当該駅を通る各路線の発着本数データとその合計データがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_eki.txt" download="unkohonsu2025_eki.txt">事業者別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_eki.geojson" download="unkohonsu2025_eki.geojson">事業者別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2025_eki_sjis.csv" download="unkohonsu2025_eki_sjis.csv">事業者別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+</table>
+
+<h4>【2024年版】</h4>
+<table class="gtfs_table">
+<tr>
+<th>データの種類</th><th>説明</th><th>ダウンロード</th>
+</tr>
+<tr>
+<td width=300>路線別・区間別運行本数データ2024</td>
+<td width=400>路線別・区間別に運行本数を集計したデータ。同一区間に複数の路線データある場合があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_kukan.txt" download="unkohonsu2024_rosen_kukan.txt">路線別・区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_kukan.geojson" download="unkohonsu2024_rosen_kukan.geojson">路線別・区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_kukan_sjis.csv" download="unkohonsu2024_rosen_kukan_sjis.csv">路線別・区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間別運行本数データ2024</td>
+<td width=400>区間別に運行本数を集計したデータ。区間の重複はない。異なる事業者の列車が合算されている区間があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_kukan.txt" download="unkohonsu2024_kukan.txt">区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_kukan.geojson" download="unkohonsu2024_kukan.geojson">区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_kukan_sjis.csv" download="unkohonsu2024_kukan_sjis.csv">区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間の端の駅データ2024</td>
+<td width=400>上の区間の両端の駅データ。マップ上で区間を表示するときに使用できるもの。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_kukan_eki.geojson" download="unkohonsu2024_kukan_eki.geojson">区間の端の駅データ（geojsonファイル:utf8）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>路線別・駅別発着本数データ2024</td>
+<td width=400>路線別・駅別に発着本数を集計したデータ。各駅について２方向の着本数、発本数の計４つのデータがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_eki.txt" download="unkohonsu2024_rosen_eki.txt">路線別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_eki.geojson" download="unkohonsu2024_rosen_eki.geojson">路線別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_rosen_eki_sjis.csv" download="unkohonsu2024_rosen_eki_sjis.csv">路線別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>事業者別・駅別発着本数データ2024</td>
+<td width=400>事業者別・駅別に発着本数を集計したデータ。各駅について当該駅を通る各路線の発着本数データとその合計データがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_eki.txt" download="unkohonsu2024_eki.txt">事業者別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_eki.geojson" download="unkohonsu2024_eki.geojson">事業者別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2024_eki_sjis.csv" download="unkohonsu2024_eki_sjis.csv">事業者別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+</table>
+
+<h4>【2023年版】（2024年4月修正版）</h4>
+<table class="gtfs_table">
+<tr>
+<th>データの種類</th><th>説明</th><th>ダウンロード</th>
+</tr>
+<tr>
+<td width=300>路線別・区間別運行本数データ2023</td>
+<td width=400>路線別・区間別に運行本数を集計したデータ。同一区間に複数の路線データある場合があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_kukan.txt" download="unkohonsu2023_rosen_kukan.txt">路線別・区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_kukan.geojson" download="unkohonsu2023_rosen_kukan.geojson">路線別・区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_kukan_sjis.csv" download="unkohonsu2023_rosen_kukan_sjis.csv">路線別・区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間別運行本数データ2023</td>
+<td width=400>区間別に運行本数を集計したデータ。区間の重複はない。異なる事業者の列車が合算されている区間があります。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_kukan.txt" download="unkohonsu2023_kukan.txt">区間別運行本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_kukan.geojson" download="unkohonsu2023_kukan.geojson">区間別運行本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_kukan_sjis.csv" download="unkohonsu2023_kukan_sjis.csv">区間別運行本数（CSVファイル、路線座標データなし:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>区間の端の駅データ2023</td>
+<td width=400>上の区間の両端の駅データ。マップ上で区間を表示するときに使用できるもの。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_kukan_eki.geojson" download="unkohonsu2023_kukan_eki.geojson">区間の端の駅データ（geojsonファイル:utf8）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>路線別・駅別発着本数データ2023</td>
+<td width=400>路線別・駅別に発着本数を集計したデータ。各駅について２方向の着本数、発本数の計４つのデータがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_eki.txt" download="unkohonsu2023_rosen_eki.txt">路線別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_eki.geojson" download="unkohonsu2023_rosen_eki.geojson">路線別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_rosen_eki_sjis.csv" download="unkohonsu2023_rosen_eki_sjis.csv">路線別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+
+<tr>
+<td width=300>事業者別・駅別発着本数データ2023</td>
+<td width=400>事業者別・駅別に発着本数を集計したデータ。各駅について当該駅を通る各路線の発着本数データとその合計データがある。</td>
+<td width=600>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_eki.txt" download="unkohonsu2023_eki.txt">事業者別・駅別発着本数（タブ区切り・WKT・テキストファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_eki.geojson" download="unkohonsu2023_eki.geojson">事業者別・駅別発着本数（geojsonファイル:utf8）</a><br>
+<a href="https://gtfs-gis.jp/railway_honsu/data/unkohonsu2023_eki_sjis.csv" download="unkohonsu2023_eki_sjis.csv">事業者別・駅別発着本数（CSVファイル、駅の座標あり:shitf-jis）</a><br>
+</td>
+</tr>
+</table>
+
+<hr>
+
+<h3>【データの仕様】</h3>
+<dl>
+<dt>対象の事業者、路線</dt>
+<dd>全国の鉄道（路面電車、モノレール、新交通システム等を含み、鋼索鉄道（ケーブルカー等）を含まない）の全路線です。ただし、次項の対象列車に含まれない列車のみが走る路線（貨物列車のみの路線、新幹線のみの路線等）は含みません。また、観光列車のみの路線（黒部峡谷鉄道、嵯峨野観光鉄道、平成筑豊鉄道門司港レトロ観光線）は含みません。</dd>
+<dt>対象の列車</dt>
+<dd>平日に運行する定期列車です。乗車するのに乗車運賃以外の料金（特急料金、指定席料金、ライナー料金等）が必要な列車を含みません。<br>
+次の区間は特急料金不要で特急に乗車できるため特急も対象としています。<br>
+・ＪＲ北海道：石勝線 新夕張～新得<br>
+・ＪＲ北海道：室蘭本線 室蘭～東室蘭（2024年版から）<br>
+※2023年版時には室蘭～札幌のすずらん号は室蘭～東室蘭は普通列車として運行していたが、2024年3月から同区間も特急列車（各駅に停車）となった。運行本数に変化はない。<br>
+・ＪＲ東日本：奥羽線 青森～新青森<br>
+・ＪＲ九州：佐世保線 早岐～佐世保（2024年6月5日に2023年版、2024年版とも追加修正）<br>
+・ＪＲ九州：日豊本線・日南線・宮崎空港線 宮崎～宮崎空港<br>
+また、ライナー列車の末端部で指定席料金が不要の区間は対象に含みます。<br>
+・東武鉄道：スカイツリーライナー、アーバンパークライナー(2024年版にはなし）、ＴＪライナー<br>
+・東武鉄道、東京地下鉄：ＴＨライナー<br>
+・京浜急行電鉄：イブニング・ウィング号<br>
+・西武鉄道：拝島ライナー<br>
+・京王電鉄：京王ライナー<br>
+・京阪電鉄：ライナー</dd>
+<dt>データ作成方法</dt>
+<dd>鉄道の時刻表に関するデータがオープンデータとして公開されていればそれを集計できるのですが、我が国の鉄道についてはオープンデータで公開されているものがほとんどありません。このため、原則、冊子の時刻表または鉄道事業者のＨＰに掲載されている時刻表を手で数えて集計しています。<br>
+路線を列車の起点・終点となっている駅で区切り、その区間ごとに列車種別（普通、急行、特急等）ごとの本数を数え、これを区間ごとに集計して区間の運行本数としています。また、列車種別ごとの停車駅データを作成し、区間本数と停車駅データから駅ごとの発着本数を集計しています。<br>
+なお、ほとんどの路線では全便が掲載された時刻表を数えていますが、次の路線は全便の時刻表がなかったため運行間隔の情報から本数を推定しました。<br>
+・東京都荒川線（都電）（2025年版まで）、舞浜リゾートライン、長崎電気軌道</dd>
+<dt>事業者と路線</dt>
+<dd>事業者は鉄道を運行する事業者を採用していますが、第二種鉄道事業者と第三種鉄道事業者がある場合は第二種鉄道事業者としています。また、データ作成の便宜上、また、データ利用者に分かりやすくするため、運行本数は事業者・路線別に取得しています。この路線は正式な路線名ではなく運行形態や乗客への案内や時刻表での案内に沿ったものとしています。例えば、ＪＲ東日本では東海道線（東京～熱海）、横須賀線（東京～久里浜）、山手線（東京～池袋～東京）、京浜東北・根岸線（大宮～大船）、常磐線（品川～岩沼）のように路線を設定し、路線別・区間別の本数データの東京～品川の区間ではこれら５線のデータが存在します。（ただし、路線ごとに始発・終着のある駅により区間を設定しているため京浜東北・根岸線では上野～蒲田が１区間となってます。）、また、別途、これらを集計した重複のない区間別の本数データも作成しています。
+<br>
+また、同一区間に異なる事業者の路線を設定していることもあります。例えば、長野県の篠ノ井～長野間は正式にはＪＲ東日本の信越線ですが、実質的にながの鉄道の軽井沢方面からの列車も走行しているため、この区間にはＪＲ東日本の信越線（松本方面からの篠ノ井線の列車がある）としなの鉄道のしなの鉄道線の両方を設定しています。なお、重複なしの区間データではＪＲ東日本の信越線だけを設定し、しなの鉄道の列車も信越線に合算しています。<br>
+なお、次の区間は事業者・路線別の区間データと事業者別の区間データでは事業者を変えています。<br>
+・高速神戸～西代 ： 事業者・路線別データ -> 阪急・高速神戸線、阪神・高速神戸線<br>
+　　　　　　　　　　事業者別データ -> 神戸高速鉄道・高速神戸線<br>
+・新開地～湊川　：　事業者・路線別データ -> 神戸電鉄・高速神戸線<br>
+　　　　　　　　　　事業者別データ -> 神戸高速鉄道・高速神戸線<br>
+</dd>
+<dt>複数の事業者が運行する区間</dt>
+<dd>区間別データでは、複数の事業者が運行している次の区間は、●印の事業者名・路線名としています。<br>
+<ul>
+<li>目黒～白金高輪：●東京地下鉄南北線、東京都三田線
+<li>京成高砂～印旛日本医大：●北総鉄道北総線、京成電鉄成田空港線
+</dd>
+<dt>駅と発着本数</dt>
+<dd>駅には臨時駅は含みません。まず、路線別に駅を設定し各駅の方向別の着本数と発本数を集計しています。したがって、各駅について４つの本数データがあります。当該駅を起点・終点とする便があれば着本数と発本数は一致しません。また、路線の起終点駅では、１方向の着本数ともう１方向の発本数はともに０本となります。<br>
+特急、快速列車などでその駅を通過する列車は集計していませんので、その駅で実際に利用できる便数のデータとなっています。また、その駅の前後を通して運行する１便と、その駅が終点となる１便と始発となる１便とでは、同レベルのサービス水準とみなすべきことから、その駅を通る便数ではなく、発数・着数を計上しています。<br>
+また、同一事業者の各路線の駅のうち同名の駅をまとめて発着本数を集計したデータも作成しました。データファイルには各路線ごとの発着本数とそれを合計した発着本数のデータが格納してあります。なお、ＪＲ東日本とＪＲ西日本には同名の駅（例：ＪＲ東日本の中央線の大久保駅と奥羽線の大久保駅）がありますが、これは分離しています。<br>
+また、異なる事業者の駅（例：ＪＲ東日本、東京地下鉄、東京都、小田急、京王の新宿駅）は合算していません。
+<dt>地図データ（ジオメトリデータ）</dt>
+<dd>
+区間の運行本数データには路線の形状データ（線データ）、駅の発着本数データには駅の位置データ（点データ）を含みます。これらの座標データは国土数値情報の鉄道データを元に作者が整理し、地形図と重ね合わせて一致しない部分の一部を修正したものです。
+<dt>区間の距離</dt>
+<dd>区間データには区間の距離のデータが含まれます。これは地図データから算出したもので、単位はメートルです。いわゆる営業キロではありません。営業キロのカラムは別にあります（2024年9月24日追加）。</dd>
+<br>
+
+<hr>
+
+<dt>資料と作成時期【2026年版】</dt>
+<dd>運行本数を数える作業は2026年3月～4月に行い、集計、地図データの作成、出力データセットの作成を2026年4月にに実施しました。使用した資料は次の通りです。各社のHPは2026年3月～4月に閲覧しました。HPに3月のダイヤ改正が明記されていない事業者については、4月以降のダイヤ改正の可能性を考慮して4月にHPを調査しました。<br>
+熊本電鉄では2025年2月に運転手不足により減便ダイヤ改正を行いましたが、2026年5月11日に運転手の増加に伴い増便となるダイヤ改正を行いました。2026年版データは増便後の運行本数となっています。<br>
+＜オープンデータ公開されているGTFSデータを使用した路線＞<br>
+・富山地方鉄道市内線　・熊本電鉄　・熊本市電　・都営地下鉄三田線　・都営地下鉄大江戸線　・日暮里舎人ライナー　・都電
+＜上記以外の路線＞
+・首都圏のＪＲ東日本、民鉄各線 -> 交通新聞社「My LINE 東京時刻表2026」2026年3月発行<br>
+　　　　　　　　　　　　　　　　　ただし、舞浜リゾートラインは2025年版データと同じとした<br>
+・ＪＲ西日本東海道線、山陽線、関西線、大阪環状線、福知山線、阪和線など -> 交通新聞社「ＪＲ版西日本時刻表2026年春号」2026年3月発行<br>
+　　　　　　　　各駅停車も全列車・全駅掲載されていること、平日・休日ダイヤに分けて掲載されていることからこれを使用しました。
+・関西、東海の民鉄 -> 「JTB私鉄時刻表 関西 東海 2026」2026年3月発行<br>
+・上記以外のＪＲ東日本、ＪＲ北海道、ＪＲ東海、ＪＲ西日本、ＪＲ四国、ＪＲ九州、三セク -> ＪＴＢパブリッシング「ＪＴＢ時刻表2026年3月」2026年3月発行<br>
+・上記以外の民鉄、公営鉄道 -> 各社ＨＰに掲載されている時刻表<br>
+</dd>
+<br>
+
+<dt>資料と作成時期【2025年版】</dt>
+<dd>運行本数を数える作業は2025年3月～4月に行い、集計、地図データの作成、出力データセットの作成を2025年12月～2026年3月にに実施しました。（諸般の事情で作業開始が大幅に遅れました）使用した資料は次の通りです。各社のHPは2025年3月～4月に閲覧しました。HPに3月のダイヤ改正が明記されていない事業者については、4月以降のダイヤ改正の可能性を考慮して4月にHPを調査しました。<br>
+・首都圏のＪＲ東日本、民鉄各線 -> 交通新聞社「My LINE 東京時刻表2025」2025年3月発行<br>
+　　　　　　　　　　　　　　　　　ただし、東京都荒川線（都電）は東京都交通局ＨＰ、舞浜リゾートラインは2024年版データと同じとした<br>
+・ＪＲ西日本東海道線、山陽線、関西線、福知山線、阪和線など -> 交通新聞社「ＪＲ版西日本時刻表2025年春号」2025年3月発行<br>
+　　　　　　　　各駅停車も全列車・全駅掲載されていること、平日・休日ダイヤに分けて掲載されていることからこれを使用しました。
+・ＪＲ西日本大阪環状線　-> JR西日本HPの各駅時刻表
+・関西、東海の民鉄 -> 「JTB私鉄時刻表 関西 東海 2025」2025年3月発行<br>
+・富山地鉄市内線、熊本市電 -> オープンデータ公開されているＧＴＦＳデータ<br>
+・上記以外のＪＲ東日本、ＪＲ北海道、ＪＲ東海、ＪＲ西日本、ＪＲ四国、ＪＲ九州、三セク -> ＪＴＢパブリッシング「ＪＴＢ時刻表2025年3月」2025年3月発行<br>
+・上記以外の民鉄、公営鉄道 -> 各社ＨＰに掲載されている時刻表<br>
+</dd>
+<br>
+
+<dt>資料と作成時期【2024年版】</dt>
+<dd>運行本数を数える作業は2024年3月～4月に行い、集計、地図データの作成、出力データセットの作成を2024年4月に実施しました。使用した資料は次の通りです。各社のHPは2024年3月～4月に閲覧しました。HPに3月のダイヤ改正が明記されていない事業者については、4月以降のダイヤ改正の可能性を考慮して4月にHPを調査しました。<br>
+・首都圏のＪＲ東日本、民鉄各線 -> 交通新聞社「My LINE 東京時刻表2024」2024年3月発行<br>
+　　　　　　　　　　　　　　　　　ただし、東京都荒川線（都電）は東京都交通局ＨＰ、舞浜リゾートラインは2023年版データと同じとした<br>
+・ＪＲ西日本東海道線、山陽線、関西線、大阪環状線、福知山線、阪和線など -> 交通新聞社「ＪＲ版西日本時刻表2024年春号」2024年3月発行<br>
+　　　　　　　　各駅停車も全列車・全駅掲載されていること、平日・休日ダイヤに分けて掲載されていることからこれを使用しました。大阪環状線の全列車時刻も別冊で掲載されていのでこれを利用した。<br>
+・関西、東海の民鉄、北陸の私鉄（富山地鉄除く） -> 「JTB私鉄時刻表 関西 東海 2024」2024年3月発行<br>
+  　※富山地鉄鉄道線は2024/4/15にダイヤ改正があったため改正後のＨＰの時刻表を使用した。<br>
+・富山地鉄市内線（2024/4/15改正）、熊本市電（2024/4/1改正） -> オープンデータ公開されているＧＴＦＳデータ<br>
+・上記以外のＪＲ東日本、ＪＲ北海道、ＪＲ東海、ＪＲ西日本、ＪＲ四国、ＪＲ九州、三セク -> ＪＴＢパブリッシング「ＪＴＢ時刻表2024年3月」2024年3月発行<br>
+・上記以外の民鉄、公営鉄道 -> 各社ＨＰに掲載されている時刻表<br>
+</dd>
+<br>
+
+<dt>資料と作成時期【2023年版】</dt>
+<dd>運行本数を数える作業は2023年10月～12月に行い、集計、地図データの作成、出力データセットの作成を2023年12月～2024年1月に実施しました。使用した資料は次の通りです。各社のHPは2023年10月～11月に閲覧しました。2024年3月～4月に2024年版を作成する過程で2023年版の誤りを発見しましたので修正しました。<br>
+・首都圏のＪＲ東日本、民鉄各線 -> 交通新聞社「My LINE 東京時刻表2023」2023年3月発行<br>
+　　　　　　　　　　　　　　　　　ただし、東京都荒川線（都電）は東京都交通局ＨＰ、舞浜リゾートラインは同社ＨＰ<br>
+・ＪＲ西日本 -> 交通新聞社「ＪＲ版西日本時刻表2023年秋号」2023年9月発行<br>
+　　　　　　　　東海道線、山陽線、関西線などの各駅停車も全列車・全駅掲載されているのでこれを使用しました。ただし、大阪環状線は全列車掲載されていないので、ＪＴＢ時刻表2023年3月号の特集ページを使用しました。<br>
+・近鉄 -> 近鉄時刻表<br>
+・熊本市電 -> オープンデータ公開されているＧＴＦＳデータ<br>
+・上記以外のＪＲ東日本、ＪＲ北海道、ＪＲ東海、ＪＲ四国、ＪＲ九州、三セク -> ＪＴＢパブリッシング「ＪＴＢ時刻表2023年10月」2023年9月発行<br>
+・上記以外の民鉄、公営鉄道 -> 各社ＨＰに掲載されている時刻表<br>
+</dd>
+<hr>>
+<dt class="bold">データの形式</dt>
+<dd>次の３形式のデータファイルがあります<br>
+・ＣＳＶファイル（shift-jis）<br>
+・タブ区切りテキストファイル、地図データはＷＫＴ形式（utf8）<br>
+・geojsonファイル（utf8）<br>
+</dd>
+<dt>データのライセンスと免責事項</dt>
+<dd>データのライセンスはCC-BY 4.0、ODbLとします。<br>
+利用者がデータを用いて行う一切の行為（データを編集・加工等した情報を利用することを含む）について何ら責任を負うものではありません。<br>
+</dl>
+<hr>
+<p>
+      データ作成・問合せ先：<br>
+      西澤明（地域・交通データ研究所代表、東京大学空間情報科学研究センター客員研究員）<br>
+      nishizawa@csis.u-tokyo.ac.jp
+    </p>
+    <p>
+      これらのデータの作成の一部は、国立研究開発法人情報通信研究機構（NICT）の委託研究（JPJ012368C01101）により得られたものです。
+    </p>  </body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf8">
+    <title>研究用GTFSデータ公開ページ</title>
+    <link rel="stylesheet" type="text/css" href="stylesheet.css">
+</head>
+<body>
+    <h2>研究用GTFSデータ公開ページ</h2>
+    <p>
+      GTFSデータは経路検索・乗換案内サービスのために市町村や交通事業者が作成し流通させるデータですが、交通や都市の分析などの研究目的にも活用できるデータです。<br>
+      このページでは研究者が研究用に作成したGTFSデータを公開します。利用にあたっては次の点にご注意下さい。
+      <ul>
+        <li>このGTFSデータは市町村や交通事業者が公式に作成したものではありません。また、市町村や交通事業者の許可や校閲も受けていません。</li>
+        <li>データの利用は調査・研究目的に限ります。</li>
+        <li>最新の情報のデータではないものもあります。古いデータは案内サービスなどには使用できません。</li>
+        <li>内容については公開されている情報から作成しており、一部、推定した内容も含まれます。</li>
+        <li>データの内容について市町村や交通事業者に照会することはしないでください。</li>
+        <li>市町村や交通事業者が公式に作成しているGTFSデータは<a href="https://gtfs-data.jp">GTFSデータリポジトリ</a>などで公開されています。</li>  
+      </ul>
+    </p>
+    <hr>
+
+    <table class="gtfs_table">
+      <tr>
+        <th width-"150">交通事業者／市町村</th><th>交通機関の種類</th><th width="400">収録路線等</th><th>データ作成時期</th><th>データ作成者</th><th>DLリンク</th><th>備考</th>
+      </tr>
+      <tr>
+        <td>東武鉄道（栃木県）、野岩鉄道</td><td>鉄道</td><td>伊勢崎線（久喜～太田）、佐野線、日光線（南栗橋～東武日光）、宇都宮線、東武鬼怒川線、会津鬼怒川線</td>
+        <td>2023年3月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-tochigi-tobu-yagan.zip">DL</a></td><td></td>
+      </tr>
+      <tr>
+        <td rowspan=3>宇都宮ライトレール</td><td rowspan=3>鉄道</td><td>ライトライン</td>
+        <td>2023年8月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-utsunomiya-light-rail-20230826.zip">DL</a></td><td>路線形状は地理院地図、電停位置は地理院地図とYoutubeの前面展望動画による。年末年始の運行状況が非公表のため、仮に12/30～1/3は土休日ダイヤで運行とした。</td>
+      </tr>
+      <tr>
+        <td>ライトライン（2023/9/3のサッカー開催に伴う臨時便を含む）</td>
+        <td>2023年9月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-utsunomiya-light-rail-20230903.zip">DL</a></td><td>年末年始の運行状況が非公表のため、仮に12/30～1/3は土休日ダイヤで運行とした。</td>
+      </tr>
+      <tr>
+        <td>ライトライン（2023/10/23ダイヤ改正）</td>
+        <td>2023年8月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-utsunomiya-light-rail-20231023.zip">DL</a></td><td>年末年始の運行状況が非公表（照会中）のため、仮に12/30～1/3は土休日ダイヤで運行とした。</td>
+      </tr>
+      <tr>
+        <td>すぎ丸（杉並区）</td><td>バス</td><td>すぎ丸３路線</td><td>2023年7月</td>
+        <td>東京大学 西澤明</td><td class="DL"><a href="gtfs-sugimaru-20230601.zip">DL</a></td><td></td>
+      </tr>
+      <tr>
+        <td>地域乗合タクシーさくら（葛飾区）</td><td>バス</td><td>地域乗合タクシーさくら</td><td>2023年6月更新</td>
+        <td>東京大学 西澤明</td><td class="DL"><a href="gtfs-katsushika-sakura.zip">DL</a></td><td>千代田線綾瀬駅到着時刻は推定<br>公式版は葛飾区が作成し<a href="https://gtfs-data.jp/search?pref=%E6%9D%B1%E4%BA%AC%E9%83%BD&target_feed=katsushikacity*sakura">GTFSデータリポジトリ</a>で公開されています。</td>
+      </tr>
+      <tr>
+        <td>富山県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、北陸新幹線（長野～金沢）</td>
+        <td>2023年11月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-toyama-railway.zip">DL</a></td><td>運賃情報はなし。北陸新幹線は定期列車のみ。「急行」「べるもんた」の秋・冬の運転日追加。</td>
+      </tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線、JR越美北線、北陸新幹線（長野～金沢）</td>
+        <td>2024年3月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20240316.zip">DL</a></td><td>2024年3月16日ダイヤ改正。運賃情報はなし。北陸新幹線は定期列車のみ。(2024年3月26日、shapes.txt追加）</td>
+      </tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線、JR越美北線、北陸新幹線（長野～金沢）</td>
+        <td>2024年7月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20240701.zip">DL</a></td><td>2024年3月16日ダイヤ改正＋臨時列車の夏の運転日追加。4月6日のと鉄道臨時ダイヤ。運賃情報はなし。北陸新幹線は定期列車のみ。</td>
+      </tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線、JR越美北線、北陸新幹線（長野～金沢）</td>
+        <td>2024年9月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20240720.zip">DL</a></td><td>2024年3月16日ダイヤ改正＋臨時列車の秋の運転日追加。7月20日のと鉄道ダイヤ改正。越美北線の経路形状データ修正。運賃情報はなし。北陸新幹線は定期列車のみ。</td>
+      </tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線、JR越美北線、北陸新幹線（長野～金沢）</td>
+        <td>2024年11月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20241120.zip">DL</a></td><td>2024年3月16日ダイヤ改正＋7月20日のと鉄道ダイヤ改正＋臨時列車の夏秋冬の運転日追加。越美北線の経路形状データ修正。運賃情報はなし。北陸新幹線は定期列車のみ。</td>
+      </tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線、JR越美北線、北陸新幹線（長野～金沢）</td>
+        <td>2025年3月</td><td>東京大学 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20250315.zip">DL</a></td><td>2025年3月15日ダイヤ改正。運賃情報はなし。北陸新幹線は定期列車のみ。</td>
+      <tr>
+      <tr>
+        <td>北陸３県内鉄道</td><td>鉄道</td><td>あいの風とやま鉄道、えちごトキめき鉄道（糸魚川～市振）、IRいしかわ鉄道、ハピラインふくい、のと鉄道、JR高山本線（富山～猪谷）、JR氷見線、JR城端線、JR七尾線</td>
+        <td>2026年6月</td><td>地域・交通データ研究所 西沢明</td><td class="DL"><a href="gtfs-hokuriku-railway-20260314.zip">DL</a></td><td>2026年3月14日ダイヤ改正。運賃情報はなし。北陸新幹線は含まない。</td>
+      <tr>
+        <td>富山地方鉄道（鉄道線）</td><td>鉄道</td><td>全線</td><td>2024年4月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-toyamachitetsu20240415.zip">DL</a></td><td>2024年4月15日ダイヤ改正。運賃情報はなし。</td>
+      </tr>
+      <tr>
+        <td>富山地方鉄道（鉄道線）</td><td>鉄道</td><td>全線</td><td>2025年4月</td><td>地域・交通データ研究所 西澤明</td><td class="DL"><a href="gtfs-toyamachitetsu20250415.zip">DL</a></td><td>2025年4月15日ダイヤ改正。運賃情報はなし。</td>
+      </tr>
+      <tr>
+        <td>富山地方鉄道（鉄道線）</td><td>鉄道</td><td>全線</td><td>2026年6月</td><td>地域・交通データ研究所 西澤明</td><td class="DL"><a href="gtfs-toyamachitetsu20260314.zip">DL</a></td><td>2026年3月14日ダイヤ改正。運賃情報はなし。</td>
+      </tr>
+      <tr>
+        <td>北陸鉄道</td><td>鉄道</td><td>石川線、浅野川線</td><td>2024年7月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-hokutetsu2024.zip">DL</a></td><td>2024年3月16日ダイヤ改正</td>
+      </tr>
+      <tr>
+        <td>福井鉄道・えちぜん鉄道</td><td>鉄道</td><td>福武線、三国芦原線、勝山永平寺線</td><td>2024年7月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-fukutetsu-echitetsu2024.zip">DL</a></td><td>2024年3月16日ダイヤ改正</td>
+      </tr>
+      <tr>
+        <td>福井鉄道・えちぜん鉄道</td><td>鉄道</td><td>福武線、三国芦原線、勝山永平寺線</td><td>2025年2月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-fukutetsu-echitetsu20241001.zip">DL</a></td><td>2024年10月1日福井鉄道ダイヤ改正</td>
+      </tr>
+      <tr>
+        <td>上田電鉄</td><td>鉄道</td><td>別所線</td><td>2025年3月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-uedadentetsu-20240316.zip">DL</a></td><td>2024年3月16日ダイヤ改正</td>
+      </tr>
+      <tr>
+        <td>上田電鉄</td><td>鉄道</td><td>別所線</td><td>2025年3月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-uedadentetsu-20250315.zip">DL</a></td><td>2025年3月15日ダイヤ改正</td>
+      </tr>
+      <tr>
+        <td>岡山県内鉄道</td><td>鉄道</td><td>JR山陽線（上郡～福山）、JR赤穂線（播州赤穂～岡山）、JR姫新線（佐用～新見）、JR津山線（岡山～津山）、JR因美線（津山～智頭）、JR吉備線（岡山～総社）、JR伯備線（岡山～生山）、JR芸備線（新見～東城）、JR瀬戸大橋線・宇野線（岡山～児島・宇野）、智頭急行、井原鉄道</td><td>2024年5月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-okayama-jr-west.zip">DL</a></td><td>運賃データは含まない。</td>
+      </tr>
+      <tr>
+        <td>水島臨海鉄道</td><td>鉄道</td><td>全線</td><td>2024年4月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-mizushima-rinkai.zip">DL</a></td><td></td>
+      </tr>
+      <tr>
+        <td>広島電鉄</td><td>路面電車・鉄道</td><td>全線</td><td>2021年7月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-hiroden.zip">DL</a></td><td>終点の到着時刻は推定</td>
+      </tr>
+      <tr>
+        <td rowspan=2>熊本電鉄</td><td rowspan=2>鉄道</td><td>全線</td><td>2023年1月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-dentetsu.zip">DL</a></td><td>2023年10月1日に実施された運賃改定以降のGTFSデータは<a href="https://gtfs-data.jp/search?agencyId=kumamotodentetsu&feedId=kumamotodentetsu">GTFSデータリポジトリ</a>でオープンデータとして公開されています。</td>
+      </tr>
+      <tr>
+        <td>全線</td><td>2023年10月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-dentetsu20230901.zip">DL</a></td><td>2023年9月17日の藤崎八幡宮例大祭に伴う臨時ダイヤを含むデータ。</td>
+      </tr>
+      <tr>
+        <td>JR九州</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）</td><td>2023年5月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-2023v1.zip">DL</a></td><td>2023/3/18～2023/7/14</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2023年11月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-2023v3.zip">DL</a></td><td>2023年7月15日、南阿蘇鉄道全線運行再開。２往復豊肥線肥後大津まで直通運行。秋・冬の季節列車運行日、計画運休ダイヤを含む。</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2024年1月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-2024v1.zip">DL</a></td><td>JRの3月15日までの不定期列車の運行日収録。南阿蘇鉄道2023年12月1日ダイヤ改正収録。</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2024年11月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-20240316.zip">DL</a></td><td>JR、南阿蘇鉄道の2024年3月16日ダイヤ改正収録。（2024/3/15 運行日データ修正、2024/5/24 夏の臨時列車運行日（9/30まで）を追加、2024/8/27 秋の臨時列車運行日（11/30まで）を追加、2024/11/20冬の臨時列車運行日（2/28まで）を追加）</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2025年2月</td><td>東京大学 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-20250315.zip">DL</a></td><td>JR、南阿蘇鉄道の2025年3月15日ダイヤ改正収録。</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2026年1月</td><td>地域・交通データ研究所 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-20250401.zip">DL</a></td><td>JR、南阿蘇鉄道の2025年3月15日ダイヤ改正収録。2025年4月1日 JR九州運賃改定収録。2025/6/28 夏の臨時列車運行日（9/30まで）を追加。2025/8/26 秋の臨時列車運行日（11/30まで）を追加。2025/9/27 11月10日、17日の鹿児島本線計画運休を追加。2025/10/2 冬の臨時列車運行日（2/28まで）を追加。2026/1/25 冬の臨時列車運行日（3/13まで）を追加。</td>
+      </tr>
+      <tr>
+        <td>JR九州、南阿蘇鉄道</td><td>鉄道</td><td>熊本地区（鹿児島本線（大牟田～八代）、豊肥本線、三角線）、南阿蘇鉄道</td><td>2026年8月</td><td>地域・交通データ研究所 西澤明</td><td class="DL"><a href="gtfs-kumamoto-jr-kyushu-20260314.zip">DL</a></td><td>JR、南阿蘇鉄道の2026年3月14日ダイヤ改正収録。夏の臨時列車運行日（9/30まで）、くまもんアドベンチャー号を追加。</td>
+      </tr>
+
+<!--
+      <tr>
+        <td></td><td></td><td></td><td></td><td></td><td class="DL"><a href="">DL</a></td><td></td>
+      </tr>
+-->
+    </table>
+    <hr>
+    <p>
+      問合せ先：<br>
+      西澤明（地域・交通データ研究所代表。東京大学空間情報科学研究センター客員研究員）<br>
+      nishizawa@csis.u-tokyo.ac.jp
+    </p>
+    <p>
+      これらのデータの作成の一部は、国立研究開発法人情報通信研究機構（NICT）の委託研究（JPJ012368C01101）により得られたものです。
+    </p>  </body>
+</html>

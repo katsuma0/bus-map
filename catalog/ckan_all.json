@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<!--[if IE 9]> <html lang="ja" class="ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html lang="ja"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8" />
+      <meta name="generator" content="ckan 2.9.6" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データセット - 公共交通オープンデータセンター データカタログサイト</title>
+
+    
+    <link rel="shortcut icon" href="/images/icons/favicon.ico" />
+    
+  
+      
+      
+      
+    
+  
+  
+
+
+    
+      
+      
+    
+
+    
+    <link href="/webassets/base/4f3188fa_main.css" rel="stylesheet"/>
+<link href="/webassets/webassets-external/a982bdda489f6cabb84a5db0614758d0_odpt.css" rel="stylesheet"/>
+    
+  </head>
+
+  
+  <body data-site-root="https://ckan.odpt.org/" data-locale-root="https://ckan.odpt.org/" >
+
+    
+    <div class="sr-only sr-only-focusable"><a href="#content">スキップして内容へ</a></div>
+  
+
+  
+     
+<div class="account-masthead">
+  <div class="container">
+     
+    <nav class="account not-authed" aria-label="Account">
+      <ul class="list-unstyled">
+        
+
+      </ul>
+    </nav>
+     
+  </div>
+</div>
+
+<header class="navbar navbar-static-top masthead">
+    
+  <div class="container">
+    <div class="navbar-right">
+      <button data-target="#main-navigation-toggle" data-toggle="collapse" class="navbar-toggle collapsed" type="button" aria-label="expand or collapse" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="fa fa-bars"></span>
+      </button>
+    </div>
+    <hgroup class="header-image navbar-left">
+      
+  <a class="logo" href="https://www.odpt.org/"><img src="/images/dc-logo.png" alt="公共交通オープンデータセンター" title="公共交通オープンデータセンター" /></a>
+
+    </hgroup>
+
+    <div class="collapse navbar-collapse" id="main-navigation-toggle">
+      
+      <nav class="section navigation">
+        <ul class="nav nav-pills">
+            
+		<li class="active"><a href="/dataset/">データセット</a></li><li><a href="/organization/">組織</a></li><li><a href="/group/">グループ</a></li><li><a href="/about">About</a></li>
+	    
+        </ul>
+      </nav>
+       
+      <form class="section site-search simple-input" action="/dataset/" method="get">
+        <div class="field">
+          <label for="field-sitewide-search">データセットを検索</label>
+          <input id="field-sitewide-search" type="text" class="form-control" name="q" placeholder="検索" aria-label="データセット検索"/>
+          <button class="btn-search" type="submit" aria-label="Submit"><i class="fa fa-search"></i></button>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+</header>
+
+  
+    <div class="main">
+      <div id="content" class="container">
+        
+          
+            <div class="flash-messages">
+              
+                
+              
+            </div>
+          
+
+          
+            <div class="toolbar" role="navigation" aria-label="Breadcrumb">
+              
+                
+                  <ol class="breadcrumb">
+                    
+<li class="home"><a href="/" aria-label="ホーム"><i class="fa fa-home"></i><span> ホーム</span></a></li>
+                    
+  <li class="active"><a href="/dataset/">データセット</a></li>
+
+                  </ol>
+                
+              
+            </div>
+          
+
+          <div class="row wrapper">
+            
+            
+            
+
+            
+              <aside class="secondary col-sm-3">
+                
+                
+  <div class="filters">
+    <div>
+      
+        
+
+    
+    
+	
+	    
+	    
+		<section class="module module-narrow module-shallow">
+		    
+			<h2 class="module-heading">
+			    <i class="fa fa-filter"></i>
+			    
+			    組織
+			</h2>
+		    
+		    
+			
+			    
+				<nav aria-label="組織">
+				    <ul class="list-unstyled nav nav-simple nav-facet">
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=toei" title="東京都交通局 / Bureau of Transportation, Tokyo Metropolitan Government">
+						    <span class="item-label">東京都交通局 / Bureau of ...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">19</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=yokohama_municipal" title="横浜市交通局 / City of Yokohama, Transportation Bureau">
+						    <span class="item-label">横浜市交通局 / City of Yo...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">17</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=mlit" title="国土交通省 / Ministry of Land, Infrastructure, Transport and Tourism">
+						    <span class="item-label">国土交通省 / Ministry of...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">12</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=keio" title="">
+						    <span class="item-label">京王電鉄 / Keio</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">10</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=tokyometro" title="">
+						    <span class="item-label">東京メトロ / Tokyo Metro</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">10</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=twr" title="東京臨海高速鉄道 / TWR Rinkai Line">
+						    <span class="item-label">東京臨海高速鉄道 / TWR Rink...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">10</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=tobu" title="">
+						    <span class="item-label">東武鉄道 / Tobu</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">10</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=mir" title="首都圏新都市鉄道（つくばエクスプレス） / Metropolitan Intercity Railway">
+						    <span class="item-label">首都圏新都市鉄道（つくばエクスプレス）...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">10</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=tamamonorail" title="多摩都市モノレール / Tokyo Tama Intercity Monorail">
+						    <span class="item-label">多摩都市モノレール / Tokyo T...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">9</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?organization=jreast" title="">
+						    <span class="item-label">JR東日本 / JR East</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">8</span>
+						</a>
+					    </li>
+					
+				    </ul>
+				</nav>
+
+				<p class="module-footer">
+				    
+					
+					    <a href="/dataset/?_organization_limit=0" class="read-more">組織をもっと見る</a>
+					
+				    
+				</p>
+			    
+			
+		    
+		</section>
+	    
+	
+    
+
+      
+        
+
+    
+    
+	
+	    
+	    
+		<section class="module module-narrow module-shallow">
+		    
+			<h2 class="module-heading">
+			    <i class="fa fa-filter"></i>
+			    
+			    グループ
+			</h2>
+		    
+		    
+			
+			    
+				<p class="module-content empty">この検索にマッチする グループ はありません</p>
+			    
+			
+		    
+		</section>
+	    
+	
+    
+
+      
+        
+
+    
+    
+	
+	    
+	    
+		<section class="module module-narrow module-shallow">
+		    
+			<h2 class="module-heading">
+			    <i class="fa fa-filter"></i>
+			    
+			    タグ
+			</h2>
+		    
+		    
+			
+			    
+				<nav aria-label="タグ">
+				    <ul class="list-unstyled nav nav-simple nav-facet">
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E3%83%90%E3%82%B9-bus" title="">
+						    <span class="item-label">バス-bus</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">164</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E9%89%84%E9%81%93-railway" title="">
+						    <span class="item-label">鉄道-railway</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">129</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E3%83%90%E3%82%B9%E9%96%A2%E9%80%A3%E3%83%AA%E3%82%A2%E3%83%AB%E3%82%BF%E3%82%A4%E3%83%A0%E6%83%85%E5%A0%B1-bus_realtime_information" title="バス関連リアルタイム情報-bus_realtime_information">
+						    <span class="item-label">バス関連リアルタイム情報-bus_re...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">39</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E3%83%95%E3%82%A7%E3%83%AA%E3%83%BC-ferry" title="">
+						    <span class="item-label">フェリー-ferry</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">30</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=GTFS-Flex" title="">
+						    <span class="item-label">GTFS-Flex</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">16</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E3%83%87%E3%83%9E%E3%83%B3%E3%83%89%E4%BA%A4%E9%80%9A-demand" title="">
+						    <span class="item-label">デマンド交通-demand</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">16</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E8%B7%AF%E7%B7%9A%E7%B3%BB%E7%B5%B1%E6%83%85%E5%A0%B1-route_information" title="路線系統情報-route_information">
+						    <span class="item-label">路線系統情報-route_inform...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">15</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E9%A7%85%E6%83%85%E5%A0%B1-station_information" title="駅情報-station_information">
+						    <span class="item-label">駅情報-station_informa...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">15</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E9%A7%85%E6%99%82%E5%88%BB%E8%A1%A8-station_timetable" title="">
+						    <span class="item-label">駅時刻表-station_timetable</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">15</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?tags=%E4%B9%97%E9%99%8D%E8%80%85%E6%95%B0%E6%83%85%E5%A0%B1-passenger_survey" title="乗降者数情報-passenger_survey">
+						    <span class="item-label">乗降者数情報-passenger_su...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">14</span>
+						</a>
+					    </li>
+					
+				    </ul>
+				</nav>
+
+				<p class="module-footer">
+				    
+					
+					    <a href="/dataset/?_tags_limit=0" class="read-more">タグをもっと見る</a>
+					
+				    
+				</p>
+			    
+			
+		    
+		</section>
+	    
+	
+    
+
+      
+        
+
+    
+    
+	
+	    
+	    
+		<section class="module module-narrow module-shallow">
+		    
+			<h2 class="module-heading">
+			    <i class="fa fa-filter"></i>
+			    
+			    フォーマット
+			</h2>
+		    
+		    
+			
+			    
+				<nav aria-label="フォーマット">
+				    <ul class="list-unstyled nav nav-simple nav-facet">
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=JSON" title="">
+						    <span class="item-label">JSON</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">141</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=GTFS%2FGTFS-JP" title="">
+						    <span class="item-label">GTFS/GTFS-JP</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">112</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=Protocol+Buffers" title="">
+						    <span class="item-label">Protocol Buffers</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">51</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=ZIP" title="">
+						    <span class="item-label">ZIP</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">20</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=GTFS-Flex" title="">
+						    <span class="item-label">GTFS-Flex</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">16</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=GBFS" title="">
+						    <span class="item-label">GBFS</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">3</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=PDF" title="">
+						    <span class="item-label">PDF</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">2</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=PNG" title="">
+						    <span class="item-label">PNG</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">2</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?res_format=ai" title="">
+						    <span class="item-label">ai</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">1</span>
+						</a>
+					    </li>
+					
+				    </ul>
+				</nav>
+
+				<p class="module-footer">
+				    
+					
+				    
+				</p>
+			    
+			
+		    
+		</section>
+	    
+	
+    
+
+      
+        
+
+    
+    
+	
+	    
+	    
+		<section class="module module-narrow module-shallow">
+		    
+			<h2 class="module-heading">
+			    <i class="fa fa-filter"></i>
+			    
+			    ライセンス
+			</h2>
+		    
+		    
+			
+			    
+				<nav aria-label="ライセンス">
+				    <ul class="list-unstyled nav nav-simple nav-facet">
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=odpt-ptodbl" title="公共交通オープンデータ基本ライセンス / Public Transportation Open Data Basic License">
+						    <span class="item-label">公共交通オープンデータ基本ライセンス ...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">165</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=CC-BY-4.0" title="Creative Commons Attribution 4.0 International (CC BY 4.0)">
+						    <span class="item-label">Creative Commons At...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">104</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=odpt-ptodcll" title="公共交通オープンデータチャレンジ限定ライセンス / Public Transport Open Data Challenge Limited License">
+						    <span class="item-label">公共交通オープンデータチャレンジ限定ラ...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">74</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=public-data-1.0" title="公共データ利用規約（第1.0版）/ Public Data License (Version 1.0)">
+						    <span class="item-label">公共データ利用規約（第1.0版）/ P...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">12</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=other-noauth" title="その他ライセンス（認証なし）/ Other license (no authentication required)">
+						    <span class="item-label">その他ライセンス（認証なし）/ Oth...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">5</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=CC0-1.0" title="">
+						    <span class="item-label">CC0 1.0</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">3</span>
+						</a>
+					    </li>
+					
+					    
+					    
+					    
+					    
+					    <li class="nav-item">
+						<a href="/dataset/?license_id=hellocycling-gbfs-licence" title="CC BY 4.0, ODC BY 1.0, ODbL 1.0">
+						    <span class="item-label">CC BY 4.0, ODC BY 1...</span>
+						    <span class="hidden separator"> - </span>
+						    <span class="item-count badge">1</span>
+						</a>
+					    </li>
+					
+				    </ul>
+				</nav>
+
+				<p class="module-footer">
+				    
+					
+				    
+				</p>
+			    
+			
+		    
+		</section>
+	    
+	
+    
+
+      
+    </div>
+    <a class="close no-text hide-filters"><i class="fa fa-times-circle"></i><span class="text">close</span></a>
+  </div>
+
+              </aside>
+            
+
+            
+              <div class="primary col-sm-9 col-xs-12" role="main">
+                
+                
+  <section class="module">
+    <div class="module-content">
+      
+        
+      
+      
+        
+        
+        
+
+
+
+
+
+
+
+<form id="dataset-search-form" class="search-form" method="get" data-module="select-switch">
+
+  
+    <div class="input-group search-input-group">
+      <input aria-label="データセット検索..." id="field-giant-search" type="text" class="form-control input-lg" name="q" value="" autocomplete="off" placeholder="データセット検索...">
+      
+      <span class="input-group-btn">
+        <button class="btn btn-default btn-lg" type="submit" value="search" aria-label="Submit">
+          <i class="fa fa-search"></i>
+        </button>
+      </span>
+      
+    </div>
+  
+
+  
+    
+  
+
+  
+    
+      <div class="form-select form-group control-order-by">
+        <label for="field-order-by">並び順</label>
+        <select id="field-order-by" name="sort" class="form-control">
+          
+            
+              <option value="score desc, metadata_modified desc" selected="selected">関連性</option>
+            
+          
+            
+              <option value="title_string asc">名前で昇順</option>
+            
+          
+            
+              <option value="title_string desc">名前で降順</option>
+            
+          
+            
+          
+        </select>
+        
+        <button class="btn btn-default js-hide" type="submit">Go</button>
+        
+      </div>
+    
+  
+
+  
+    
+      <h1>
+
+  
+  
+  
+  
+
+365 件のデータセットが見つかりました</h1>
+    
+  
+
+  
+    
+      <p class="filter-list">
+        
+      </p>
+      <a class="show-filters btn btn-default">フィルタ結果</a>
+    
+  
+
+</form>
+
+
+
+
+      
+      
+        
+
+  
+    <ul class="dataset-list list-unstyled">
+    	
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/uno_bus_all_lines">宇野自動車（路線バス） / UNOBUS GTFS</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>[★★★★★ Level 5] 時刻表＆乗換案内用（Googleマップ掲載、公式デジタルサイネージ利用GTFS）
+ (GTFS Static は GTFS-JP V4ではありません。 GTFS-JP V4と偽って利用することは禁止します）
+■ナビタイム（他）への連絡事項
+岡山後楽園バス変更：平日・土日祝の運行時間を一部変更（確定版）...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/uno_bus_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/kyoto_bus_all_lines">京都バス / Kyotobus</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>stops.txt 親子設定 / stops.txt Parent-child settings   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/kyoto_bus_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/kyoto_bus_all_lines_anotherversion">京都バス / Kyotobus</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>stops.txt　標柱のみ / stops.txt　Signpost only   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms of Use"...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/kyoto_bus_all_lines_anotherversion" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/odpt_urban_development_aomori_city_all_lines">【リアルタイム情報】青森県青森市　コミュニティバス / [realtime information] Aomori city Community Bus</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>【リアルタイム情報】青森市がコミュニティバスとして運行している、青森市市バスとシャトル・ルートバス「ねぶたん号」の時刻表です。 / [realtime information] This is the timetable for the Aomori City Bus and the Shuttle-Route Bus “Nebutan-Go,”...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/odpt_urban_development_aomori_city_all_lines" class="label label-default" data-format="protocol buffers">Protocol Buffers</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/odpt_urban_development_aomori_city_bus">【リアルタイム情報】【リアルタイム情報】青森県青森市　コミュニティバス</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>【リアルタイム情報】青森市がコミュニティバスとして運行している、青森市市バスとシャトル・ルートバス「ねぶたん号」のGTFS情報を提供します。  
+※本コンテンツ等は CC BY 4.0 の下でライセンスされています。クレジット表示については、こちらのFAQ をご参照ください。 / This content, etc. is licensed under...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/odpt_urban_development_aomori_city_bus" class="label label-default" data-format="protocol buffers">Protocol Buffers</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/izuhakone_bus_izhb">伊豆箱根バス株式会社 / IZUHAKONE BUS CO.,LTD</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms of Use" before use.</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/izuhakone_bus_izhb" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/meimon_taiyo_ferry_all_lines">株式会社名門大洋フェリー</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms of Use" before use.</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/meimon_taiyo_ferry_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/matsue_city_traffic_office_all_lines">松江市交通局 / Matsue City Traffic Office</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>松江市交通局のGTFSデータです。公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。GTFSデータにつきましては、一畑バスと松江市交通局の２社のデータが混在しています。agency IDから運行事業者の区別が可能です。
+※令和8年4月より　GTFS-RTに対応しました。
+ /  GTFS data of...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/matsue_city_traffic_office_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/sentetsu_bus_all_lines">船木鉄道株式会社 / Funaki Tetsudou Corporation</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>山口県宇部市・山陽小野田市・美祢市を運行するバス事業者のGTFSデータです。   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms of Use"...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/sentetsu_bus_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/sendai_municipal_bus_realtime_information">仙台市交通局　バス関連情報（GTFS-JP及びGTFSリアルタイム） / Bus infomation of Transportation Bureau,...</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>仙台市交通局のGTFS-JPデータ及びGTFSリアルタイムデータです。
+※運用の関係で、GTFS-JP内に一部類似データがございます。
+このため、リアルタイムデータとの連携に一部不具合が生じる場合がございますのでご注意ください。 / GTFS-JP and GTFS-Realtime data of Transportation Bureau,...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/sendai_municipal_bus_realtime_information" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/tokai_kisen_all_lines">東海汽船 / Tokai Kisen Co.,Ltd.</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>伊豆諸島や小笠原諸島と本土間を結ぶ旅客定期航路を運航する東海汽船グループのGTFSデータです。   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/tokai_kisen_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/kyoto_municipal_transportation_kyoto_city_bus_gtfs">京都市営バス / Kyoto City Bus</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>京都市交通局の市営バスのバス関連情報を提供します。 / Bus information of Kyoto Municipal Transportation Bureau.   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/kyoto_municipal_transportation_kyoto_city_bus_gtfs" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/odpt_joshin_kanko_bus_all_lines">【リアルタイム情報】株式会社上信観光バス　乗合事業課</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>【リアルタイム情報】  
+※本コンテンツ等は CC BY 4.0 の下でライセンスされています。クレジット表示については、こちらのFAQ をご参照ください。 / This content, etc. is licensed under CC BY 4.0 .Please refer to this FAQ for crediting this...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/odpt_joshin_kanko_bus_all_lines" class="label label-default" data-format="protocol buffers">Protocol Buffers</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/tosaden_traffic_regularbus">とさでん交通 路線バス / Tosaden Traffic Regular Bus</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>とさでん交通、路線バスのGTFS scheduleデータです / This is the GTFS schedule data for Tosaden Traffic Regular Bus.
+固定URL / Permanent URL
+■現行 / Current...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/tosaden_traffic_regularbus" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/hokkaido_takushoku_bus_takusyoku_regular_line">拓殖バス　一般路線 / Takusyoku Bus Regular Line</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>拓殖バスで運行している一般路線（一中・療養所線、南商・帯広の森線、雄飛が丘団地線、中鈴蘭線、上士幌線・音上線、コミュニティバス、季節運行の路線）のデータです。   
+公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/hokkaido_takushoku_bus_takusyoku_regular_line" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/monet_goshogawara_goshokuru">五所川原市 AIデマンド交通「ごしょくる」 / Goshogawara City AI-powered on-demand transportation ...</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>【コンテスト期間限定公開】青森県五所川原市のAIデマンド交通「ごしょくる」について、利用時間や乗降ポイントなどの情報を含むGTFS-Flex形式のデータを提供します。
+※本コンテンツ等はCC BY 4.0の下でライセンスされています。クレジット表示については、こちらのFAQをご参照ください。 / This content, etc. is...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/monet_goshogawara_goshokuru" class="label label-default" data-format="gtfs-flex">GTFS-Flex</a>
+                </li>
+                
+                <li>
+                  <a href="/dataset/monet_goshogawara_goshokuru" class="label label-default" data-format="zip">ZIP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/miraishare_maebashi_demand">前橋市 デマンド交通 / Maebashi City On-Demand Transport</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>【コンテスト期間限定公開】群馬県前橋市のデマンド交通について、利用時間や乗降ポイントなどの情報を含むGTFS-Flex形式のデータを提供します。
+※本コンテンツ等はCC BY 4.0の下でライセンスされています。クレジット表示については、こちらのFAQをご参照ください。 / This content, etc. is licensed under CC...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/miraishare_maebashi_demand" class="label label-default" data-format="gtfs-flex">GTFS-Flex</a>
+                </li>
+                
+                <li>
+                  <a href="/dataset/miraishare_maebashi_demand" class="label label-default" data-format="zip">ZIP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/tokyo_suginami_city_green_slow_mobility">杉並区グリーンスローモビリティ / Suginami City Green Slow Mobility</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>杉並区グリーンスローモビリティのGTFS-JPのデータです。  
+※本コンテンツ等は CC BY 4.0 の下でライセンスされています。クレジット表示については、こちらのFAQ をご参照ください。 / This content, etc. is licensed under CC BY 4.0 .Please refer to this FAQ for...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/tokyo_suginami_city_green_slow_mobility" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/iyotetsu_bus_all_lines">伊予鉄バス</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>公共交通オープンデータ基本ライセンス、および、その特定利用条件をよく読んで、ご利用ください。 / Read "Public Transportation Open Data Basic License" and its "Specific Terms of Use" before use.</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/iyotetsu_bus_all_lines" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	        
+
+
+
+
+
+
+  <li class="dataset-item">
+    
+      <div class="dataset-content">
+        
+          <h2 class="dataset-heading">
+            
+              
+            
+            
+		<a href="/dataset/hankyu_ferry_schedul_hankyu">阪九フェリー株式会社 / Hankyu Ferry</a>
+            
+            
+              
+              
+            
+          </h2>
+        
+        
+          
+        
+        
+          
+            <div>北九州（新門司）～大阪（泉大津）・神戸（六甲アイランド）を結ぶ、阪九フェリーのGTFSデーターです。
+ / This is the GTFS data for Hankyu Ferry, which connects Kitakyushu (Shinmoji) with Osaka (Izumiotsu) and Kobe (Rokko Island)...</div>
+          
+        
+      </div>
+      
+        
+          
+            <ul class="dataset-resources list-unstyled">
+              
+                
+                <li>
+                  <a href="/dataset/hankyu_ferry_schedul_hankyu" class="label label-default" data-format="gtfs/gtfs-jp">GTFS/GTFS-JP</a>
+                </li>
+                
+              
+            </ul>
+          
+        
+      
+    
+  </li>
+
+	      
+	    
+    </ul>
+  
+
+      
+    </div>
+
+    
+      <div class="pagination-wrapper">
+  <ul class="pagination"> <li class="active">
+  <a href="/dataset/?page=1">1</a>
+</li> <li>
+  <a href="/dataset/?page=2">2</a>
+</li> <li>
+  <a href="/dataset/?page=3">3</a>
+</li> <li class="disabled">
+  <a href="#">...</a>
+</li> <li>
+  <a href="/dataset/?page=19">19</a>
+</li> <li>
+  <a href="/dataset/?page=2">»</a>
+</li></ul>
+</div>
+    
+  </section>
+
+  
+
+
+              </div>
+            
+          </div>
+        
+      </div>
+    </div>
+  
+    <footer class="site-footer">
+  <div class="container">
+    
+    <div class="row">
+      <div class="col-md-8 footer-links">
+        
+          <ul class="list-unstyled">
+            
+  <li><a href="https://www.odpt.org/">公共交通オープンデータ協議会</a></li>
+
+          </ul>
+          <ul class="list-unstyled">
+            
+
+          </ul>
+        
+      </div>
+      <div class="col-md-4 attribution">
+        
+  
+  <p><strong>Powered by</strong> CKAN</p>
+
+        
+          
+<form class="form-inline form-select lang-select" action="/util/redirect" data-module="select-switch" method="POST">
+  <label for="field-lang-select">言語</label>
+  <select id="field-lang-select" name="url" data-module="autocomplete" data-module-dropdown-class="lang-dropdown" data-module-container-class="lang-container">
+    
+      <option value="/ja/dataset" selected="selected">
+        日本語
+      </option>
+    
+      <option value="/en/dataset" >
+        English
+      </option>
+    
+  </select>
+  <button class="btn btn-default js-hide" type="submit">Go</button>
+</form>
+        
+      </div>
+    </div>
+    
+  </div>
+
+  
+    
+  
+</footer>
+  
+  
+  
+  
+  
+    
+
+      
+
+    
+    
+    <link href="/webassets/vendor/f3b8236b_select2.css" rel="stylesheet"/>
+<link href="/webassets/vendor/0b01aef1_font-awesome.css" rel="stylesheet"/>
+    <script src="/webassets/vendor/d8ae4bed_jquery.js" type="text/javascript"></script>
+<script src="/webassets/vendor/fb6095a0_vendor.js" type="text/javascript"></script>
+<script src="/webassets/vendor/580fa18d_bootstrap.js" type="text/javascript"></script>
+<script src="/webassets/base/15a18f6c_main.js" type="text/javascript"></script>
+<script src="/webassets/base/2448af8b_ckan.js" type="text/javascript"></script>
+  </body>
+</html>
