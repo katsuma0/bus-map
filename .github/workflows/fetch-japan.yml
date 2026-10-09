@@ -1,0 +1,81 @@
+# Fetches the open data for the Tokyo, Kyoto and Osaka videos onto an orphan
+# branch, data/japan-src. Real timetables where they are open (Toei, some
+# community buses), plus the two national count datasets the model uses for
+# everything else: weekday train counts per line section from gtfs-gis.jp and
+# the MLIT bus route layer N07 with daily trips per route.
+name: fetch-japan
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feat/japan-cities"]
+    paths: [".github/workflows/fetch-japan.yml"]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download
+        run: |
+          set -ux
+          mkdir -p /tmp/src/gtfs /tmp/src/honsu /tmp/src/n07 /tmp/src/meta
+          UA="bus-map-fetch/1.0 (github.com/katsuma0/bus-map)"
+          log=/tmp/src/meta/_status.txt
+          g() { curl -sS -L --retry 2 --max-time 300 -A "$UA" -o "$1" -w "%{http_code} %{size_download} $2\n" "$2" >> $log 2>&1 || echo "ERR $2" >> $log; }
+          # Real GTFS, no key needed
+          g /tmp/src/gtfs/toei_train.zip "https://api-public.odpt.org/api/v4/files/Toei/data/Toei-Train-GTFS.zip"
+          g /tmp/src/gtfs/toei_bus.zip "https://api-public.odpt.org/api/v4/files/Toei/data/ToeiBus-GTFS.zip"
+          g /tmp/src/gtfs/chiyoda_kazaguruma.zip "https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/Chiyoda_ALLLINES.zip?date=current"
+          g /tmp/src/gtfs/bunkyo_bgururu.zip "https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/AllLines.zip?date=current"
+          g /tmp/src/gtfs/kita_kbus.zip "https://api-public.odpt.org/api/v4/files/odpt/HitachiAutomobileTransportation/KitaAllLines.zip?date=current"
+          g /tmp/src/gtfs/taito_megurin.zip "https://api-public.odpt.org/api/v4/files/odpt/TokyoTaitoCity/megurinCCBY40.zip?date=current"
+          g /tmp/src/gtfs/arakawa_sakura.zip "https://api.gtfs-data.jp/v2/organizations/arakawacity/feeds/sakura/files/feed.zip"
+          g /tmp/src/gtfs/katsushika_sakura.zip "https://api.gtfs-data.jp/v2/organizations/katsushikacity/feeds/sakura/files/feed.zip"
+          g /tmp/src/gtfs/itabashi_rinrin.zip "https://www.city.itabashi.tokyo.jp/_res/projects/default_project/_page_/001/006/732/rinringo_gtfs_20260803.zip"
+          g /tmp/src/gtfs/shibuya_hachiko.zip "https://shibuya-data.maps.arcgis.com/sharing/rest/content/items/185d0dbc980443b8b60e135349e2ae5e/data"
+          g /tmp/src/gtfs/minato_chiibus.zip "https://gtfs-jp.buskita.com/fxc/gtfs.zip"
+          g /tmp/src/gtfs/daito_community.zip "https://www.city.daito.lg.jp/uploaded/attachment/41955.zip"
+          for z in /tmp/src/gtfs/*.zip; do unzip -tq "$z" >/dev/null 2>&1 || { echo "BAD ZIP $z" >> $log; rm -f "$z"; }; done
+          # gtfs-gis.jp weekday train counts per section, 2026 edition, plus the data notes
+          for f in unkohonsu2026_rosen_kukan.txt unkohonsu2026_kukan.txt unkohonsu2026_kukan_eki.geojson unkohonsu2026_rosen_eki.txt; do
+            g "/tmp/src/honsu/$f" "https://gtfs-gis.jp/railway_honsu/data/$f"
+          done
+          g /tmp/src/honsu/document.pdf "https://gtfs-gis.jp/railway_honsu/20240424_document.pdf"
+          g /tmp/src/meta/honsu_page.html "https://gtfs-gis.jp/railway_honsu/"
+          # MLIT National Land Numerical Information, bus routes (N07), every edition listed
+          g /tmp/src/meta/n07_page.html "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07.html"
+          g /tmp/src/meta/ksj_terms.html "https://nlftp.mlit.go.jp/ksj/other/agreement.html"
+          python3 - <<'PY' > /tmp/n07_urls.txt
+          import re
+          t = open("/tmp/src/meta/n07_page.html", encoding="utf-8", errors="replace").read()
+          zips = sorted(set(re.findall(r"[\"'(]([^\"'()]*N07[^\"'()]*\.zip)", t)))
+          for z in zips:
+              print(z)
+          PY
+          cat /tmp/n07_urls.txt | head -80
+          # Kanto and Kansai prefectures the three frames touch
+          for p in 11 12 13 14 25 26 27 28 29; do
+            u=$(grep -E "_${p}_|_${p}\.|N07-[0-9]+_${p}" /tmp/n07_urls.txt | sort | tail -1)
+            if [ -n "$u" ]; then
+              case "$u" in http*) url="$u";; /*) url="https://nlftp.mlit.go.jp$u";; *) url="https://nlftp.mlit.go.jp/ksj/gml/datalist/$u";; esac
+              url=$(python3 -c "import sys,urllib.parse; print(urllib.parse.urljoin('https://nlftp.mlit.go.jp/ksj/gml/datalist/', sys.argv[1]))" "$u")
+              g "/tmp/src/n07/n07_$p.zip" "$url"
+            else
+              echo "NO N07 URL for pref $p" >> $log
+            fi
+          done
+          ls -la /tmp/src/*
+          cat $log
+      - name: Push to an orphan data branch
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan data/japan-src
+          git rm -rfq --cached . && git clean -fdxq
+          cp -r /tmp/src src
+          echo "Japan source data fetched by .github/workflows/fetch-japan.yml on $(date -u +%Y-%m-%d). Not merged anywhere; delete this branch when done." > README.md
+          git add src README.md
+          git commit -qm "chore: japan source data $(date -u +%Y-%m-%d)"
+          git push -f origin data/japan-src
