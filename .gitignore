@@ -1,7 +1,10 @@
 node_modules/
 # raw Overture pulls, 140 MB; scripts/fetch_overture.py regenerates them
 data/basemap/*.geojson
+data/*/basemap/*.geojson
 # frame dumps from the video renderer
 out/frames/
 *.pyc
 __pycache__/
+# GTA feeds are 85 MB; they live on the data/gta-gtfs branch, fetched by fetch-gta.yml
+data/gta/gtfs/*.zip

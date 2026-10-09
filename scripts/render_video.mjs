@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Render the Tsukuba bus day to an MP4.
+// Render a city's transit day to an MP4.
 //
 // The page in web/ does all the drawing. This script serves the repo over
 // HTTP (fetch() refuses file:// URLs), drives window.busmap in headless
@@ -10,8 +10,10 @@
 //
 //   --root DIR        directory served as /, default: the repo root
 //   --page PATH       page under root, default web/index.html
+//   --city ID         city config id (tsukuba, gta): adds city=ID to the page query, which
+//                     selects that city's built data, and defaults --out to out/ID.mp4
 //   --query STR       extra query appended after record=1, e.g. "data=../data/built/network.stub.json"
-//   --out FILE        default out/tsukuba-buses.mp4 in the repo
+//   --out FILE        default out/tsukuba-buses.mp4 in the repo (out/<city>.mp4 with --city)
 //   --fps N           default 30
 //   --start N         first frame, default 0
 //   --end N           one past the last frame, default busmap.totalFrames
@@ -75,8 +77,9 @@ function parseArgs(argv) {
   const opts = {
     root: REPO_ROOT,
     page: 'web/index.html',
+    city: null,
     query: '',
-    out: path.join(REPO_ROOT, 'out', 'tsukuba-buses.mp4'),
+    out: null,
     fps: 30,
     start: 0,
     end: null,
@@ -89,7 +92,7 @@ function parseArgs(argv) {
     serve: false,
     help: false,
   };
-  const valued = new Set(['root', 'page', 'query', 'out', 'fps', 'start', 'end', 'capture',
+  const valued = new Set(['root', 'page', 'city', 'query', 'out', 'fps', 'start', 'end', 'capture',
     'png-dir', 'png-every', 'crf', 'preset']);
   const int = (key, v, min) => {
     if (!/^-?\d+$/.test(v) || Number(v) < min) throw new UsageError(`--${key} wants an integer >= ${min}, got ${v}`);
@@ -117,6 +120,10 @@ function parseArgs(argv) {
     switch (key) {
       case 'root': opts.root = path.resolve(val); break;
       case 'page': opts.page = val.replace(/^\/+/, ''); break;
+      case 'city':
+        if (!/^[a-z0-9_-]+$/i.test(val)) throw new UsageError(`--city wants a config id like gta, got ${val}`);
+        opts.city = val;
+        break;
       case 'query': opts.query = val.replace(/^[?&]+/, ''); break;
       case 'out': opts.out = path.resolve(val); break;
       case 'fps': opts.fps = int(key, val, 1); break;
@@ -133,6 +140,8 @@ function parseArgs(argv) {
       default: throw new UsageError(`unknown option --${key}`);
     }
   }
+  // The Tsukuba video keeps its historical file name; other cities are named after their config.
+  if (opts.out === null) opts.out = path.join(REPO_ROOT, 'out', opts.city ? `${opts.city}.mp4` : 'tsukuba-buses.mp4');
   // Asking for a PNG directory without a cadence means "dump something".
   if (opts.pngEvery === null) opts.pngEvery = opts.pngDir ? PROGRESS_EVERY : 0;
   if (opts.pngDir === null) opts.pngDir = path.join(path.dirname(opts.out), 'frames');
@@ -160,6 +169,9 @@ const MIME = new Map(Object.entries({
   '.txt': 'text/plain; charset=utf-8',
   '.csv': 'text/csv; charset=utf-8',
   '.map': 'application/json; charset=utf-8',
+  // Built data for gzip cities. Served as a plain file, never with
+  // Content-Encoding, so the page inflates it itself with DecompressionStream.
+  '.gz': 'application/gzip',
 }));
 
 function reply(res, status, text) {
@@ -224,6 +236,7 @@ function stopServer(server) {
 function pageUrl(port, opts, record) {
   const q = [];
   if (record) q.push('record=1');
+  if (opts.city) q.push(`city=${encodeURIComponent(opts.city)}`);
   if (opts.query) q.push(opts.query);
   return `http://127.0.0.1:${port}/${opts.page}${q.length ? '?' + q.join('&') : ''}`;
 }

@@ -1,0 +1,31 @@
+{
+  "id": "tsukuba",
+  "title": "TSUKUBA BUSES",
+  "service_date": "2026-10-09",
+  "origin": [140.085, 36.09],
+  "frame": {"km_vertical": 36, "center_km": [-2.2, 0], "hud_side": "left"},
+  "clip": [139.93, 35.88, 140.24, 36.30],
+  "gtfs_dir": "data/gtfs",
+  "built_dir": "data/built",
+  "basemap_dir": "data/basemap",
+  "gzip": false,
+  "decimals": {"xy": 4, "d": 4},
+  "boundary": "tsukuba",
+  "osm_routes": "data/osm/bus_routes.geojson",
+  "feeds": [
+    {"id": "tsukubus", "name": "つくバス", "publisher": "つくば市", "license": "CC BY 4.0"},
+    {"id": "tsukubane", "name": "つくばね号", "publisher": "つくば市", "license": "CC BY 4.0"}
+  ],
+  "optional_feeds": [
+    {"id": "tsuchimaru", "name": "つちまるバス", "publisher": "土浦市", "license": "CC BY 4.0"}
+  ],
+  "modes": [
+    {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11], "color": [72, 100, 222], "trail": [120, 140, 255]}
+  ],
+  "attribution": [
+    "Data: Tsukuba City GTFS-JP (CC BY 4.0)",
+    "Map: Overture Maps · © OpenStreetMap contributors",
+    "Made by Katsuma Onishi"
+  ],
+  "basemap": {"simplify_km": {"major": 0.003, "minor": 0.005, "rail": 0.004, "water": 0.004, "water_line": 0.006, "osm": 0.004}, "min_water_area_km2": 0.004, "min_road_km": 0.02, "water_polys": ["water", "lake", "oxbow", "pond", "reservoir", "river", "stream", "canal", "ditch", "moat", "ocean", "sea"], "water_lines": ["river", "canal", "stream"], "min_stream_km": 0.3, "min_osm_km": 0.05}
+}

@@ -1,0 +1,60 @@
+# Fetches the current GTFS feeds for the Greater Toronto Area from each
+# agency. The zips are 150 MB together, so they go to an orphan data branch
+# and a workflow artifact rather than into this branch's history.
+name: fetch-gta
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feat/gta-transit-timelapse"]
+    paths: [".github/workflows/fetch-gta.yml"]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download feeds
+        run: |
+          set -ux
+          mkdir -p /tmp/gtfs
+          UA="bus-map-fetch/1.0 (github.com/katsuma0/bus-map)"
+          get() {
+            if curl -fsSL --retry 3 -A "$UA" -o "/tmp/gtfs/$1.zip" "$2" && unzip -tq "/tmp/gtfs/$1.zip" >/dev/null; then
+              echo "ok $1 $(stat -c %s /tmp/gtfs/$1.zip) bytes"
+            else
+              echo "FAILED $1 $2"; rm -f "/tmp/gtfs/$1.zip"
+            fi
+          }
+          # TTC publishes through CKAN; ask the API for the current zip.
+          TTC_URL=$(curl -fsSL -A "$UA" "https://ckan0.cf.opendata.inter.prod-toronto.ca/api/3/action/package_show?id=ttc-routes-and-schedules" \
+            | python3 -c "import json,sys; rs=json.load(sys.stdin)['result']['resources']; print([r['url'] for r in rs if r['url'].lower().endswith('.zip')][0])" || true)
+          [ -n "$TTC_URL" ] && get ttc "$TTC_URL"
+          get go "https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/GO-GTFS.zip"
+          get upx "https://assets.metrolinx.com/raw/upload/Documents/Metrolinx/Open%20Data/UP-GTFS.zip"
+          get yrt "https://www.yrt.ca/google/google_transit.zip"
+          get miway "https://www.miapp.ca/GTFS/google_transit.zip"
+          get brampton "https://www.arcgis.com/sharing/rest/content/items/a355aabd5a8c490186bdce559c9c75fb/data"
+          get drt "https://maps.durham.ca/OpenDataGTFS/GTFS_Durham_TXT.zip"
+          get oakville "https://www.arcgis.com/sharing/rest/content/items/d78a1c1ad6a940009de8b68839a8f606/data"
+          get burlington "https://opendata.burlington.ca/gtfs-rt/GTFS_Data.zip"
+          get milton "http://metrolinx.tmix.se/gtfs/gtfs-milton.zip"
+          ls -la /tmp/gtfs
+          python3 scripts/gtfs_summary.py /tmp/gtfs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gta-gtfs
+          path: /tmp/gtfs/*.zip
+          retention-days: 90
+      - name: Push the zips to an orphan data branch
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan data/gta-gtfs
+          git rm -rfq --cached . && git clean -fdxq
+          mkdir -p gtfs && cp /tmp/gtfs/*.zip gtfs/
+          echo "GTA GTFS feeds fetched by .github/workflows/fetch-gta.yml on $(date -u +%Y-%m-%d). Not merged anywhere; delete this branch when done." > README.md
+          git add gtfs README.md
+          git commit -qm "chore: gta gtfs snapshot $(date -u +%Y-%m-%d)"
+          git push -f origin data/gta-gtfs
