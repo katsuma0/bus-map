@@ -131,3 +131,75 @@ Layers, back to front:
 Fonts live in `web/fonts/` as two variable woff2 files with `@font-face` rules in Montserrat.css and Inter.css. Wait for `document.fonts.ready` after loading each face before resolving `busmap.ready`.
 
 Data loading: `fetch('../data/built/basemap.json')` and `fetch('../data/built/network.json')` relative to `web/index.html`; the video script serves the repo root over HTTP so file:// restrictions do not bite.
+
+## v2: city configs, modes, gzip (added for the GTA build)
+
+Everything above still holds for Tsukuba. The second city made three
+things configurable instead of hardcoded.
+
+### cities/<id>.json
+
+One file per city, read by both builders (`--city <id>`) and mirrored into
+`network.json` meta so the page needs no config of its own.
+
+    {
+      "id": "gta", "title": "GTA TRANSIT", "service_date": "2026-10-09",
+      "origin": [-79.47, 43.80],                       // lon, lat of the frame centre
+      "frame": {"km_vertical": 114, "center_km": [0, 0], "hud_side": "right"},
+      "clip": [west, south, east, north],              // basemap clip in degrees
+      "gtfs_dir": "data/gta/gtfs", "built_dir": "data/gta/built", "basemap_dir": "data/gta/basemap",
+      "gzip": true,                                    // write network.json.gz and basemap.json.gz instead of .json
+      "boundary": null,                                // "tsukuba" keeps the city outline logic, null skips it
+      "feeds": [{"id":"ttc","name":"TTC","publisher":"...","license":"..."}],   // id = zip base name in gtfs_dir
+      "optional_feeds": [...],                         // only with --feeds all
+      "modes": [{"id":"bus","label":"buses","singular":"bus","route_types":[3,...],"color":[r,g,b],"trail":[r,g,b]}, ...],
+      "attribution": ["line 1", "line 2", ...],        // any number of lines, each must fit 540 px at Inter 400 18 px
+      "basemap": {"simplify_km": {...}, "min_water_area_km2": 0.05, "min_road_km": 0.08, "water_lines": ["river","canal"], "min_stream_km": 1.0}
+    }
+
+`cities/tsukuba.json` reproduces the current Tsukuba build exactly: with it,
+`build_network.py --city tsukuba` must emit the same `routes/shapes/trips/hist`
+as today (md5 cd32b16962b0077a56cdaa064210a699 is the pre-v2 file; only meta
+and the new per-route `mode` may differ) and `build_basemap.py --city tsukuba`
+must emit a byte-identical `data/built/basemap.json` (md5 d58a5eae00cd4270aa9a28ce141a114e).
+
+### network.json additions
+
+    meta.frame        = the config's frame object (km_vertical, center_km, hud_side)
+    meta.modes        = the config's modes array, in order
+    meta.attribution  = the config's attribution lines
+    meta.title        = config title
+    meta.hist_by_mode = {"bus": [1800 ints], "streetcar": [...], "rail": [...]}  (same binning as hist)
+    routes[i].mode    = mode id, chosen by route_type; a route_type in no mode's list falls into the first mode and is reported in the build summary
+    routes[i].feed    = feed id
+
+A trip is kept only if its shape's bounding box touches the city clip box
+(GO trains to Niagara or Kitchener are cut where they leave; a trip entirely
+outside is dropped and not counted in hist). `d` is rounded to 3 decimals
+(metres) and `xy` to 3 decimals; everything else as before.
+
+Service date: `--date` defaults to the config's `service_date`. The summary
+prints, per feed, trips on that date, and says plainly when a feed has none
+(Burlington's feed starts 2026-11-01).
+
+Gzip: when the config says `gzip: true`, the builders write
+`<built_dir>/network.json.gz` and `<built_dir>/basemap.json.gz` (gzip level
+6) and no plain file. The page fetches the `.gz` name when
+`?city=<id>` names a config with gzip, and inflates with
+`new DecompressionStream('gzip')`. The static server must serve `.gz` files
+as `application/gzip` without a Content-Encoding header.
+
+### Renderer additions (web/app.js)
+
+* `?city=<id>` picks `../data/<built_dir>/…`; without it the page behaves exactly as now (Tsukuba). The built dir and gzip flag per city are a small table at the top of app.js: `{tsukuba: {dir: '../data/built', gz: false}, gta: {dir: '../data/gta/built', gz: true}}`.
+* Frame (`KM_VERTICAL`, `CENTER_KM`) comes from `meta.frame` when present, else CONFIG.
+* Title and attribution come from meta when present.
+* Modes: static route lines, trails and dot halos take the colour of the route's mode (`meta.modes[...]`). With one mode everything renders as today. Ribbon trails keep one Path2D per (mode, band) and stroke per mode.
+* HUD with more than one mode: the count line reads `2,058 vehicles running` (thousands separator) and a second line below it, Montserrat 500 24 px `#9a9da6`, reads `1,842 buses · 120 streetcars · 96 trains` in mode order using each mode's `label` (singular form when the count is 1). The sparkline, axis labels and attribution shift down by 30 px when that line is present. With one mode the HUD is unchanged (`24 buses running`).
+* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 14 px, panel top stays 1120.
+* `hud_side: "right"` moves the whole panel block right by 400 px (panel x 440..1040, text x 470, sparkline x 470..1010); text stays left-aligned inside the panel.
+* Performance target: a GTA frame at the morning peak (roughly 3,000 running vehicles, 60k trips in the file) in under 400 ms including raster in headless Chromium. Trips are sorted by start time, so stop scanning once `t[0] > T`.
+
+### Video script
+
+`--city <id>` appends `city=<id>` to the page query and defaults the output to `out/<id>.mp4` (Tsukuba keeps `out/tsukuba-buses.mp4` when no city is given).
