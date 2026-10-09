@@ -343,20 +343,20 @@ and say so in a `notes` key).
 
 ### build_basemap.py
 
-With `basemap_city`, write `data/<basemap_city>/built/basemap.json(.gz)`
-(origin = the area's first config's origin is wrong for the other video,
-so basemap coordinates for a shared basemap are in km from
-`cities/japan_model.json` area bbox centre and the network meta records
-`basemap_origin`; the renderer offsets the basemap by
-(basemap_origin - origin) in km). Build the three area basemaps from
-`data/<area>/basemap/*.geojson` (Overture; the extraction may still be
-running, wait for the file `.../scratchpad/ov_japan.done`).
+With `basemap_city`, write `data/<basemap_city>/built/basemap.json.gz` once
+per area. Both videos of an area use the same `origin` (the area origin) and
+frame themselves with `frame.center_km`, so the basemap coordinates are
+valid for both and the renderer needs no offset. Build the three area
+basemaps from `data/<area>/basemap/*.geojson` (Overture; the extraction may
+still be running, wait for the file
+`/tmp/claude-0/-home-user-bus-map/234234d3-649f-5553-9317-24ec9059d733/scratchpad/ov_japan.done`).
+The bus route attributes of N07 2011 are easiest to read from the bundled
+shapefile (`.dbf`, cp932) rather than the GML.
 
 ### Renderer additions (web/app.js)
 
 * `CITIES` gains the six ids: network `../data/<id>/built/network.json.gz`,
   basemap `../data/<area>/built/basemap.json.gz`.
-* Basemap offset from `meta.basemap_origin` when present.
 * `meta.render` overrides CONFIG after the LARGE_FRAME profile and before
   query knobs; `meta.theme.accent` overrides COLORS.accent.
 * `color_by: "route"`: the dormant network is drawn per route colour

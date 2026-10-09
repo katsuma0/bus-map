@@ -5,13 +5,13 @@
   "service_date": "2026-10-16",
   "origin": [
     135.505,
-    34.69
+    34.685
   ],
   "frame": {
     "km_vertical": 46,
     "center_km": [
-      0,
-      0
+      0.0,
+      0.55
     ],
     "hud_side": "left",
     "hud_top": 1200

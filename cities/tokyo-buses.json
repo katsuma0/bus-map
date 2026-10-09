@@ -4,14 +4,14 @@
   "subtitle": "Friday 16th October",
   "service_date": "2026-10-16",
   "origin": [
-    139.765,
+    139.7,
     35.7
   ],
   "frame": {
     "km_vertical": 36,
     "center_km": [
-      0,
-      0
+      5.88,
+      0.0
     ],
     "hud_side": "right",
     "hud_top": 1200

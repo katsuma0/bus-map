@@ -10,8 +10,8 @@
   "frame": {
     "km_vertical": 64,
     "center_km": [
-      0,
-      0
+      0.0,
+      0.0
     ],
     "hud_side": "right",
     "hud_top": 1200
