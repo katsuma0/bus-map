@@ -43,28 +43,29 @@ jobs:
           done
           g /tmp/src/honsu/document.pdf "https://gtfs-gis.jp/railway_honsu/20240424_document.pdf"
           g /tmp/src/meta/honsu_page.html "https://gtfs-gis.jp/railway_honsu/"
-          # MLIT National Land Numerical Information, bus routes (N07), every edition listed
+          # MLIT National Land Numerical Information, bus routes (N07). The 2022
+          # edition (product spec 2.0) has its own page; read its licence line and
+          # download links rather than guessing file names.
           g /tmp/src/meta/n07_page.html "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07.html"
+          g /tmp/src/meta/n07_v2_page.html "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N07-v2_0.html"
           g /tmp/src/meta/ksj_terms.html "https://nlftp.mlit.go.jp/ksj/other/agreement.html"
           python3 - <<'PY' > /tmp/n07_urls.txt
           import re
-          t = open("/tmp/src/meta/n07_page.html", encoding="utf-8", errors="replace").read()
-          zips = sorted(set(re.findall(r"[\"'(]([^\"'()]*N07[^\"'()]*\.zip)", t)))
-          for z in zips:
+          t = open("/tmp/src/meta/n07_v2_page.html", encoding="utf-8", errors="replace").read()
+          for z in sorted(set(re.findall(r"(/ksj/gml/data/N07/[^\"'\s<>]+\.zip)", t))):
               print(z)
           PY
-          cat /tmp/n07_urls.txt | head -80
-          # Kanto and Kansai prefectures the three frames touch
+          cat /tmp/n07_urls.txt | head -120
           for p in 11 12 13 14 25 26 27 28 29; do
-            u=$(grep -E "_${p}_|_${p}\.|N07-[0-9]+_${p}" /tmp/n07_urls.txt | sort | tail -1)
+            u=$(grep -E "_${p}_(GML|SHP)?|_${p}_" /tmp/n07_urls.txt | grep -v -i "shp" | sort | tail -1)
+            [ -z "$u" ] && u=$(grep -E "_${p}_" /tmp/n07_urls.txt | sort | tail -1)
             if [ -n "$u" ]; then
-              case "$u" in http*) url="$u";; /*) url="https://nlftp.mlit.go.jp$u";; *) url="https://nlftp.mlit.go.jp/ksj/gml/datalist/$u";; esac
-              url=$(python3 -c "import sys,urllib.parse; print(urllib.parse.urljoin('https://nlftp.mlit.go.jp/ksj/gml/datalist/', sys.argv[1]))" "$u")
-              g "/tmp/src/n07/n07_$p.zip" "$url"
+              g "/tmp/src/n07/n07_$p.zip" "https://nlftp.mlit.go.jp$u"
             else
               echo "NO N07 URL for pref $p" >> $log
             fi
           done
+          for z in /tmp/src/n07/*.zip; do unzip -l "$z" | tail -5 >> $log 2>&1 || echo "BAD $z" >> $log; done
           ls -la /tmp/src/*
           cat $log
       - name: Push to an orphan data branch
