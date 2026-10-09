@@ -1,5 +1,6 @@
-"""Pull Overture Maps roads, rail, water and the city boundary for the Tsukuba
-frame straight from the public S3 bucket.
+"""Pull Overture Maps roads, rail, water and division areas for a frame straight
+from the public S3 bucket. BBOX (west,south,east,north) and OUT come from the
+environment so one script serves every city.
 
 Only the parquet row groups whose bbox statistics touch our frame get read, so
 this moves ~100 MB instead of the 70 GB planet. Output is GeoJSON in
@@ -15,7 +16,7 @@ from shapely.geometry import mapping
 
 RELEASE = os.environ.get("OVERTURE_RELEASE", "2026-09-23.1")
 BUCKET = "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/"
-OUT = os.path.join(os.path.dirname(__file__), "..", "data", "basemap")
+OUT = os.environ.get("OUT", os.path.join(os.path.dirname(__file__), "..", "data", "basemap"))
 # West, south, east, north. Wider than the final frame so the layout can move.
 BBOX = tuple(float(x) for x in os.environ.get("BBOX", "139.80,35.80,140.40,36.40").split(","))
 
