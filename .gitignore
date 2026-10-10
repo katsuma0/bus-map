@@ -15,3 +15,10 @@ data/japan-src/
 data/tokyo/gtfs/
 data/kyoto/gtfs/
 data/osaka/gtfs/
+# Shorts pipeline: derived configs, area stores, networks, basemaps and the
+# legacy identity references; make.py and tests/legacy/record.py rebuild them
+build/
+# feed zips and Overture extracts that make.py fetch pins by sha256
+cache/
+# Shorts renders and their metadata, uploaded to the batch's draft release
+out/shorts/
