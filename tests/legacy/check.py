@@ -58,11 +58,13 @@ BUILDS = (
 )
 # Gitignored inputs of the builds. A worktree links or copies them from the
 # main checkout.
+# model_gtfs.py --area all also reads ten community-bus zips, so the whole
+# folder is listed rather than the two Toei zips.
 BUILD_INPUTS = [
     "data/gta/gtfs/ttc.zip", "data/gta/gtfs/go.zip", "data/gta/gtfs/upx.zip", "data/gta/gtfs/yrt.zip",
     "data/gta/gtfs/miway.zip", "data/gta/gtfs/brampton.zip", "data/gta/gtfs/drt.zip", "data/gta/gtfs/oakville.zip",
     "data/gta/gtfs/burlington.zip", "data/gta/gtfs/milton.zip",
-    "data/japan-src/gtfs/toei_bus.zip", "data/japan-src/gtfs/toei_train.zip", "data/japan-src/honsu", "data/japan-src/n07",
+    "data/japan-src/gtfs", "data/japan-src/honsu", "data/japan-src/n07",
 ] + [f"data/{d}/{f}.geojson" for d in ("basemap", "gta/basemap", "tokyo/basemap", "kyoto/basemap", "osaka/basemap")
      for f in ("segments", "water")] + ["data/basemap/divisions.geojson"]
 ALLOWED_NEW_REQUESTS = {"/web/color.js", "/web/fonts/fontsX.css"}
