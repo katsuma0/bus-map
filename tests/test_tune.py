@@ -9,7 +9,6 @@ tests/test_make.py, whose render stub writes the C5 tune files.
 
 import json
 import os
-import shutil
 import sys
 import tempfile
 import unittest

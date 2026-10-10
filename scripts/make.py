@@ -2539,7 +2539,6 @@ class Pipeline:
 
     def cmd_release_publish(self, name, gh=None):
         import release
-        import shorts_meta
         gh = gh or self.release_client()
         batch = self.load_batch(name)
         lock = self.load_lock(batch)

@@ -157,7 +157,8 @@ def fit_frame_arm(name, value, frame, trim_km, zoom, dx, dy):
 
 # ------------------------------------------------------------------ images and scores (G4)
 
-def np_():
+def lazy_numpy():
+    """numpy, imported on first use: make.py imports tune for its helpers, and most commands need no numpy."""
     import numpy
     return numpy
 
@@ -165,12 +166,12 @@ def np_():
 def load_rgb(path):
     from PIL import Image
     with Image.open(path) as im:
-        return np_().asarray(im.convert("RGB"))
+        return lazy_numpy().asarray(im.convert("RGB"))
 
 
 def luminance(rgb):
     """WCAG relative luminance per pixel."""
-    np = np_()
+    np = lazy_numpy()
     c = rgb.astype(np.float64) / 255.0
     lin = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
     return lin[..., 0] * 0.2126 + lin[..., 1] * 0.7152 + lin[..., 2] * 0.0722
@@ -204,7 +205,7 @@ def panel_rect(boxes):
 
 def map_mask(h, w, boxes, scale=1.0):
     """The frame minus the HUD boxes, the panel rectangle and y < 380."""
-    np = np_()
+    np = lazy_numpy()
     m = np.ones((h, w), dtype=bool)
     m[: int(round(MAP_TOP * scale))] = False
     rects = [[b["x0"], b["y0"], b["x1"], b["y1"]] for b in boxes]
@@ -227,7 +228,7 @@ def whiteout(rgb, mask):
 
 def text_contrast(boxes, bg_rgb, names):
     """min over boxes of (Y_text + 0.05) / (P90(Y_bg under the box) + 0.05)."""
-    np = np_()
+    np = lazy_numpy()
     y_bg = luminance(bg_rgb)
     h, w = y_bg.shape
     worst = None
@@ -296,7 +297,7 @@ def card_cover(vehicles, boxes):
 
 def motion_strobe(frames, mask):
     """motion: mean abs dY x 100 in the map mask; strobe: share of pixels whose largest channel jumps by > 64."""
-    np = np_()
+    np = lazy_numpy()
     if len(frames) < 2:
         return None, None
     mot, stro = [], []
@@ -447,7 +448,7 @@ def tile_sheet(groups, out, cols=5, tile=(TILE_W, TILE_H), crop=None):
 
 def trail_square(rgb, mask, size=360, step=20):
     """Top-left of the size x size square in the map mask with the most trail pixels."""
-    np = np_()
+    np = lazy_numpy()
     sat = rgb.max(axis=2).astype(np.int16) - rgb.min(axis=2).astype(np.int16)
     trail = ((sat >= 40) | (luminance(rgb) >= 0.25)) & mask
     ii = np.pad(trail.astype(np.int64).cumsum(0).cumsum(1), ((1, 0), (1, 0)))
@@ -471,8 +472,8 @@ def crops_sheet(arms, out, still_name, rt_name, square):
     for i, arm in enumerate(arms):
         y0 = i * (HEADER + 360)
         draw.text((GAP, y0 + 8), arm.get("short", arm["header"]), fill=(235, 235, 240), font=f)
-        for j, (name, box, scale) in enumerate(((still_name, (x, y, x + 360, y + 360), 1.0),
-                                                (rt_name, (x * 2 / 3, y * 2 / 3, x * 2 / 3 + 240, y * 2 / 3 + 240), None))):
+        for j, (name, box) in enumerate(((still_name, (x, y, x + 360, y + 360)),
+                                         (rt_name, (x * 2 / 3, y * 2 / 3, x * 2 / 3 + 240, y * 2 / 3 + 240)))):
             p = os.path.join(arm["dir"], name) if name else None
             if not p or not os.path.exists(p):
                 continue
@@ -613,7 +614,7 @@ class Tuner:
         return None
 
     def score_arm(self, d, times, frames, clip):
-        np = np_()
+        np = lazy_numpy()
         sc = {"whiteout": None, "contrast": None, "safe_share": None, "motion": None, "strobe": None,
               "card_cover": None, "sizes": [], "ms_per_frame": None}
         box_lists, contrasts = [], []

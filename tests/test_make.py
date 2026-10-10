@@ -11,17 +11,14 @@ keeps a draft release in a JSON file for the Actions tests.
 """
 
 import csv
-import gzip
 import io
 import json
-import math
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import textwrap
 import unittest
 import zipfile
 
