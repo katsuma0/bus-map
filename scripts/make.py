@@ -1719,6 +1719,8 @@ class Pipeline:
         items = sorted(feeds.items()) if isinstance(feeds, dict) else [(f.get("id"), f) for f in feeds]
         dates, rules = {}, {}
         for fid, f in items:
+            if fid is not None and "dates" not in f and isinstance(f.get("by_class"), dict):
+                f = self.feed_in_2_9(f["by_class"])
             if fid is None or "dates" not in f:
                 continue
             dates[fid] = f["dates"]
@@ -1729,6 +1731,16 @@ class Pipeline:
             elif rule is not None:
                 rules[fid] = f"median-date {med}" if rule == "median-date" and isinstance(med, str) else rule
         return dates, rules
+
+    @staticmethod
+    def feed_in_2_9(by_class):
+        """Dates and rules of one store feed (kept per day class) in the shapes of 2.9: a day store's `wd` is flat."""
+        if set(by_class) == {"wd"}:
+            c = by_class["wd"]
+            return {"dates": c["dates"], "rule": c["rule"], "median_date": c.get("median_date")}
+        md = {k: c["median_date"] for k, c in sorted(by_class.items()) if c.get("rule") == "median-date"}
+        return {"dates": {k: c["dates"] for k, c in sorted(by_class.items())},
+                "rule": {k: c["rule"] for k, c in sorted(by_class.items())}, "median_date": md or None}
 
     def record_dates(self, batch, area, tl, lock, frozen, store_dir):
         dates, rules = self.store_dates(store_dir)
