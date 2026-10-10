@@ -64,7 +64,9 @@ PANEL_TEXT = ("weekday", "clock", "count", "count2", "chips", "axis", "credit", 
 MIN_SIZES = {"title": 48, "subtitle": 32, "weekday": 64, "clock": 40, "count": 36, "count2": 36, "chips": 24,
              "peak": 26, "axis": 26, "credit": 22, "credit2": 22, "card_title": 72, "card_title2": 72,
              "card_line0": 40, "card_line0b": 40, "card_line1": 30}
-LIMITS = {"whiteout": 0.03, "contrast": 4.5, "safe_share": 0.85, "strobe": 0.004}
+LIMITS = {"whiteout": 0.03, "contrast": 4.5, "safe_share": 0.85, "strobe": 0.004, "card_cover": 0.4}
+# The card band reaches 60 px past the card text (B10), feathers included.
+CARD_BAND_PAD = 60
 WHY_MAX = 120
 
 
@@ -270,6 +272,28 @@ def safe_share(vehicles, boxes):
     return ok / inside if inside else 1.0
 
 
+def card_cover(vehicles, boxes):
+    """Share of the on-screen inside vehicles whose dot lies in the rows of the card band.
+
+    safe_share reads stills without the card, so nothing else sees a card that
+    sits over the city's busiest half on frame 0, where the map is the hook.
+    """
+    card = [b for b in boxes if str(b.get("name", "")).startswith("card_")]
+    if not card:
+        return None
+    y0 = min(b["y0"] for b in card) - CARD_BAND_PAD
+    y1 = max(b["y1"] for b in card) + CARD_BAND_PAD
+    flat = list(vehicles.values()) if isinstance(vehicles, dict) else list(vehicles)
+    inside = under = 0
+    for i in range(0, len(flat) - 2, 3):
+        x, y, flag = flat[i], flat[i + 1], flat[i + 2]
+        if not flag or not (0 <= x <= 1080 and 0 <= y <= 1920):
+            continue
+        inside += 1
+        under += y0 <= y <= y1
+    return under / inside if inside else 0.0
+
+
 def motion_strobe(frames, mask):
     """motion: mean abs dY x 100 in the map mask; strobe: share of pixels whose largest channel jumps by > 64."""
     np = np_()
@@ -307,6 +331,8 @@ def breaks_of(scores):
         out.append("safe_share")
     if scores.get("strobe") is not None and scores["strobe"] > LIMITS["strobe"]:
         out.append("strobe")
+    if scores.get("card_cover") is not None and scores["card_cover"] > LIMITS["card_cover"]:
+        out.append("card_cover")
     if scores.get("sizes"):
         out.append("sizes")
     return out
@@ -588,8 +614,8 @@ class Tuner:
 
     def score_arm(self, d, times, frames, clip):
         np = np_()
-        sc = {"whiteout": None, "contrast": None, "safe_share": None, "motion": None, "strobe": None, "sizes": [],
-              "ms_per_frame": None}
+        sc = {"whiteout": None, "contrast": None, "safe_share": None, "motion": None, "strobe": None,
+              "card_cover": None, "sizes": [], "ms_per_frame": None}
         box_lists, contrasts = [], []
 
         def boxes_at(path):
@@ -634,6 +660,10 @@ class Tuner:
                 c = text_contrast(boxes, load_rgb(bg), names)
                 if c is not None:
                     contrasts.append(c)
+            veh = os.path.join(d, f"vehicles-f{f:04d}.json")
+            if f == 0 and boxes and os.path.exists(veh):
+                with open(veh, encoding="utf-8") as fh:
+                    sc["card_cover"] = card_cover(json.load(fh), boxes)
         if contrasts:
             sc["contrast"] = float(min(contrasts))
         if clip:
@@ -731,7 +761,8 @@ class Tuner:
             arm["scores"] = self.score_arm(arm["dir"], times, frames, clip)
             arm["breaks"] = breaks_of(arm["scores"])
             s = arm["scores"]
-            bits = [f"{k} {s[k]:.3f}" for k in ("whiteout", "contrast", "safe_share", "motion", "strobe") if s.get(k) is not None]
+            bits = [f"{k} {s[k]:.3f}" for k in ("whiteout", "contrast", "safe_share", "motion", "strobe", "card_cover")
+                    if s.get(k) is not None]
             arm["header"] = f"{arm['label']}: {key}={arm['value']}  " + "  ".join(bits) + \
                             (f"  BREAKS {','.join(arm['breaks'])}" if arm["breaks"] else "")
             # crops.jpg is 744 px wide: the arm, its value and the score the crops are about.
@@ -761,7 +792,7 @@ class Tuner:
         for a in scores["arms"]:
             s = a["scores"]
             bits = ", ".join(f"{k} {s[k]:.4g}" for k in ("whiteout", "contrast", "safe_share", "motion", "strobe",
-                                                          "ms_per_frame") if s.get(k) is not None)
+                                                          "card_cover", "ms_per_frame") if s.get(k) is not None)
             print(f"  {a['label']}: {knob[2]}={a['value']}  {bits}" + (f"  breaks {a['breaks']}" if a["breaks"] else ""))
         print(f"  auto pick: {scores['auto_pick']}")
         print(f"  next: make.py tune {self.rid} --variant {self.variant} --pick {knob[1]}=<a|b|c> --why \"...\"")

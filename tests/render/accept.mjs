@@ -312,7 +312,10 @@ function tuneFiles(dir, st, week, frames, clip, roundtrip) {
   const lab = (T) => label(T, week);
   const want = ['config.json', 'timing.json'];
   for (const T of Object.values(st || {})) want.push(...['still', 'bg', 'vehicles', 'boxes'].map((p) => `${p}-${lab(T)}.${p === 'still' || p === 'bg' ? 'png' : 'json'}`));
-  for (const i of frames) want.push(`frame-${String(i).padStart(4, '0')}.png`, `bgframe-${String(i).padStart(4, '0')}.png`, `boxes-f${String(i).padStart(4, '0')}.json`);
+  for (const i of frames) {
+    const n = String(i).padStart(4, '0');
+    want.push(`frame-${n}.png`, `bgframe-${n}.png`, `boxes-f${n}.json`, `vehicles-f${n}.json`);
+  }
   for (let k = 0; k < clip; k++) want.push(`clip-${String(k).padStart(3, '0')}.png`);
   if (roundtrip) {
     if (st) want.push(`rt-still-${lab(st.am)}.png`);

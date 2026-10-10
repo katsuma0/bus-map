@@ -1675,14 +1675,17 @@ async function tierTune(session) {
       const png = bm.canvas.toDataURL('image/png');
       const ms = performance.now() - t0;
       const boxes = bm.hudBoxes();
+      const veh = Array.from(bm.lastVehicles);
       bm.setHud('notext');
       bm.renderFrame(n);
-      return { png, ms, boxes, bg: bm.canvas.toDataURL('image/png') };
+      return { png, ms, boxes, veh, bg: bm.canvas.toDataURL('image/png') };
     }, i);
     throwIfPageErrors(session.pageErrors);
     await write(`frame-${pad4(i)}.png`, pngFromDataUrl(r.png));
     await write(`bgframe-${pad4(i)}.png`, pngFromDataUrl(r.bg));
     await write(`boxes-f${pad4(i)}.json`, json(r.boxes));
+    // G4 card_cover: how much of the city the frame-0 card hides.
+    await write(`vehicles-f${pad4(i)}.json`, json(round2(r.veh)));
     timing.frames.push({ frame: i, ms: Math.round(r.ms) });
   }
 

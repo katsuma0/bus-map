@@ -83,6 +83,16 @@ class Scores(unittest.TestCase):
         band[400:800] = (8, 13, 21)
         self.assertGreater(tune.text_contrast(card, band, tune.CARD_TEXT), 6)
 
+    def test_card_cover(self):
+        card = [{"name": "card_title", "x0": 72, "y0": 480, "x1": 800, "y1": 600},
+                {"name": "card_line0", "x0": 72, "y0": 650, "x1": 700, "y1": 700}, {"name": "clock", "y0": 1200, "y1": 1290}]
+        # Rows 420..760 are the band: 2 of the 4 on-screen inside vehicles sit in it, whatever their x.
+        veh = [900, 430, 1, 100, 755, 1, 500, 300, 1, 500, 1000, 1, 500, 600, 0, 2000, 600, 1]
+        self.assertEqual(tune.card_cover(veh, card), 0.5)
+        self.assertIsNone(tune.card_cover(veh, card[2:]))
+        self.assertIn("card_cover", tune.breaks_of({"card_cover": 0.47}))
+        self.assertEqual(tune.breaks_of({"card_cover": 0.3}), [])
+
     def test_sizes(self):
         boxes = [dict(PANEL_BOXES[3], size=20), {"name": "card_line1", "size": 30}]
         self.assertEqual(tune.size_breaks([boxes]), ["credit 20 < 22"])
@@ -187,7 +197,7 @@ class EndToEnd(tm.Scratch):
         scores = tm.load(os.path.join(k1, "scores.json"))
         self.assertEqual([a["value"] for a in scores["arms"]], [0.95, 1.05, 1.16])
         self.assertEqual(set(scores["arms"][0]["scores"]), {"whiteout", "contrast", "safe_share", "motion", "strobe",
-                                                            "sizes", "ms_per_frame"})
+                                                            "card_cover", "sizes", "ms_per_frame"})
         res = self.repo.run("tune", rid, "--next", check=False)
         self.assertIn("waiting for --pick", res.stdout)
         self.repo.run("tune", rid, "--pick", "zoom=c", "--why", "the city fills the space above the panel")

@@ -275,6 +275,7 @@ elif tier == "tune":
         save(picture(1080, 1920, 0), os.path.join(od, f"frame-{f:04d}.png"))
         save(picture(1080, 1920, 0, text=False), os.path.join(od, f"bgframe-{f:04d}.png"))
         json.dump(CARD if f in (0, 15) else BOXES, open(os.path.join(od, f"boxes-f{f:04d}.json"), "w"))
+        json.dump(vehicles(0), open(os.path.join(od, f"vehicles-f{f:04d}.json"), "w"))
     nclip = int(arg("--clip-frames", "90"))
     for i in range(nclip):
         im = Image.new("RGB", (54, 96), (14, 12, 10))
