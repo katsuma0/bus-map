@@ -1,0 +1,15 @@
+# Python packages of the Shorts pipeline. requirements.txt is the full closure
+# with hashes, made in a scratch venv with pip-tools (not a requirement):
+#   pip-compile --generate-hashes --allow-unsafe requirements.in
+# and installed everywhere with
+#   pip install --require-hashes --no-deps -r requirements.txt
+numpy==2.5.3
+pandas==3.0.5
+pyarrow==26.0.0
+shapely==2.2.0
+fsspec==2026.9.0
+aiohttp==3.14.4
+requests==2.34.2
+fonttools==4.66.1
+brotli==1.2.0
+Pillow==12.3.0

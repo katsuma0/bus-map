@@ -7,7 +7,9 @@
     "render": "node scripts/render_video.mjs",
     "render:canvas": "node scripts/render_video.mjs --capture canvas",
     "bench": "node scripts/render_video.mjs --bench 30",
-    "serve": "node scripts/render_video.mjs --serve"
+    "serve": "node scripts/render_video.mjs --serve",
+    "make": "python3 scripts/make.py",
+    "test:make": "python3 tests/test_make.py && python3 tests/test_meta.py && python3 tests/test_tune.py"
   },
   "devDependencies": {
     "playwright": "1.56.1"
