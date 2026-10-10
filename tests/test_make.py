@@ -703,6 +703,20 @@ class Derivation(Scratch):
         self.batch = self.pl.load_batch("test")
         self.lock = self.pl.load_lock(self.batch)
 
+    def test_trim_key_ignores_the_cities_path(self):
+        """A build from a copied cities dir keys like the checkout's, so D-8 can compare their networks."""
+        other = os.path.join(self.tmp, "elsewhere", "cities")
+        shutil.copytree(os.path.join(self.repo.root, "cities"), other)
+        pl2 = make.Pipeline(self.repo.root, other)
+        b2 = pl2.load_batch("test")
+        l2 = pl2.load_lock(b2)
+        r1, r2 = self.pl.recipe("test-centre", self.batch), pl2.recipe("test-centre", b2)
+        self.assertNotEqual(self.pl.city_config(self.batch, r1, "day", self.lock)["brands"],
+                            pl2.city_config(b2, r2, "day", l2)["brands"])
+        for tl in ("day", "week"):
+            self.assertEqual(self.pl.trim_key(self.batch, r1, tl, self.lock, "b" * 64, "c" * 64),
+                             pl2.trim_key(b2, r2, tl, l2, "b" * 64, "c" * 64))
+
     def test_lock_contents(self):
         lock = self.lock
         self.assertEqual(list(lock), ["batch", "locked_at", "areas", "boundaries", "tools"])

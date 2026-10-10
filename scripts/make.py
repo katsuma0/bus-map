@@ -1060,8 +1060,10 @@ class Pipeline:
 
     def trim_key(self, batch, recipe, timeline, lock, boundary_sha, day_network_sha=None):
         area = self.area_of(batch, recipe)
+        # The brands file's path follows --cities while its content is keyed below, so a build from a
+        # scratch cities dir gets the key, and the network bytes, of the checkout's (D-8).
         payload = {"step": f"trim-{timeline}", "code": self.code_shas(TRIM_CODE),
-                   "config": self.city_config(batch, recipe, timeline, lock),
+                   "config": dict(self.city_config(batch, recipe, timeline, lock), brands=None),
                    "area": self.area_key(batch, area, timeline, lock),
                    "boundary": boundary_sha, "brands": self.brands_for(area)}
         if timeline == "week":
