@@ -12,9 +12,14 @@
 //  B-12 activity-daily (week): minutes per frame at frame N - 1 and at frame 0
 //       within 5%; the same for the day's activity warp
 //
+// The wrap checks also run on the Markham and Toronto day and week networks
+// (build/<id>/, else the stubs in build/stub_v4/) when they exist.
+//
 // Usage: node tests/web/v4_loop.mjs
 
-import { openBrowser, TINY, TINY_WEEK, check } from './browser.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const failures = [];
 const ok = (cond, what) => check(failures, cond, what);
@@ -61,6 +66,8 @@ async function wrapChecks(h, query, tag) {
   for (const p of r.period) ok(p.n === 0, `${tag} B-3: renderAt(${p.T}) and renderAt(T + P) differ in ${p.n} channels (max ${p.max})`);
   ok(r.TN === r.end, `${tag}: the virtual frame N is at the window end (${r.TN} vs ${r.end})`);
   ok(Math.abs(r.dtLast - r.dt0) <= 0.05 * r.dt0, `${tag} B-12: minutes per frame at N - 1 ${(r.dtLast / 60).toFixed(3)} vs frame 0 ${(r.dt0 / 60).toFixed(3)}`);
+  console.log(`  ${tag.padEnd(18)} minutes per frame: frame 0 ${(r.dt0 / 60).toFixed(3)}, frame N - 1 ${(r.dtLast / 60).toFixed(3)}; `
+    + `frame N - 1 to 0 changes ${r.dl0.n} channels, 0 to 1 ${r.d01.n}`);
   ok(r.dN0.n === 0, `${tag} B-3: the virtual frame N differs from frame 0 in ${r.dN0.n} channels`);
   ok(r.dl0.n > 0 && r.dl0.n <= 3 * r.d01.n + 1000, `${tag} B-3: frame N - 1 to 0 changes ${r.dl0.n} channels, frame 0 to 1 ${r.d01.n}`);
   const N = r.N;
@@ -102,6 +109,15 @@ try {
   await wrapChecks(h, TINY, 'day');
   await wrapChecks(h, TINY_WEEK, 'week');
   await xfadeChecks(h);
+  for (const id of ['gta-markham', 'gta-toronto']) {
+    for (const tl of ['day', 'week']) {
+      const real = `build/${id}/${tl}/network.json.gz`;
+      const file = fs.existsSync(path.join(ROOT, real)) ? real : `build/stub_v4/${id}/${tl}/network.json.gz`;
+      if (!fs.existsSync(path.join(ROOT, file))) continue;
+      const bm = fs.existsSync(path.join(ROOT, `build/${id}/basemap.json.gz`)) ? `build/${id}/basemap.json.gz` : 'data/gta/built/basemap.json.gz';
+      await wrapChecks(h, `data=../${file}&basemap=../${bm}`, `${id} ${tl}`);
+    }
+  }
 } finally {
   await h.close();
 }

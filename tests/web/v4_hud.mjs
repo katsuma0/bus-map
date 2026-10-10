@@ -13,10 +13,15 @@
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
 //  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart
 //
+// Stress copies scale every count of a GTA network (Richmond Hill x200 for a
+// five-digit count that has to split, Mississauga x12 and Toronto x8 for the
+// widest chips lines) and run the same checks.
+//
 // Usage: node tests/web/v4_hud.mjs [--only gta-toronto,...] [--no-gta]
 
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const MIN = {
@@ -173,6 +178,31 @@ async function run(h, name, query, variant) {
   return r;
 }
 
+function roundHalfEven(x) {
+  const r = Math.round(x);
+  return Math.abs(x - Math.trunc(x)) === 0.5 && r % 2 !== 0 ? r - 1 : r;
+}
+
+// A copy of a network with every count multiplied, peaks recomputed from
+// the scaled 2-decimal hist as the builder would write them.
+function stress(net, factor, name) {
+  const file = path.join(ROOT, net.query.match(/data=\.\.\/([^&]+)/)[1]);
+  const obj = JSON.parse(zlib.gunzipSync(fs.readFileSync(file)).toString('utf8'));
+  const m = obj.meta;
+  const sc = (arr) => arr.map((v) => Math.round(v * factor * 100) / 100);
+  obj.hist = sc(obj.hist);
+  for (const k of Object.keys(m.hist_by_mode)) m.hist_by_mode[k] = sc(m.hist_by_mode[k]);
+  for (const k of Object.keys(m.hist_by_group)) m.hist_by_group[k] = sc(m.hist_by_group[k]);
+  const at = (t) => roundHalfEven(obj.hist[(t / 60) % obj.hist.length]);
+  m.am_peak.count = at(m.am_peak.time);
+  m.pm_peak.count = at(m.pm_peak.time);
+  for (const v of Object.values(m.variants)) v.peak.count = at(v.peak.time);
+  const out = path.join(ROOT, 'build', 'test_web', `${name}.json`);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify(obj));
+  return net.query.replace(/data=[^&]+/, `data=../build/test_web/${name}.json`);
+}
+
 const h = await openBrowser();
 try {
   await run(h, 'v4_tiny', TINY, 'day');
@@ -183,6 +213,12 @@ try {
     if (!nets.length) console.log('SKIP GTA: no build/<id>/ networks and no stubs (python3 -I tests/web/stub_gta_v4.py)');
     if (nets.some((n) => n.stub)) console.log('  (GTA networks from the stubs in build/stub_v4/)');
     for (const n of nets) for (const v of n.variants) await run(h, n.id, n.query, v);
+    for (const [id, factor] of [['gta-richmond-hill', 200], ['gta-mississauga', 12], ['gta-toronto', 8]]) {
+      const n = nets.find((x) => x.id === id && x.tl === 'day');
+      if (!n) continue;
+      const q = stress(n, factor, `stress-${id}`);
+      for (const v of n.variants) await run(h, `${id} x${factor}`, q, v);
+    }
   }
 } finally {
   await h.close();
