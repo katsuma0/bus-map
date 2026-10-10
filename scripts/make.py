@@ -920,6 +920,7 @@ class Pipeline:
             "variants": {v: self.variant_block(v, recipe) for v in names},
             "rush": {"auto": bool(rush.get("auto", d["rush"]["auto"])) and rush.get("frame") is None,
                      "zoom": d["rush"]["zoom"], "share": d["rush"]["share"]},
+            "fit_box": d["fit_box"],
             "panel": {"preferred": variety.get("panel_side", "left"), "tie": d["panel"]["tie"], "rect": d["panel"]["rect"]},
             "card": {"title": place.upper(), "templates": self.templates()["card"]},
             "major_share": d["major_share"],
