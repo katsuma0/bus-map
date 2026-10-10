@@ -180,6 +180,22 @@ def explain_mismatch(ref_dir, new_dir, start):
     return "\n".join(lines)
 
 
+def render2_skip(manifest, mode):
+    """Why Tsukuba frame 200 is not compared with the earlier full render, or None when it is.
+
+    A skip has to be said: F2 step 3 promises the comparison, and a silent
+    None read as a pass in the integration report."""
+    r2 = manifest.get("render2")
+    if not r2:
+        return "no --render2 PNG was recorded with the references"
+    diff = r2.get(mode, "missing")
+    if diff == "missing":
+        return f"the references recorded no {mode} comparison"
+    if diff is not None:
+        return f"it differed from render2 already at {str(manifest.get('base') or 'the base')[:12]} ({diff})"
+    return None
+
+
 def render2_check(ref, manifest, mode):
     """Tsukuba frame 200 against the earlier full render, for the capture modes
     whose frame matched it when the references were recorded. None = not checked."""
@@ -226,6 +242,8 @@ def step_renders(ref, manifest, renders, keep):
                     problems.append(f"frame 200 differs from the earlier full render: {d}")
                 elif d == "":
                     say(f"  ok   {n} frame 200 equals the earlier full render")
+                elif render2_skip(manifest, mode):
+                    say(f"  skip {n} frame 200: {render2_skip(manifest, mode)}")
             if problems:
                 ok = False
                 say(f"  FAIL {n}: " + "\n    ".join(problems))
