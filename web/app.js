@@ -2496,10 +2496,11 @@ function buildShortsLayout() {
   L.creditFont = `400 22px ${F.inter}`;
   const credit = meta.credit || (Array.isArray(meta.attribution) ? meta.attribution.join(' ') : '');
   L.credit = wrapText(credit, L.creditFont, L.textW, 2, 'greedy');
-  // Two lines read best broken after the data credit, before "Map:".
+  // Two lines read best broken between the data and the map credit, where
+  // the line break takes the place of the separator dot.
   const dot = credit.indexOf(' · ');
   if (L.credit && L.credit.length === 2 && dot > 0) {
-    const pair = [credit.slice(0, dot + 2), credit.slice(dot + 3)];
+    const pair = [credit.slice(0, dot), credit.slice(dot + 3)];
     if (pair.every((l) => textWidth(l, L.creditFont) <= L.textW)) L.credit = pair;
   }
   if (!L.credit) {
