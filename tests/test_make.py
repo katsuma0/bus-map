@@ -143,14 +143,20 @@ STUB_FETCH_BOUNDARY = STUB_COMMON + r'''
 cmd = sys.argv[1]
 log("fetch_boundary", cmd)
 if cmd == "fetch":
+    # The test squares stand in for Overture division areas, named as the fixtures name them.
+    import glob
     os.makedirs(os.path.dirname(arg("--out")), exist_ok=True)
-    w, s, e, n = [float(x) for x in arg("--bbox").split(",")]
-    f = {"type": "Feature", "properties": {"id": "d1", "division_id": "v1", "name": "Somewhere", "subtype": "locality",
-         "area_km2": 1.0}, "geometry": {"type": "Polygon", "coordinates": [[[w, s], [w + 0.01, s], [w + 0.01, s + 0.01], [w, s]]]}}
-    json.dump({"type": "FeatureCollection", "features": [f]}, open(arg("--out"), "w"), sort_keys=True)
+    feats = []
+    for i, p in enumerate(sorted(glob.glob("tests/fixtures/test/*.geojson"))):
+        f = json.load(open(p))
+        f["properties"] = {"id": f"area-{i}", "division_id": f"div-{i}", "name": f["properties"]["name"],
+                           "subtype": "locality", "class": "land", "area_km2": 36.0 if "north" in p else 64.0}
+        feats.append(f)
+    json.dump({"type": "FeatureCollection", "features": feats}, open(arg("--out"), "w"), sort_keys=True)
 else:
     fc = json.load(open(arg("--in")))
-    hits = [f for f in fc["features"] if f["properties"]["name"] == arg("--name")]
+    subs = arg("--subtypes").split(",")
+    hits = [f for f in fc["features"] if f["properties"]["name"] == arg("--name") and f["properties"]["subtype"] in subs]
     if not hits:
         sys.exit(1)
     json.dump(hits[0], open(arg("--out"), "w"), sort_keys=True)
@@ -677,6 +683,28 @@ class Derivation(Scratch):
         city = self.repo.show("test-north")
         self.assertEqual(city["city.day.json"]["brands"], "build/brands.empty.json")
         self.assertEqual(self.repo.read_json("build/brands.empty.json"), {"version": 1, "agencies": []})
+
+    def test_overture_boundary(self):
+        """A recipe without boundary.file selects its Overture division; the lock pins the divisions file."""
+        r = self.repo.read_json("cities/recipes/test-north.json")
+        del r["boundary"]["file"]
+        r["boundary"]["subtypes"] = ["county", "locality"]
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), ["fetch_boundary fetch", "fetch_boundary select"])
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        div = lock["areas"]["tsukuba"]["divisions"]
+        self.assertEqual(div["sha256"], make.sha256_file(os.path.join(
+            self.repo.root, "cache/overture/2026-09-23.1/divisions/JP-08-tsukuba.geojson")))
+        b = lock["boundaries"]["test-north"]
+        self.assertEqual((b["id"], b["division_id"], b["subtype"]), ("area-1", "div-1", "locality"))
+        self.assertEqual(b["frame"], self.lock["boundaries"]["test-north"]["frame"])
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), [], "a second lock reuses the pinned divisions and the boundary stamp")
+        self.repo.run("build", "test", "--city", "test-north")
+        self.assertIn("test-north boundary: up to date", self.repo.run("build", "test", "--city", "test-north").stdout)
 
     def test_derived_configs(self):
         recipe = self.pl.recipe("test-north", self.batch)
