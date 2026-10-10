@@ -643,6 +643,10 @@ class Derivation(Scratch):
         self.assertEqual(b["area_km2"], 64.0)
         ov = lock["areas"]["tsukuba"]["overture"]
         self.assertEqual(ov["data_tag"], "overture/tsukuba-2026-09-23.1")
+        # Both test boundaries are files, so no Overture divisions are fetched or pinned.
+        self.assertEqual(lock["areas"]["tsukuba"]["divisions"], {"key": "JP-08-tsukuba", "sha256": None,
+                                                                 "bbox": [139.95, 35.88, 140.29, 36.33]})
+        self.assertFalse([c for c in self.repo.calls() if c.startswith("fetch_boundary")])
         clips = [lock["boundaries"][c]["clip"] for c in ("test-centre", "test-north")]
         self.assertTrue(all(make.box_inside(c, ov["bbox"]) for c in clips))
         # A second lock with nothing changed keeps the file byte for byte.
@@ -1066,8 +1070,7 @@ class Actions(Scratch):
         res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
         self.assertIn("is already on origin", res.stdout)
         tree = git(self.repo.origin, "ls-tree", "-r", "--name-only", "overture/tsukuba-2026-09-23.1").stdout.split()
-        self.assertEqual(sorted(tree), ["2026-09-23.1/divisions/JP-08-tsukuba.geojson.gz.000",
-                                        "2026-09-23.1/tsukuba/segments.geojson.gz.000",
+        self.assertEqual(sorted(tree), ["2026-09-23.1/tsukuba/segments.geojson.gz.000",
                                         "2026-09-23.1/tsukuba/water.geojson.gz.000", "MANIFEST.json", "README.md"])
         pl = make.Pipeline(self.repo.root)
         rels = ["cache/overture/2026-09-23.1/tsukuba/segments.geojson", "cache/overture/2026-09-23.1/tsukuba/water.geojson"]

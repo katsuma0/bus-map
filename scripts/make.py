@@ -1433,8 +1433,14 @@ class Pipeline:
             dbbox = self.divisions_bbox(area)
             olddiv = olda.get("divisions", {})
             keep = olddiv.get("sha256") if olddiv.get("bbox") == dbbox and olddiv.get("key") == dkey else None
-            dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh)
-            divisions = {"key": dkey, "sha256": self.sha(dpath), "bbox": dbbox}
+            mine = [self.recipe(rid, batch) for rid in batch["cities"]
+                    if self.area_of(batch, self.recipe(rid, batch))["id"] == area["id"]]
+            if any(not r["boundary"].get("file") for r in mine):
+                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh)
+                divisions = {"key": dkey, "sha256": self.sha(dpath), "bbox": dbbox}
+            else:
+                # Every boundary of the area is a file in the repo: no Overture divisions to fetch or pin.
+                dpath, divisions = None, {"key": dkey, "sha256": None, "bbox": dbbox}
             partial = {"areas": {area["id"]: {"divisions": divisions}}}
             clips = []
             for rid in batch["cities"]:
@@ -1622,14 +1628,16 @@ class Pipeline:
         d = self.overture_dir(rel, area["id"])
         paths = {n: os.path.join(d, f"{n}.geojson") for n in ("segments", "water")}
         want = ov.get("files", {})
-        dpath = self.divisions_path(rel, lk["divisions"]["key"])
+        dpath = self.divisions_path(rel, lk["divisions"]["key"]) if lk["divisions"].get("sha256") else None
         if check_only:
-            for n, p in list(paths.items()) + [("divisions", dpath)]:
+            for n, p in list(paths.items()) + ([("divisions", dpath)] if dpath else []):
                 w = want.get(n) if n != "divisions" else lk["divisions"]["sha256"]
                 if not w or self.sha(p) != w:
                     raise MakeError(f"{self.rel(p)} is missing or differs from the lock, and --no-upstream fetches nothing")
             return
-        self.fetch_divisions(batch, area, want=lk["divisions"]["sha256"], bbox=lk["divisions"].get("bbox"), frozen=frozen)
+        if dpath:
+            self.fetch_divisions(batch, area, want=lk["divisions"]["sha256"], bbox=lk["divisions"].get("bbox"),
+                                 frozen=frozen)
         ok = all(want.get(n) and self.sha(p) == want[n] for n, p in paths.items())
         if not ok and all(want.get(n) for n in paths):
             ok = self.restore_data_tag(ov["data_tag"], {self.rel(p): want[n] for n, p in paths.items()})
@@ -1664,7 +1672,8 @@ class Pipeline:
             # lacks the tag: then a runner that cannot reproduce the extract byte for byte still gets it.
             on_origin = self.git("ls-remote", "--tags", "origin", f"refs/tags/{ov['data_tag']}", check=False).stdout.strip()
             if self.fetched_from_overture or not on_origin:
-                self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values()) | {self.rel(dpath)}))
+                self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values())
+                                                           | ({self.rel(dpath)} if dpath else set())))
             else:
                 say(f"  data tag {ov['data_tag']} is already on origin")
 
