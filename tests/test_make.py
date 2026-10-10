@@ -68,17 +68,21 @@ days = [datetime.date(y, m, d) for d in range(1, calendar.monthrange(y, m)[1] + 
 hol = tl["holidays"]
 keys = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 feeds = []
+# The shape build_area.py writes: dates and rules per day class under by_class, none at the top.
+def cls(ds, rule="half"):
+    return {"dates": ds, "rule": rule, "median_date": ds[len(ds) // 2] if rule == "median-date" else None,
+            "median": 100, "drawn": 10, "ratio": 1.0, "ratio_half": 1.0, "mean_trips_per_day": 100.0,
+            "fallback": False, "month_used": tl["month"], "in_month": len(ds)}
 for f in cfg["feeds"]:
     exc = [{"date": d.isoformat(), "why": "holiday", "name": hol[d.isoformat()], "trips": 10, "median": 100}
            for d in days if d.isoformat() in hol and d.weekday() < 5]
     if tl["kind"] == "day":
-        dates = [d.isoformat() for d in days if d.weekday() < 5 and d.isoformat() not in hol]
-        rule = "half"
+        by_class = {"wd": cls([d.isoformat() for d in days if d.weekday() < 5 and d.isoformat() not in hol])}
     else:
-        dates = {k: [d.isoformat() for d in days if d.weekday() == i and d.isoformat() not in hol] for i, k in enumerate(keys)}
-        rule = {k: "half" for k in keys}
-    feeds.append({"id": f["id"], "dates": dates, "rule": rule, "excluded": exc, "month_used": tl["month"],
-                  "classes": 10, "drawn": 10, "mean_trips_per_day": 100.0})
+        by_class = {k: cls([d.isoformat() for d in days if d.weekday() == i and d.isoformat() not in hol],
+                           "median-date" if k == "sun" else "half") for i, k in enumerate(keys)}
+    feeds.append({"id": f["id"], "name": f["id"], "excluded": exc, "month_used": tl["month"], "classes": 10,
+                  "by_class": by_class})
 os.makedirs(out, exist_ok=True)
 json.dump({"schema": 4, "area": cfg["id"], "origin": cfg["origin"], "timeline": tl, "feeds": feeds},
           open(os.path.join(out, "meta.json"), "w"), sort_keys=True)
@@ -596,6 +600,36 @@ E2 = {  # id: (subtype, expected area, km_vertical, center_km)
 }
 
 
+class StoreDates(unittest.TestCase):
+    """The lock's dates and rules from area stores shaped as build_area.py writes them (by_class)."""
+
+    def write_store(self, d, feeds):
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "meta.json"), "w") as fh:
+            json.dump({"schema": 4, "kind": "area_store", "feeds": feeds,
+                       "timeline": {"feeds": {"stale": {"dates": ["2000-01-01"], "rule": "all"}}}}, fh)
+
+    def test_day_and_week_stores(self):
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+        c = lambda ds, rule="half", md=None: {"dates": ds, "rule": rule, "median_date": md, "drawn": 4}
+        self.write_store(os.path.join(tmp, "day"), [
+            {"id": "go", "by_class": {"wd": c(["2026-10-01", "2026-10-02"])}},
+            {"id": "drt", "by_class": {"wd": c(["2026-10-20"], "median-date", "2026-10-20")}}])
+        week = {k: c([f"2026-10-0{i + 5}"]) for i, k in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
+        week["sat"] = c(["2026-10-17", "2026-10-24"], "median-date", "2026-10-24")
+        self.write_store(os.path.join(tmp, "week"), [{"id": "go", "by_class": week}])
+        pl = make.Pipeline(REPO)
+        dates, rules = pl.store_dates(os.path.join(tmp, "day"))
+        self.assertEqual(dates, {"go": ["2026-10-01", "2026-10-02"], "drt": ["2026-10-20"]})
+        self.assertEqual(rules, {"go": "half", "drt": "median-date 2026-10-20"})
+        dates, rules = pl.store_dates(os.path.join(tmp, "week"))
+        self.assertEqual(dates["go"]["sat"], ["2026-10-17", "2026-10-24"])
+        self.assertEqual(rules["go"]["sat"], "median-date 2026-10-24")
+        self.assertEqual(rules["go"]["mon"], "half")
+        self.assertNotIn("stale", dates)  # timeline.feeds is not where the lock reads from
+
+
 class Labels(unittest.TestCase):
     def test_asset_labels(self):
         self.assertEqual(make.asset_label("gta-toronto-day.mp4", "0123456789abcdef" * 4),
@@ -818,6 +852,9 @@ class Caching(Scratch):
         lock = self.repo.read_json("cities/locks/test.lock.json")
         self.assertIn("tsukubus", lock["areas"]["tsukuba"]["dates"]["day"])
         self.assertEqual(lock["areas"]["tsukuba"]["rules"]["week"]["tsukubus"]["mon"], "half")
+        self.assertEqual(lock["areas"]["tsukuba"]["rules"]["week"]["tsukubus"]["sun"], "median-date 2026-10-18")
+        self.assertEqual(lock["areas"]["tsukuba"]["dates"]["week"]["tsukubus"]["sun"],
+                         ["2026-10-04", "2026-10-11", "2026-10-18", "2026-10-25"])
         self.assertTrue(lock["areas"]["tsukuba"]["overture"]["files"]["segments"])
 
     def test_override_reruns_only_that_city(self):

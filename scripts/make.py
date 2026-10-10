@@ -1738,36 +1738,32 @@ class Pipeline:
     # ---------------------------------------------------------- build (A2 command lines)
 
     def store_dates(self, store_dir):
-        """Dates and rules per feed from an area store's meta.json, in the shapes of 2.9 meta.feeds[]."""
+        """Dates and rules per feed from an area store's meta.json, in the shapes of 2.9 meta.feeds[].
+
+        build_area.py keeps them per day class in feeds[].by_class (wd for a day
+        store, mon..sun for a week store); the lock and the render keys want 2.9's.
+        """
         meta = read_json(os.path.join(store_dir, "meta.json"))
-        feeds = meta.get("feeds")
-        if not feeds:
-            feeds = meta.get("timeline", {}).get("feeds", [])
-        items = sorted(feeds.items()) if isinstance(feeds, dict) else [(f.get("id"), f) for f in feeds]
         dates, rules = {}, {}
-        for fid, f in items:
-            if fid is not None and "dates" not in f and isinstance(f.get("by_class"), dict):
-                f = self.feed_in_2_9(f["by_class"])
-            if fid is None or "dates" not in f:
-                continue
-            dates[fid] = f["dates"]
-            rule, med = f.get("rule"), f.get("median_date")
+        for f in meta.get("feeds") or []:
+            flat = self.flatten_store_feed(f["by_class"])
+            fid, rule, med = f["id"], flat["rule"], flat["median_date"]
+            dates[fid] = flat["dates"]
             if isinstance(rule, dict):
-                rules[fid] = {k: (f"median-date {med.get(k)}" if r == "median-date" and isinstance(med, dict) else r)
-                              for k, r in sorted(rule.items())}
-            elif rule is not None:
-                rules[fid] = f"median-date {med}" if rule == "median-date" and isinstance(med, str) else rule
+                rules[fid] = {k: (f"median-date {med[k]}" if r == "median-date" else r) for k, r in sorted(rule.items())}
+            else:
+                rules[fid] = f"median-date {med}" if rule == "median-date" else rule
         return dates, rules
 
     @staticmethod
-    def feed_in_2_9(by_class):
-        """Dates and rules of one store feed (kept per day class) in the shapes of 2.9: a day store's `wd` is flat."""
+    def flatten_store_feed(by_class):
+        """One store feed's dates and rules in the shapes of 2.9: a day store's `wd` is flat, a week's per day."""
         if set(by_class) == {"wd"}:
             c = by_class["wd"]
             return {"dates": c["dates"], "rule": c["rule"], "median_date": c.get("median_date")}
         md = {k: c["median_date"] for k, c in sorted(by_class.items()) if c.get("rule") == "median-date"}
         return {"dates": {k: c["dates"] for k, c in sorted(by_class.items())},
-                "rule": {k: c["rule"] for k, c in sorted(by_class.items())}, "median_date": md or None}
+                "rule": {k: c["rule"] for k, c in sorted(by_class.items())}, "median_date": md}
 
     def record_dates(self, batch, area, tl, lock, frozen, store_dir):
         dates, rules = self.store_dates(store_dir)
