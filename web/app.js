@@ -2331,7 +2331,10 @@ function buildWarpV4() {
     if (mode === 'linear') { w[i] = 1; continue; }
     const m = m0 + i;
     const peak = mode === 'activity-daily' ? dayPeak[Math.floor(mod(m - 270, histN) / 1440) % days] : peakAll;
-    w[i] = peak > 0 ? Math.max(floor, (s[mod(m, histN)] / peak) ** gamma) : 1;
+    // The running sum leaves about -1e-15 over a run of empty minutes (a
+    // trains-only night), and a fractional gamma turns that into NaN frames.
+    const a = Math.max(0, s[mod(m, histN)]);
+    w[i] = peak > 0 ? Math.max(floor, (a / peak) ** gamma) : 1;
   }
   const cum = new Float64Array(n + 1);
   for (let i = 0; i < n; i++) cum[i + 1] = cum[i] + w[i];
@@ -2759,14 +2762,18 @@ function fillCardTemplate(tpl) {
     modes_plural: joinWords(plural.map((m) => m.label)),
     peak_time: variantV.peak ? clockText(variantV.peak.time) : '',
     peak_count: variantV.peak ? withCommas(variantV.peak.count) : '',
+    // The count line's noun at the peak: a video of trains alone names trains, not vehicles.
+    vehicles: countNoun({ nounMode: plural.length === 1 ? plural[0] : null }, variantV.peak ? variantV.peak.count : 0),
     trips: withCommas(meta.trips_total || trips.length),
     month: (meta.timeline && meta.timeline.month_label) || '',
   };
-  return String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
+  const text = String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
     if (Object.hasOwn(values, key)) return values[key];
     console.error(`card template "${tpl}": unknown placeholder {${key}}`);
     return all;
   });
+  // A place such as "the GTA" can open a line, which still starts with a capital.
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Card layout (B10), for the active variant and CARD_LINES.

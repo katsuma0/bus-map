@@ -463,7 +463,10 @@ Additions made while implementing (they extend, never change, the formats below)
   tier also writes `vehicles-f<nnnn>.json` for each frame it renders;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
-  render key; `--upload` sends the MP4 last.
+  render key; `--upload` sends the MP4 last;
+* videos split by mode (2.15): a recipe's `modes` keeps some of the batch's modes, a batch mode's
+  `routes` moves named routes into it whatever their route_type, and a recipe's `boundary` may be a
+  list of divisions whose union is the boundary.
 
 ### 2. Shared interfaces
 
@@ -500,10 +503,12 @@ does today).
 | `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
+| `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
 | `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
+| `modes` | [str] | no | every batch mode | the batch mode ids this video keeps (`["rail"]`, `["bus", "streetcar"]`); the trim drops the other modes' trips (2.15) |
 | `center` | [lon, lat] | no | boundary bbox centre | documentation and a fit fallback |
 | `frame.km_vertical`, `frame.center_km` | float, [float, float] | no | boundary fit (D3.2) | km about the area origin; pins the day frame |
 | `variants` | [str] | no | batch `variants_default` | subset of `day`, `rush`, `week`; `week` is dropped when not eligible (A3.6) |
@@ -559,7 +564,7 @@ does today).
 | `areas[].timezone`, `country`, `region`, `holidays` | str | `holidays` is a key into `cities/holidays.json`; `country`/`region` select the Overture divisions file |
 | `areas[].area_box` | [w, s, e, n] degrees | explicit. Trips whose shape bbox misses it are dropped from the area store. `make.py show <batch>` prints a suggestion (D3.3); adding a city never changes it unless the integrator edits it |
 | `areas[].feeds[]` | list | see below |
-| `modes` | list | as `cities/gta.json` modes, without colours (the theme supplies them) |
+| `modes` | list | as `cities/gta.json` modes, without colours (the theme supplies them), plus optional `routes` (2.15) |
 | `cities` | [id] | upload order |
 
 Feed entry: `id`, `name`, `publisher`, `licence_id` (exact key into `cities/licences.json`),
@@ -600,6 +605,17 @@ in the PR. `--frozen` (the default on Actions) fails on changed feed bytes, chan
 installed package version that differs from `requirements.txt`. `tools` is informational: a
 different Python patch, Chromium or ffmpeg build prints a warning only (networks and basemaps
 depend on the pinned packages, not on those; D-8 compares the outputs themselves).
+
+`overture.data_tag` is the tag that holds the extract and the divisions file, normally
+`overture/<area>-<release>`. A lock that moves the extract `bbox` within the same release names a
+new tag, `overture/<area>-<release>-<8 hex of sha256(canonical bbox)>`, since the old tag on origin
+still holds the old bytes (restoring from it fails on their sha256, and pushing over it would break
+the lock that pins them); a lock whose bbox and release stay keeps its tag.
+
+A union boundary (2.15) has `"id": "union:<16 hex>"`, `"division_id": null`, `"subtype": "union"`,
+`name` the divisions' names joined with ` + `, `area_km2` of the union, and `parts`: one
+`{"id", "division_id", "name", "subtype", "area_km2"}` per division in recipe order (plus `file` and
+`sha256` for a `boundary.file` division). Recipes that share a boundary get equal entries.
 
 #### 2.4 Brands: `cities/brands.json`
 
@@ -673,10 +689,18 @@ error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; 
 
 `cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
 filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
-`{peak_count}` (the variant's peak, 2.9), `{trips}`, `{month}`. D adds in metadata `{agencies}`,
+`{peak_count}` (the variant's peak, 2.9), `{vehicles}` (the count line's noun for `{peak_count}`
+(B9): `trains` when trains are the only mode in the window, else `vehicles`; singular for 1),
+`{trips}`, `{month}`. A filled card line starts with a capital, so a place such as `the GTA` can
+open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
-major fallback feed sets the label (Burlington: November), for sentences about the timetables.
+major fallback feed sets the label (Burlington: November), for sentences about the timetables;
+`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits", or
+for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
+Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
+`the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
+each mode the title names (`bus map`, `streetcar map`, `train map`).
 
 #### 2.7 Derived configs (D writes, A reads)
 
@@ -693,7 +717,7 @@ only by the untouched legacy scripts).
 | `area_box` | [w, s, e, n] | from the area | explicit, never derived from the city set |
 | `gtfs_dir` | str | `"cache/feeds/gta"` | zips named `<feed id>.zip` |
 | `feeds` | list | area feeds plus `sha256` | |
-| `modes` | list | batch modes | |
+| `modes` | list | batch modes | with their `routes` rules, which build_area applies (2.15) |
 | `timeline` | obj | see below | |
 | `stop_times_chunk` | int | 2000000 | rows per pandas chunk (A4) |
 
@@ -710,8 +734,9 @@ only by the untouched legacy scripts).
 | `title` | str | `"MARKHAM"` | uppercase place |
 | `origin` | [lon, lat] | area origin | |
 | `frame` | obj | `{"km_vertical": 49.0, "center_km": [15.7, 6.0]}` | the day frame (also the week frame) |
-| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km |
-| `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | |
+| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km; grown to the boundary bbox plus 1 km when a pinned frame shows only part of the boundary (2.15) |
+| `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | `name` joins a union's divisions with ` + ` |
+| `modes` | [str] | `["bus"]` | the recipe's modes in batch order (every batch mode by default); the trim keeps only their trips |
 | `brands` | str | `"cities/brands.json"` | |
 | `group_by` | obj | `{"field": "agency-auto", "min_share": 0.03, "max_groups": 3}` | |
 | `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM"`, `"Data: {n} transit agencies · Map: Overture, OSM"` | on-screen credit; at most 2 lines at 22 px in 504 px (B9) |
@@ -737,7 +762,7 @@ small on 16 GB runners even for Paris or New York, plus `meta.json` and `stamp.j
 
 | file | dtype, shape | content |
 |---|---|---|
-| `meta.json` | JSON | `schema`, `area`, `origin`, `timeline` (with per-feed `dates`, `excluded`, `rule` per day class), `feeds[]` stats (A6), `routes[]` `{id, short, long, color, color_raw, type, feed, mode, agency}`, `day_classes` (`["wd"]` or `["mon", ..., "sun"]`), `n_dates` per feed and day class |
+| `meta.json` | JSON | `schema`, `area`, `origin`, `timeline` (with per-feed `dates`, `excluded`, `rule` per day class), `feeds[]` stats (A6), `routes[]` `{id, short, long, color, color_raw, type, feed, mode, agency}` (`mode` by the batch's route rules, else route_type), `day_classes` (`["wd"]` or `["mon", ..., "sun"]`), `n_dates` per feed and day class |
 | `shape_off.npy` | int64 (S+1) | offsets into the shape arrays |
 | `shape_xy.npy` | int32 (2 x points) | x, y interleaved, metres (= km rounded to 3 decimals, times 1000) |
 | `shape_cum.npy` | int32 (points) | cumulative length in 0.1 m (= km rounded to 4 decimals, times 10000) |
@@ -773,7 +798,7 @@ meta.origin            area origin
 meta.day_start/day_end window of the first variant (seconds; day_end may exceed 86400)
 meta.frame             {"km_vertical", "center_km"}
 meta.trim              {"scale": 1.25, "box_km": [x0, y0, x1, y1]}
-meta.modes             batch modes with "color"/"trail" omitted (the theme supplies them)
+meta.modes             the city config's modes, as batch modes with "color"/"trail"/"routes" omitted (the theme supplies colours)
 meta.attribution       [credit]   (one line, for legacy readers)
 meta.credit            "Data: YRT, GO, TTC · Map: Overture, OSM"
 meta.build_key         sha256 of the trim step key (D2)
@@ -790,11 +815,11 @@ meta.timeline          {"kind": "day"|"week", "period": 86400|604800, "basis": "
 meta.hist_period       1440 (day) | 10080 (week), minutes
 meta.am_peak           {"count": 431, "time": 28860}   first argmax of raw hist in minutes 300..630 (week: Monday)
 meta.pm_peak           {"count", "time"}               same, 870..1170
-meta.hist_by_mode      {mode: [hist_period floats]}
+meta.hist_by_mode      {mode: [hist_period floats]}  (the kept modes only)
 meta.groups            [{"id": "yrt", "label": "YRT", "brand": "yrt", "share": 0.77}, ..., {"id": "other", "label": "other", "brand": null, "share": 0.02}]
 meta.hist_by_group     {group: [hist_period floats]}
 meta.boundary          {"name", "rings": [[x,y,...]], "holes": [[x,y,...]], "area_km2", "bbox_km": [x0,y0,x1,y1],
-                        "source": "Overture 2026-09-23.1 division_area <id>",
+                        "source": "Overture 2026-09-23.1 division_area <id>" (a union: "... division_area <id> + <id> + ..."),
                         "mask": {"cell_km": 0.025, "x0", "y0", "nx", "ny", "rle": [...]}}
 meta.panel             {"side": "right", "inside_under": {"left": 31, "right": 12}, "why": "fewer inside vehicles under the panel"}
 meta.brands            [{"id": "yrt", "label": "YRT", "hex": "0058a9", "kind": "agency"|"rule"|"line"|"gtfs"|"mode",
@@ -962,7 +987,7 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 `{"id", "variant", "place", "title", "label", "month_label", "peak", "am_peak", "pm_peak", "feeds"
 (id, name, publisher, licence_id, licence_text, dates, rule, excluded, inside_share, major),
 "modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
-window), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
+window, over the recipe's modes), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
 batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
@@ -996,6 +1021,77 @@ Every subprocess is `sys.executable -I scripts/<tool>.py ...` or `node scripts/r
 `--no-upstream` never runs a step other than the one asked for: it checks
 `build/<id>/manifest.json` (and the area stamp) and fails on a missing input or a key mismatch.
 `--allow-nc` exists for local experiments only; Actions reads `allow_nc` from the batch file.
+
+#### 2.15 Videos split by mode, and boundaries of several divisions
+
+One video with every mode of a big city is cluttered, so a batch can make one video per group of
+modes from one boundary and one area build. Three additions, each inert by default: a recipe or
+batch without them builds the same area store arrays and networks as before (the area store's
+meta.json only gains an empty `by_rule` in each feed's build stats). Its copy changes on purpose,
+see **Copy without `modes`** below. The additions:
+
+```json
+"modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]},
+  {"id": "streetcar", "label": "streetcars", "singular": "streetcar", "route_types": [0, 5, 900]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 100, 109, 400],
+   "routes": [{"feed": "ttc", "short": "^[56]$", "why": "Line 5 and Line 6 are light rail with route_type 0"}]}
+]
+```
+
+* **Route rules** (batch `modes[].routes`, optional): each rule names routes of one `feed` by
+  `short` (a regex on `route_short_name`) and/or `route_id` (a regex on `route_id`), both
+  `re.search` as brands.json's `short`; a route matching every regex given takes that mode whatever
+  its route_type. Rules are tried in mode order before any route_type. build_area applies them, so
+  `routes[].mode` in the area store, the networks and the page all follow; the area build logs
+  `a route rule put N routes into '<mode>'`. Unknown keys, a feed that is not in the batch, a rule
+  with neither regex and a regex that does not compile are validation errors. In ttc.zip,
+  route_id and route_short_name of Line 5 Eglinton and Line 6 Finch West are `5` and `6`
+  (route_type 0); the streetcars are 301 to 312 and 501 to 512.
+* **Recipe `modes`** (optional, default every batch mode): the mode ids a video keeps, a non-empty
+  subset of the batch's. make.py writes them, in batch order, to the city config; the trim emits
+  only those modes' trips and counts only them inside the boundary, so `hist`, `hist_by_mode`
+  (kept modes only), the peaks, groups and chips, brands, feed shares (`major`, the credit, the
+  month label), the panel side, the automatic rush frame, `meta.modes` and the netmeta's `modes`
+  and `modes_present` follow. The card, the count line and the metadata name the modes in the window
+  (B9): `Every train in Toronto`, `Every bus and streetcar in Toronto`, `Every bus in Markham`,
+  `{vehicles}` reads `trains` when trains are the only mode inside, and the tags carry `train map`
+  rather than `bus map`. A trim whose modes have no trip
+  touching the boundary or the trim box fails. Recipes that differ only in `modes` share the
+  boundary, the frame, the clip and the area build; each still has its own trim and base map.
+* **Union boundary** (recipe `boundary` as a list): every division is selected as a single
+  boundary would be (exact name, subtypes, the 20% area check, or `file`) into
+  `build/<id>/boundary.parts/<i>.geojson`, and
+
+      python3 -I scripts/fetch_boundary.py union --in <part 0> --in <part 1> ... --out build/<id>/boundary.geojson
+
+  writes their union (shapely `union_all`) as one Feature: properties `id` (`union:` and 16 hex of
+  the parts' ids), `division_id` null, `name` (the parts' names joined with ` + `), `subtype`
+  `union`, `area_km2`, `parts` (each part's `id`, `division_id`, `name`, `subtype`, `area_km2`,
+  `release`, `source`), `release` and `source` (`Overture <release> division_area <id> + <id> ...`).
+  The frame fits the union's bbox (D3.2) unless the recipe pins one, and the outline, the dimming
+  mask and every count use the union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
+  title `THE GTA`, hashtag `#thegta`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
+  instead of "the <place> city limits", and `{the_city}` reads "the region".
+  A union is usually far larger than one city: the GTA (Toronto and the Peel, York, Durham and
+  Halton regions, 139 x 136 km) fits a 325.5 km frame, where its trains are specks, so its recipe
+  pins a 150 km frame on the west end of the lake and lets the region run off the frame's sides.
+* **Pinned frame smaller than the boundary**: a trim box that does not hold the boundary bbox grows
+  to that bbox plus 1 km on the sides it misses (A8.3 no longer exits there), so every vehicle
+  inside is still drawn and counted; the trim logs `trim box grown to [...]`. The clip stays the
+  frame's trim box plus 2 km, since only the frame is drawn. `make.py build` checks the grown box
+  against `area_box`, and `make.py show` suggests an area box that holds it (the GTA's grown box
+  needs `[-80.18, 42.65, -78.41, 44.53]`). A fitted frame always holds its boundary, so no other
+  city's trim box changes.
+* **Copy without `modes`** (an intended change for every video, split or not): the count noun and
+  the mode tags follow the modes in the window (B9), so the card and the description say what the
+  count line already said. A window with one mode reads `Busiest at 4:20 pm with 50 buses` on the
+  card and `Busiest moment: 50 buses at 4:20 pm.` in the description, where both read `50
+  vehicles`; a window with several modes still reads `vehicles`. The tags carry one `<mode> map`
+  per mode in the window where they carried a fixed `bus map` (Toronto: `bus map`, `streetcar
+  map`, `train map`; Markham: `bus map`, `train map`). Titles, the other description lines and
+  the hashtags are as before. The page code and the templates are in the render and meta keys, so
+  a published video takes the new copy at its next render and `make.py meta`.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 

@@ -18,6 +18,7 @@ import datetime as dt
 import gc
 import json
 import os
+import re
 import resource
 import sys
 import time
@@ -57,6 +58,33 @@ class BuiltTrip:
     feed_index: int = 0
 
 
+def route_mode(feed_id, row, modes, type_to_mode):
+    """(mode id, how) of one routes.txt row: a mode's route rule first, then its route_type.
+
+    A rule names routes of one feed by a regex on route_short_name (`short`)
+    or on route_id, both searched as brands.json's `short` is. It wins over
+    route_type, because some feeds give a light rail line the streetcar type
+    (TTC's Line 5 and Line 6 are route_type 0). `how` is "rule", "type" or
+    "unknown" (a route_type in no mode's list, which falls into the first mode).
+    """
+    short = (row.get("route_short_name") or "").strip()
+    rid = (row.get("route_id") or "").strip()
+    for m in modes:
+        for rule in m.get("routes") or []:
+            if rule.get("feed") != feed_id:
+                continue
+            if "short" in rule and not re.search(rule["short"], short):
+                continue
+            if "route_id" in rule and not re.search(rule["route_id"], rid):
+                continue
+            return m["id"], "rule"
+    rt = (row.get("route_type") or "").strip()
+    mode = type_to_mode.get(int(rt)) if rt.isdigit() else None
+    if mode is None:
+        return modes[0]["id"], "unknown"
+    return mode, "type"
+
+
 def build_trips_v4(feed, classes, stop_times, area_box, modes, chunksize=DEFAULT_CHUNK, smooth=True):
     """A5: the representative trip of every class, built as build_feed builds one date's trips.
 
@@ -66,9 +94,9 @@ def build_trips_v4(feed, classes, stop_times, area_box, modes, chunksize=DEFAULT
     color_raw, agency and type.
     """
     stats = {"skipped_short": 0, "dropped_box": 0, "forced_monotone": 0, "time_fixes": 0,
-             "shape_from_stops": 0, "blank_filled": 0, "spread": 0, "unknown_types": defaultdict(list)}
+             "shape_from_stops": 0, "blank_filled": 0, "spread": 0, "unknown_types": defaultdict(list),
+             "by_rule": defaultdict(list)}
     type_to_mode = {rt: m["id"] for m in modes for rt in m["route_types"]}
-    first_mode = modes[0]["id"]
 
     agency = feed.table("agency")
     agency_name = {a.get("agency_id", ""): a.get("agency_name", "") for a in agency}
@@ -177,16 +205,18 @@ def build_trips_v4(feed, classes, stop_times, area_box, modes, chunksize=DEFAULT
             # build_feed writes 2f6bff for a blank colour; color_raw keeps the blank.
             color = (rr.get("route_color") or "2f6bff").lower()
             rt = rr.get("route_type", "").strip()
-            mode = type_to_mode.get(int(rt)) if rt.isdigit() else None
-            if mode is None:
+            mode, how = route_mode(feed.id, dict(rr, route_id=route_id), modes, type_to_mode)
+            if how == "unknown":
                 stats["unknown_types"][rt].append(route_id)
-                mode = first_mode
+            elif how == "rule":
+                stats["by_rule"][mode].append(route_id)
             routes[rkey] = {"id": rkey, "short": short, "long": long, "color": color, "feed": feed.id, "mode": mode,
                             "agency": agency_name.get(rr.get("agency_id", ""), first_agency) or first_agency,
                             "type": int(rt) if rt.isdigit() else -1,
                             "color_raw": (rr.get("route_color") or "").strip()}
         out.append(BuiltTrip(cls=c, feed=feed.id, route_key=rkey, shape_key=skey, t=t_arr, d=np.array(d_list, dtype=float)))
     stats["unknown_types"] = {k: sorted(v) for k, v in sorted(stats["unknown_types"].items())}
+    stats["by_rule"] = {k: sorted(v) for k, v in sorted(stats["by_rule"].items())}
     return out, shapes, routes, stats
 
 
@@ -317,6 +347,8 @@ def main():
         if bstats["unknown_types"]:
             for rt, rids in bstats["unknown_types"].items():
                 log(f"      route_type {rt or '(blank)'} is in no mode's list: {len(rids)} routes fell into '{modes[0]['id']}'")
+        for mode, rids in bstats["by_rule"].items():
+            log(f"      a route rule put {len(rids)} routes into '{mode}': {', '.join(rids[:8])}{' ...' if len(rids) > 8 else ''}")
 
     # String keys only, so one city's trip order never depends on other feeds or cities.
     all_trips.sort(key=lambda bt: (int(bt.t[0]), bt.route_key, bt.cls.hex))
