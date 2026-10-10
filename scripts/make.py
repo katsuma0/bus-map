@@ -722,7 +722,14 @@ class Pipeline:
         return self.load(p)
 
     def brands_path(self):
-        return self.cfile("brands.json")
+        p = self.cfile("brands.json", required=False)
+        if p:
+            return p
+        # cities/brands.json arrives with the first batch branch; until then every route takes its GTFS or
+        # mode colour (A10 rule 4), which an empty entry list gives without a special case in the trim.
+        p = self.path("build", "brands.empty.json")
+        write_json(p, {"version": 1, "agencies": []})
+        return p
 
     def brands(self):
         return self.load(self.brands_path())

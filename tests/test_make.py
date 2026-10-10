@@ -667,6 +667,13 @@ class Derivation(Scratch):
         self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "FRAME_ZOOM": 1.05})
         self.assertEqual(len(city["keys"]["day"]["render_key"]), 64)
 
+    def test_no_brands_file_yet(self):
+        """Until a batch branch adds cities/brands.json, trims get an empty entry list."""
+        os.remove(os.path.join(self.repo.root, "cities/brands.json"))
+        city = self.repo.show("test-north")
+        self.assertEqual(city["city.day.json"]["brands"], "build/brands.empty.json")
+        self.assertEqual(self.repo.read_json("build/brands.empty.json"), {"version": 1, "agencies": []})
+
     def test_derived_configs(self):
         recipe = self.pl.recipe("test-north", self.batch)
         ac = self.pl.area_config(self.batch, self.batch["areas"][0], "week", self.lock)
