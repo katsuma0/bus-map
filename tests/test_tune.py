@@ -116,6 +116,9 @@ class Arms(unittest.TestCase):
         self.assertEqual(tune.arm_values("outside", 0.8), (0.6, 0.95))
         self.assertEqual(tune.arm_values("outside", 0.1), (0, 0.3))
         self.assertEqual(tune.arm_values("warpfloor", 0.15), (0.08, 0.25))
+        self.assertEqual(tune.arm_values("camamp", 1), (0.75, 1.25))
+        self.assertEqual(tune.arm_values("camamp", 1.4), (1.05, 1.5))
+        self.assertEqual(tune.arm_values("camamp", 0), (0.5, 1.0))
 
     def test_frame_arms_stay_inside_the_trim_box(self):
         frame = {"km_vertical": 19.0, "center_km": [3.0, -2.2]}
@@ -131,9 +134,11 @@ class Arms(unittest.TestCase):
 
     def test_pass_knobs(self):
         knobs = lambda v: [k[0] for k in tune.KNOBS if v in k[5]]
-        self.assertEqual(knobs("day"), list(range(1, 24)))
-        self.assertEqual(knobs("rush"), [1, 2, 3, 4, 19])
-        self.assertEqual(knobs("week"), [4, 10, 12, 17, 19])
+        # The camera knob (24) runs right after the frame knobs it moves over.
+        self.assertEqual(knobs("day"), [1, 2, 3, 24] + list(range(4, 24)))
+        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 19])
+        self.assertEqual(knobs("week"), [24, 4, 10, 12, 17, 19])
+        self.assertEqual(tune.BY_NAME["camamp"][2:5], ("CAMERA_AMP", "camera", True))
 
     def test_auto_pick(self):
         def arm(label, value, breaks=(), **scores):
@@ -155,6 +160,13 @@ class Arms(unittest.TestCase):
         self.assertEqual(tune.auto_pick("card", [arm("a", 1, contrast=7.9), arm("b", 2, contrast=7.5), arm("c", 3, contrast=6)], 2), "b")
         self.assertEqual(tune.auto_pick("card", [arm("a", 1, contrast=9.0), arm("b", 2, contrast=7.5), arm("c", 3, contrast=6)], 2), "a")
         self.assertEqual(tune.auto_pick("warp", [arm("a", 1), arm("b", 2), arm("c", 3)], 2), "b")
+        # camera: b unless an arm strobes less by more than the noise, after the hard limits
+        self.assertEqual(tune.auto_pick("camera", [arm("a", 0.75, strobe=0.0010), arm("b", 1, strobe=0.0012),
+                                                   arm("c", 1.25, strobe=0.0014)], 1), "b")
+        self.assertEqual(tune.auto_pick("camera", [arm("a", 0.75, strobe=0.0010), arm("b", 1, strobe=0.0030),
+                                                   arm("c", 1.25, strobe=0.0031)], 1), "a")
+        self.assertEqual(tune.auto_pick("camera", [arm("a", 0.75, strobe=0.001), arm("b", 1, ["strobe"], strobe=0.005),
+                                                   arm("c", 1.25, ["strobe"], strobe=0.006)], 1), "a")
 
     def test_why(self):
         tune.check_why("12 min keeps Highway 7 continuous without fusing Viva into YRT")
@@ -211,6 +223,22 @@ class EndToEnd(tm.Scratch):
         self.assertEqual(os.stat(os.path.join(d, "02-cx", "b", "still-0800.png")).st_ino,
                          os.stat(os.path.join(k1, "c", "still-0800.png")).st_ino)
         self.repo.run("tune", rid, "--pick", "cx=b", "--why", "centred already")
+        self.repo.run("tune", rid, "--next")
+        self.repo.run("tune", rid, "--pick", "cy=b", "--why", "centred already")
+        # B18: the camera knob comes next, with a clip (motion.jpg) and the loop's four quarter frames (camera.jpg).
+        out = self.repo.run("tune", rid, "--next").stdout
+        self.assertIn("knob 24 camamp (CAMERA_AMP)", out)
+        kc = os.path.join(d, "24-camamp")
+        cs = tm.load(os.path.join(kc, "scores.json"))
+        self.assertEqual([a["value"] for a in cs["arms"]], [0.75, 1, 1.25])
+        self.assertEqual(cs["auto_pick"], "b")
+        for sheet in ("sheet.jpg", "motion.jpg", "camera.jpg"):
+            self.assertTrue(os.path.exists(os.path.join(kc, sheet)), sheet)
+        arm_c = tm.load(os.path.join(kc, "c", "arm.json"))
+        self.assertEqual(arm_c["frames"], [0, 375, 750, 1125])
+        self.assertTrue(arm_c["clip"])
+        self.assertEqual(json.loads(json.dumps(arm_c["query"]))["CAMERA_AMP"], 1.25)
+        self.repo.run("tune", rid, "--pick", "camamp=a", "--why", "a gentler pull-out keeps the outline calm")
         for knob, label in (("trailmin", "c"), ("halor", "a"), ("cardline", "c"), ("warpfloor", "b")):
             self.repo.run("tune", rid, "--knob", knob)
             self.repo.run("tune", rid, "--pick", f"{knob}={label}", "--why", f"{knob} reads better at the peak")
@@ -241,6 +269,8 @@ class EndToEnd(tm.Scratch):
         self.assertEqual(ov["variant_render"]["day"]["TRAIL_MINUTES"], 60)
         self.assertNotIn("TRAIL_MINUTES", ov["render"])
         self.assertEqual(ov["render"]["BUS_HALO_R"], 8)
+        self.assertEqual(ov["render"]["CAMERA_AMP"], 0.75)
+        self.assertEqual(ov["_why"]["CAMERA_AMP"], "a gentler pull-out keeps the outline calm")
         self.assertNotIn("TIME_WARP_FLOOR", json.dumps(ov["variant_render"]))
         self.assertEqual(r["variety"]["card_line"], 2)
         self.assertEqual(ov["_why"]["day.FRAME_ZOOM"], "the city fills the space above the panel")
@@ -263,7 +293,8 @@ class EndToEnd(tm.Scratch):
         out = self.repo.run("tune", "test-centre", "--variant", "week", "--auto").stdout
         self.assertIn("every knob of the week pass has a pick", out)
         state = tm.load(os.path.join(self.repo.root, "build/test-centre/tune/week/state.json"))
-        self.assertEqual([h["knob"] for h in state["history"]], ["trailmin", "dotcore", "haloalpha", "warpfloor", "cardline"])
+        self.assertEqual([h["knob"] for h in state["history"]], ["camamp", "trailmin", "dotcore", "haloalpha", "warpfloor",
+                                                                 "cardline"])
         self.assertTrue(all(h["picked"] for h in state["history"]))
         res = self.repo.run("tune", "test-north", "--variant", "week", "--next", check=False)
         self.assertNotEqual(res.returncode, 0)

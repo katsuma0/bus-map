@@ -144,8 +144,12 @@ function inPage() {
   for (const k of Object.keys(st).slice(0, 3)) {
     bm.renderAt(st[k]);
     const v = bm.lastVehicles;
+    // lastVehicles are where the dots are on screen; a still draws the camera
+    // (B18) at the phase of its time, so undo it before the projection.
+    const cm = bm.cameraAt(bm.progressAt(st[k]));
     for (let i = 0; i < v.length; i += 3) {
-      const x = (v[i] - OX) / S, y = (OY - v[i + 1]) / S;
+      const bx = (v[i] - cm.e) / cm.zoom, by = (v[i + 1] - cm.f) / cm.zoom;
+      const x = (bx - OX) / S, y = (OY - by) / S;
       out.vehicles++;
       const want = rings.length ? (inside(x, y) ? 1 : 0) : 1;
       if (want !== v[i + 2]) {

@@ -178,6 +178,25 @@ const CONFIG = {
   BASE_ROADS_GAIN: 1,
   BASE_WATER_GAIN: 1,
   WEEKEND_BAND: false,
+  // Camera (B18): a slow drone move over the map layers only, periodic over
+  // the whole video so the loop has no seam. Off unless a preset turns it on.
+  // CAMERA_ZOOM is the push-in at frame 0 over the fitted frame, CAMERA_DRIFT
+  // the lateral travel as a share of the frame width; both are scaled down
+  // together until the fastest point on screen moves at most CAMERA_MAX_SPEED
+  // frame widths a second, then multiplied by CAMERA_AMP (the tuning knob).
+  CAMERA: false,
+  CAMERA_PATH: 'auto',
+  CAMERA_ZOOM: 0.08,
+  CAMERA_DRIFT: 0.03,
+  CAMERA_AMP: 1,
+  CAMERA_MAX_SPEED: 0.006,
+  // The city line's factor (B18) never goes under this: a visible move beats
+  // keeping a wide city's whole outline in frame at every phase.
+  CAMERA_BOUND_MIN: 0.7,
+  // 'cache' draws the base map once, finer than the push-in needs; 'vector'
+  // redraws it every frame, which is slow and only the reference the cache is
+  // measured against (tests/web/v4_camera.mjs).
+  CAMERA_BASE: 'cache',
   COLORS: {
     bg: '#07080c',
     water: '#1c1f27',
@@ -1569,6 +1588,8 @@ let lastBoxes = [];         // hudBoxes() of the last drawn frame
 let vehBuf = new Float32Array(3 * 4096);
 let vehN = 0;
 let shortsStatics = null;   // title scrim, panel backdrop, spark fill, safe zone overlay
+let cam = null;             // B18 camera: path, amplitudes, base headroom and boundary paths, or null when off
+let camPin = null;          // setCamera(u): the phase stills are drawn at instead of their own
 
 // YouTube Shorts text safe zone in frame pixels: no text leaves it (B9). A
 // taller phone (19.5:9, 20:9) zooms the 9:16 frame to fill its height, which
@@ -1633,6 +1654,8 @@ const V4_ENUMS = {
   LOOP: ['none', 'wrap', 'xfade'],
   PANEL_SIDE: ['', 'left', 'right'],
   FONT_SET: ['classic', 'extended'],
+  CAMERA_PATH: ['auto', 'pull-out-east', 'pull-out-north', 'pull-out-west', 'pull-out-south', 'drift-orbit', 'drift-sway'],
+  CAMERA_BASE: ['cache', 'vector'],
 };
 // Query names of the Shorts knobs (2.10): [query, CONFIG key, kind]. A name
 // kind is checked as a file name; 'bool' reads 0 or false as off.
@@ -1648,6 +1671,9 @@ const V4_KNOBS = [
   ['cy', 'FRAME_DY_KM', 'num'], ['roads', 'BASE_ROADS_GAIN', 'num'], ['water', 'BASE_WATER_GAIN', 'num'],
   ['dotcore', 'BUS_CORE_R', 'num'], ['halor', 'BUS_HALO_R', 'num'], ['haloalpha', 'BUS_HALO_ALPHA', 'num'],
   ['layeralpha', 'TRAIL_LAYER_ALPHA', 'num'], ['smooth', 'SPARK_SMOOTH_MIN', 'num'],
+  ['camera', 'CAMERA', 'bool'], ['campath', 'CAMERA_PATH', 'enum'], ['camzoom', 'CAMERA_ZOOM', 'num'],
+  ['camdrift', 'CAMERA_DRIFT', 'num'], ['camamp', 'CAMERA_AMP', 'num'], ['camspeed', 'CAMERA_MAX_SPEED', 'num'],
+  ['cambase', 'CAMERA_BASE', 'enum'], ['cambound', 'CAMERA_BOUND_MIN', 'num'],
 ];
 // Brand distinctness ladder (B6): [name, lightness shift, hue rotation in
 // degrees]. Lightness comes before hue so a known colour keeps its hue, and
@@ -1733,7 +1759,8 @@ function applyThemeTokens(theme) {
 // Enum keys arrive through applyRender as any string; an unknown one would
 // silently draw something else, so it falls back to its default.
 function checkV4Config() {
-  const defaults = { HUD_LAYOUT: 'panel', COLOR_BY: '', TIME_WARP_MODE: 'empty', LOOP: 'none', PANEL_SIDE: '', FONT_SET: 'classic' };
+  const defaults = { HUD_LAYOUT: 'panel', COLOR_BY: '', TIME_WARP_MODE: 'empty', LOOP: 'none', PANEL_SIDE: '', FONT_SET: 'classic',
+    CAMERA_PATH: 'auto', CAMERA_BASE: 'cache' };
   for (const [key, allowed] of Object.entries(V4_ENUMS)) {
     if (!allowed.includes(CONFIG[key])) {
       console.warn(`${key} = ${JSON.stringify(CONFIG[key])} is not one of ${allowed.join(', ')}; using ${JSON.stringify(defaults[key])}`);
@@ -1754,6 +1781,350 @@ function finishFrame() {
   SCALE = H / CONFIG.KM_VERTICAL;
   OX = W / 2 - CONFIG.CENTER_KM[0] * SCALE;
   OY = H / 2 + CONFIG.CENTER_KM[1] * SCALE;
+}
+
+// ------------------------------------------------------------- v4: camera (B18)
+//
+// The map layers (base map, dormant network, trails, dots, outside dimming and
+// city line) move under a camera that is a pure function of the loop phase
+// u = i / N, so frame N is frame 0 and the loop needs no seam of its own. The
+// HUD, the card and the scrims are drawn after it at identity. At phase u the
+// camera looks at the pivot plus a drift D(u) with zoom z(u):
+//
+//   z(u) = 1 + Z (1 + cos 2 pi u) / 2         push-in at frame 0, fitted frame at u = 1/2
+//   screen = pivot + z (base - pivot - R D(u))
+//
+// so both ease in and out (zero zoom speed at the turning points) while the
+// sideways part keeps moving, and nothing is ever at constant speed.
+
+// 'auto' picks from these by the city id; the order is part of that contract
+// (scripts/make.py CAMERA_PATHS).
+const CAMERA_NAMES = V4_ENUMS.CAMERA_PATH.slice(1);
+// The fit box centre: D3.2 puts the boundary bbox centre there and A8.6 the
+// rush vehicles, so the push-in keeps the city core where the fitted frame
+// has it. Taken from ZONES so it moves with the safe zone.
+const CAMERA_PIVOT = [(ZONES.fit.x0 + ZONES.fit.x1) / 2, (ZONES.fit.y0 + ZONES.fit.y1) / 2];
+// The pull-outs bow sideways by this share of the drift, so the way out and
+// the way back are the two sides of a thin ellipse rather than one line.
+const CAMERA_BOW = 0.4;
+// A path's share of CAMERA_ZOOM and CAMERA_DRIFT, [1, 1] when not listed. With
+// one share for all, every upload made the same push-in and pull-out in step
+// and only the drift's direction told them apart; the drifts push in half as
+// far and travel half as far again, so they read as pans and the pull-outs as
+// pull-outs. The orbit's core then starts 0.4 x 1.5 x 3% of the width off the
+// pivot, under the 2% that frame 0 allows.
+const CAMERA_MIX = { 'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5] };
+// Phases sampled for the speed cap, the city line's cap and the base
+// headroom: 1/720 of a 25 s rush is about one frame.
+const CAMERA_STEPS = 720;
+// How far past the looser of the safe zone and its fitted position the camera
+// may carry the city line, in px. D3.2's fit box itself reaches 10 px past the
+// safe zone's left edge, and with no slack a city that fills the fit box width
+// could not move at all: any push-in about the pivot widens it.
+const CAMERA_EDGE_SLACK = 10;
+// The cached base is drawn this many times finer than the push-in needs and
+// scaled down with mipmaps each frame. Against a fresh vector render per frame
+// (Toronto's base) that keeps about 91% of the edge energy while thin roads
+// flicker a third as much as under the vector render's own anti-aliasing at
+// the fastest phase; a 1x cache with bilinear filtering kept 83 to 90% and
+// flickered more.
+const CAMERA_SUPERSAMPLE = 2;
+
+// FNV-1a of the id, the same function as make.py camera_path(), so every
+// variant of a city takes the same path. make.py starts from it to spread a
+// batch (camera_paths) and always passes the path it picked.
+function cameraPathFor(id) {
+  let h = 2166136261;
+  const s = String(id || '');
+  for (let k = 0; k < s.length; k++) h = Math.imul(h ^ s.charCodeAt(k), 16777619) >>> 0;
+  return CAMERA_NAMES[h % CAMERA_NAMES.length];
+}
+
+// D(u) in units of the drift at angle th = 2 pi u, x east and y south. Every
+// path but the orbit starts on the pivot, so frame 0 is a plain push-in.
+function cameraUnit(path, th) {
+  const c = Math.cos(th), s = Math.sin(th);
+  const out = (1 - c) / 2, side = CAMERA_BOW * s / 2;
+  switch (path) {
+    case 'pull-out-east': return [out, side];
+    case 'pull-out-west': return [-out, -side];
+    case 'pull-out-north': return [side, -out];
+    case 'pull-out-south': return [-side, out];
+    // An ellipse round the core, clockwise on screen.
+    case 'drift-orbit': return [s / 2, -0.4 * c];
+    // A figure of eight across the core.
+    default: return [s / 2, Math.sin(2 * th) / 4];
+  }
+}
+
+// The camera at phase u as screen = z * base + (e, f), for zoom amplitude Z
+// and drift R in frame px. The phase is reduced first so u = 1 is exactly u = 0.
+// start marks frame 0's phase, where the cached base lands on the frame's
+// pixel grid; the zoom cannot mark it, since with no zoom every phase has z 1.
+function cameraMatrix(path, Z, R, u) {
+  const th = 2 * Math.PI * (u - Math.floor(u));
+  const z = 1 + Z * (1 + Math.cos(th)) / 2;
+  const d = cameraUnit(path, th);
+  const [cx, cy] = CAMERA_PIVOT;
+  return { z, e: cx - z * (cx + R * d[0]), f: cy - z * (cy + R * d[1]), start: th === 0 };
+}
+
+// The fastest on-screen motion over the loop in px per unit of phase. The
+// step of a point is affine in the point, so the frame corners bound it.
+function cameraPeak(path, Z, R) {
+  let peak = 0;
+  let prev = cameraMatrix(path, Z, R, 0);
+  for (let k = 1; k <= CAMERA_STEPS; k++) {
+    const m = cameraMatrix(path, Z, R, k / CAMERA_STEPS);
+    for (const [qx, qy] of [[0, 0], [W, 0], [0, H], [W, H]]) {
+      const bx = (qx - prev.e) / prev.z, by = (qy - prev.f) / prev.z;
+      const d = Math.hypot(m.z * bx + m.e - qx, m.z * by + m.f - qy);
+      if (d > peak) peak = d;
+    }
+    prev = m;
+  }
+  return peak * CAMERA_STEPS;
+}
+
+function cameraNum(key, lo, hi) {
+  const v = CONFIG[key];
+  if (v >= lo && v <= hi) return v;
+  const c = Math.min(hi, Math.max(lo, Number.isFinite(v) ? v : lo));
+  console.warn(`${key} = ${v} is outside ${lo}..${hi}; using ${c}`);
+  CONFIG[key] = c;
+  return c;
+}
+
+// The city line's bbox in the fitted frame's px, or null without a boundary.
+function boundaryBoxPx() {
+  const b = meta.boundary;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const ring of (b && b.rings) || []) {
+    if (ring.length < 6) continue;
+    for (let i = 0; i < ring.length; i += 2) {
+      const x = OX + ring[i] * SCALE, y = OY - ring[i + 1] * SCALE;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return x0 <= x1 ? [x0, y0, x1, y1] : null;
+}
+
+// Where the camera may take the city line's bbox: each side at the looser of
+// the safe zone and the fitted bbox, plus the slack, and never off the frame.
+// Null when the fitted frame already crops the line (a rush close-up), since
+// then there is no whole outline to keep in view.
+function cameraKeepRect(box) {
+  if (!box || box[0] < 0 || box[1] < 0 || box[2] > W || box[3] > H) return null;
+  const t = CAMERA_EDGE_SLACK;
+  return [Math.max(0, Math.min(SAFE.x0, box[0]) - t), Math.max(0, Math.min(SAFE.y0, box[1]) - t),
+    Math.min(W, Math.max(SAFE.x1, box[2]) + t), Math.min(H, Math.max(SAFE.y1, box[3]) + t)];
+}
+
+// Whether the bbox stays inside the keep rect at every sampled phase. The
+// camera is a scale and a shift, so the bbox's own edges are the line's.
+function cameraKeeps(path, Z, R, box, keep) {
+  for (let k = 0; k < CAMERA_STEPS; k++) {
+    const m = cameraMatrix(path, Z, R, k / CAMERA_STEPS);
+    if (m.z * box[0] + m.e < keep[0] || m.z * box[1] + m.f < keep[1]
+      || m.z * box[2] + m.e > keep[2] || m.z * box[3] + m.f > keep[3]) return false;
+  }
+  return true;
+}
+
+// Resolves the path and the amplitudes, then the base headroom: the union over
+// the loop of the base rectangle that is on screen, so the cached base map can
+// be drawn once at the push-in scale and only ever scaled down. Needs the frame
+// (finishFrame), meta.boundary and totalFrames.
+function buildCameraV4() {
+  cam = null;
+  if (!CONFIG.CAMERA) return;
+  if (CONFIG.CAMERA_PATH === 'auto') CONFIG.CAMERA_PATH = cameraPathFor(meta.id);
+  const path = CONFIG.CAMERA_PATH;
+  const mix = CAMERA_MIX[path] || [1, 1];
+  const Z0 = cameraNum('CAMERA_ZOOM', 0, 0.5) * mix[0];
+  const R0 = cameraNum('CAMERA_DRIFT', 0, 0.2) * W * mix[1];
+  const amp = cameraNum('CAMERA_AMP', 0, 3);
+  const vmax = cameraNum('CAMERA_MAX_SPEED', 1e-4, 0.05) * W * totalFrames / CONFIG.FPS;
+  const floor = cameraNum('CAMERA_BOUND_MIN', 0, 1);
+  // A short video would move faster for the same amplitudes; the cap holds the
+  // rush to the day's speed. Bisection, since the speed is not quite linear.
+  let s = 1;
+  if (cameraPeak(path, Z0, R0) > vmax) {
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 40; it++) {
+      const mid = (lo + hi) / 2;
+      if (cameraPeak(path, Z0 * mid, R0 * mid) <= vmax) lo = mid; else hi = mid;
+    }
+    s = lo;
+  }
+  let Z = Z0 * s * amp, R = R0 * s * amp;
+  // The push-in about the pivot and the drift both carry the line outward, and
+  // the speed cap knows nothing of the city: one that fills the fit box width
+  // (D3.2, x 50..870) would reach x 19..901 at frame 0, past the frame edge
+  // with FRAME_ZOOM over 1 and under the action buttons beyond x 880. One more
+  // factor scales both down until the line's bbox stays in the keep rect, but
+  // not under CAMERA_BOUND_MIN, where the line may slip a few px past it.
+  const box = boundaryBoxPx(), keep = cameraKeepRect(box);
+  let bound = 1;
+  if (keep && !cameraKeeps(path, Z, R, box, keep)) {
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 40; it++) {
+      const mid = (lo + hi) / 2;
+      if (cameraKeeps(path, Z * mid, R * mid, box, keep)) lo = mid; else hi = mid;
+    }
+    bound = Math.max(lo, floor);
+  }
+  Z *= bound;
+  R *= bound;
+  if (!(Z > 0) && !(R > 0)) return;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let k = 0; k < CAMERA_STEPS; k++) {
+    const m = cameraMatrix(path, Z, R, k / CAMERA_STEPS);
+    x0 = Math.min(x0, -m.e / m.z);
+    y0 = Math.min(y0, -m.f / m.z);
+    x1 = Math.max(x1, (W - m.e) / m.z);
+    y1 = Math.max(y1, (H - m.f) / m.z);
+  }
+  // A few px of slack keep the bilinear taps at the screen edge inside the
+  // cached base, and the sampled phases cover the motion between them.
+  const pad = 3;
+  const k = 1 + Z;
+  const m0 = cameraMatrix(path, Z, R, 0);
+  // Origin chosen so that at frame 0 the cache's pixel grid lands on the
+  // frame's: the hook frame is one exact mipmap level, with no resampling.
+  const q = CAMERA_SUPERSAMPLE;
+  const tx0 = Math.floor(k * (x0 - pad) + m0.e), ty0 = Math.floor(k * (y0 - pad) + m0.f);
+  const ax = (tx0 - m0.e) / k, ay = (ty0 - m0.f) / k;
+  cam = {
+    path, Z, R, scale: s, amp, bound, box, keep, k, q, ax, ay, tx0, ty0,
+    w: Math.ceil((x1 + pad - ax) * k * q), h: Math.ceil((y1 + pad - ay) * k * q),
+    peak: cameraPeak(path, Z, R) * CONFIG.FPS / totalFrames / W,
+    outside: null, rings: null, dim: null, source: null,
+  };
+}
+
+// The camera of frame phase u, or null when it is off.
+function cameraAt(u) {
+  return cam ? cameraMatrix(cam.path, cam.Z, cam.R, u) : null;
+}
+
+// The cached base, drawn finer than the push-in scale, scaled down to zoom z;
+// or with CAMERA_BASE 'vector' the base drawn afresh under the camera.
+function drawBaseCam(m) {
+  if (cam.source) {
+    const v = { w: W, h: H, k: m.z, s: SCALE * m.z, ox: OX * m.z + m.e, oy: OY * m.z + m.f };
+    ctx.drawImage(buildBaseV4(cam.source.basemap, cam.source.network, v), 0, 0);
+    return;
+  }
+  const sc = m.z / (cam.k * cam.q);
+  let tx = m.z * cam.ax + m.e, ty = m.z * cam.ay + m.f;
+  if (m.start) { tx = cam.tx0; ty = cam.ty0; }
+  ctx.setTransform(sc, 0, 0, sc, tx, ty);
+  // 'medium' filters through mipmaps; the sprites keep the default 'low'.
+  ctx.imageSmoothingQuality = 'medium';
+  ctx.drawImage(baseCanvas, 0, 0);
+  ctx.imageSmoothingQuality = 'low';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// strokeRibbons under the camera: the paths stay in base px and the layer
+// transform carries the camera, the widths divided by the zoom so a trail is
+// as wide on screen at every phase.
+function strokeRibbonsCam(layer, ts, onlyMode, m) {
+  const bands = CONFIG.TRAIL_BANDS;
+  layer.lineCap = 'butt';
+  layer.lineJoin = 'round';
+  layer.setTransform(ts * m.z, 0, 0, ts * m.z, ts * m.e, ts * m.f);
+  for (let k = 0; k < modes.length; k++) {
+    if (onlyMode !== undefined && k !== onlyMode) continue;
+    const paths = bandPaths[k];
+    layer.strokeStyle = modes[k].trailCss;
+    for (let b = 0; b < bands; b++) {
+      const path = paths[b];
+      if (!path) continue;
+      const a = CONFIG.TRAIL_ALPHA * (1 - (b + 0.5) / bands);
+      if (CONFIG.TRAIL_SHOULDER_ALPHA > 0 && b < CONFIG.TRAIL_SHOULDER_BANDS) {
+        layer.globalAlpha = a * CONFIG.TRAIL_SHOULDER_ALPHA;
+        layer.lineWidth = CONFIG.TRAIL_SHOULDER_W / m.z;
+        layer.stroke(path);
+      }
+      layer.globalAlpha = a;
+      layer.lineWidth = CONFIG.TRAIL_CORE_W / m.z;
+      layer.stroke(path);
+    }
+  }
+  layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.globalAlpha = 1;
+}
+
+// strokeColorRibbons under the camera, in the same order.
+function strokeColorRibbonsCam(layer, ts, m) {
+  const bands = CONFIG.TRAIL_BANDS;
+  const nc = colors.length;
+  layer.lineCap = 'butt';
+  layer.lineJoin = 'round';
+  layer.setTransform(ts * m.z, 0, 0, ts * m.z, ts * m.e, ts * m.f);
+  for (let b = bands - 1; b >= 0; b--) {
+    const a = CONFIG.TRAIL_ALPHA * (1 - (b + 0.5) / bands);
+    if (CONFIG.TRAIL_SHOULDER_ALPHA > 0 && b < CONFIG.TRAIL_SHOULDER_BANDS) {
+      layer.globalAlpha = a * CONFIG.TRAIL_SHOULDER_ALPHA;
+      layer.lineWidth = CONFIG.TRAIL_SHOULDER_W / m.z;
+      for (let k = 0; k < nc; k++) {
+        const path = colorPaths[k * bands + b];
+        if (!path) continue;
+        layer.strokeStyle = colors[k].css;
+        layer.stroke(path);
+      }
+    }
+    layer.globalAlpha = a;
+    layer.lineWidth = CONFIG.TRAIL_CORE_W / m.z;
+    for (let k = 0; k < nc; k++) {
+      const path = colorPaths[k * bands + b];
+      if (!path) continue;
+      layer.strokeStyle = colors[k].css;
+      layer.stroke(path);
+    }
+  }
+  layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.globalAlpha = 1;
+}
+
+// stampTrailSprites at the camera's positions; the stamps keep their size.
+function stampTrailSpritesCam(layer, sprites, first, last, ts, m) {
+  const half = trailHalf;
+  const w = layer.canvas.width + half, h = layer.canvas.height + half;
+  for (let s = first; s <= last; s++) {
+    const x = m.z * sampleX[s] + m.e * ts, y = m.z * sampleY[s] + m.f * ts;
+    if (x < -half || x > w || y < -half || y > h) continue;
+    layer.drawImage(sprites[s], Math.round(x - half), Math.round(y - half));
+  }
+}
+
+// The outside dimming and the city line under the camera, as vectors each
+// frame: a cached overlay would have to be resampled, which softens the
+// brightest thin line on screen. The line keeps its width in screen px.
+function drawBoundaryCam(m) {
+  if (!cam.rings) return;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.setTransform(m.z, 0, 0, m.z, m.e, m.f);
+  if (cam.outside) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = cam.dim;
+    ctx.fill(cam.outside, 'evenodd');
+  }
+  if (CONFIG.CITY_LINE_W > 0 && CONFIG.CITY_LINE_ALPHA > 0) {
+    ctx.strokeStyle = CONFIG.COLORS.cityLine;
+    ctx.globalAlpha = clamp01(CONFIG.CITY_LINE_ALPHA);
+    ctx.lineWidth = CONFIG.CITY_LINE_W / m.z;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke(cam.rings);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
 }
 
 function fontsV4() {
@@ -1826,6 +2197,7 @@ async function initV4(basemap, network) {
   checkV4Config();
   finishFrame();
   totalFrames = CONFIG.HOLD_START + CONFIG.DURATION_FRAMES + CONFIG.HOLD_END;
+  buildCameraV4();
 
   // Fonts come before the colours: the chips line is measured to know which
   // groups keep their own colour (B6, B9).
@@ -1850,7 +2222,11 @@ async function initV4(basemap, network) {
   else buildColors(network);
   buildGroupsV4(network);
 
-  baseCanvas = buildBaseV4(basemap, network);
+  const kq = cam && cam.k * cam.q;
+  baseCanvas = buildBaseV4(basemap, network, cam && {
+    w: cam.w, h: cam.h, k: kq, s: SCALE * kq, ox: (OX - cam.ax) * kq, oy: (OY - cam.ay) * kq,
+  });
+  if (cam && CONFIG.CAMERA_BASE === 'vector') cam.source = { basemap, network };
   buildSpritesV4();
   await promoteSprites();
   buildRibbons();
@@ -2054,17 +2430,51 @@ function gainCss(token, gain) {
   return `rgb(${v[0]},${v[1]},${v[2]})`;
 }
 
+// tracePolyline into a view other than the frame: the camera's cached base
+// (B18), a larger canvas at the push-in scale with its own origin.
+function tracePolylineV4(g, xy, v) {
+  const n = xy.length;
+  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  for (let i = 0; i < n; i += 2) {
+    const x = v.ox + xy[i] * v.s;
+    const y = v.oy - xy[i + 1] * v.s;
+    if (x < minx) minx = x;
+    if (x > maxx) maxx = x;
+    if (y < miny) miny = y;
+    if (y > maxy) maxy = y;
+  }
+  if (maxx < -4 || minx > v.w + 4 || maxy < -4 || miny > v.h + 4) return false;
+  g.moveTo(v.ox + xy[0] * v.s, v.oy - xy[1] * v.s);
+  for (let i = 2; i < n; i += 2) g.lineTo(v.ox + xy[i] * v.s, v.oy - xy[i + 1] * v.s);
+  return true;
+}
+
+function strokeManyV4(g, list, v, chunk = 3000) {
+  for (let s = 0; s < list.length; s += chunk) {
+    g.beginPath();
+    const end = Math.min(list.length, s + chunk);
+    for (let i = s; i < end; i++) tracePolylineV4(g, list[i], v);
+    g.stroke();
+  }
+}
+
 // buildBase with the road and water gains, and the dormant network of a
 // colour class in its line colour (lineCss) rather than its trail colour.
-function buildBaseV4(basemap, network) {
+// With a view v (the camera's base, B18) it is all drawn v.k times larger,
+// widths and dashes included, so the camera at zoom 1 shows today's base;
+// without one every call is today's.
+function buildBaseV4(basemap, network, v = null) {
   const C = CONFIG.COLORS;
   const rg = CONFIG.BASE_ROADS_GAIN, wg = CONFIG.BASE_WATER_GAIN;
+  const bw = v ? v.w : W, bh = v ? v.h : H, L = v ? v.k : 1;
+  const trace = v ? (g2, xy) => tracePolylineV4(g2, xy, v) : tracePolyline;
+  const many = v ? (g2, list) => strokeManyV4(g2, list, v) : strokeMany;
   const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
+  c.width = bw;
+  c.height = bh;
   const g = c.getContext('2d', { alpha: false });
   g.fillStyle = C.bg;
-  g.fillRect(0, 0, W, H);
+  g.fillRect(0, 0, bw, bh);
   g.lineCap = 'round';
   g.lineJoin = 'round';
 
@@ -2072,14 +2482,14 @@ function buildBaseV4(basemap, network) {
   g.fillStyle = gainCss(C.water, wg);
   g.beginPath();
   for (const ring of water.poly || []) {
-    if (tracePolyline(g, ring)) g.closePath();
+    if (trace(g, ring)) g.closePath();
   }
   g.fill();
   if (water.holes) {
     g.fillStyle = C.bg;
     g.beginPath();
     for (const ring of water.holes) {
-      if (tracePolyline(g, ring)) g.closePath();
+      if (trace(g, ring)) g.closePath();
     }
     g.fill();
   }
@@ -2087,56 +2497,56 @@ function buildBaseV4(basemap, network) {
   g.strokeStyle = gainCss(C.waterLine, wg);
   const byClass = { river: [], canal: [], stream: [] };
   for (const l of water.line || []) (byClass[l.c] || byClass.stream).push(l.xy);
-  g.lineWidth = 2;
-  strokeMany(g, byClass.river);
-  g.lineWidth = 1.4;
-  strokeMany(g, byClass.canal);
-  g.lineWidth = 1;
-  strokeMany(g, byClass.stream);
+  g.lineWidth = 2 * L;
+  many(g, byClass.river);
+  g.lineWidth = 1.4 * L;
+  many(g, byClass.canal);
+  g.lineWidth = 1 * L;
+  many(g, byClass.stream);
 
   const roads = basemap.roads || {};
-  g.lineWidth = 1;
+  g.lineWidth = 1 * L;
   g.strokeStyle = gainCss(C.minor, rg);
-  strokeMany(g, roads.minor || []);
-  g.lineWidth = 1.6;
+  many(g, roads.minor || []);
+  g.lineWidth = 1.6 * L;
   g.strokeStyle = gainCss(C.major, rg);
-  strokeMany(g, roads.major || []);
-  g.setLineDash([7, 5]);
-  g.lineWidth = 1.2;
+  many(g, roads.major || []);
+  g.setLineDash([7 * L, 5 * L]);
+  g.lineWidth = 1.2 * L;
   g.strokeStyle = gainCss(C.rail, rg);
-  strokeMany(g, roads.rail || []);
+  many(g, roads.rail || []);
   g.setLineDash([]);
 
   g.globalAlpha = 0.4;
-  g.lineWidth = 1;
+  g.lineWidth = 1 * L;
   g.strokeStyle = C.boundary;
-  strokeMany(g, basemap.boundary || []);
+  many(g, basemap.boundary || []);
   g.globalAlpha = 1;
 
   g.globalCompositeOperation = 'lighter';
-  g.lineWidth = CONFIG.ROUTE_WIDTH;
+  g.lineWidth = CONFIG.ROUTE_WIDTH * L;
   if (CONFIG.OSM_ROUTES && basemap.osm_routes) {
     g.strokeStyle = rgba(C.routeRGB, CONFIG.OSM_ROUTES_ALPHA);
-    g.lineWidth = 1.5;
+    g.lineWidth = 1.5 * L;
     for (const r of basemap.osm_routes) {
       g.beginPath();
-      if (tracePolyline(g, r.xy)) g.stroke();
+      if (trace(g, r.xy)) g.stroke();
     }
-    g.lineWidth = CONFIG.ROUTE_WIDTH;
+    g.lineWidth = CONFIG.ROUTE_WIDTH * L;
   }
   if (byRoute) {
     g.globalCompositeOperation = 'source-over';
     const ml = document.createElement('canvas');
-    ml.width = W;
-    ml.height = H;
+    ml.width = bw;
+    ml.height = bh;
     const lg = ml.getContext('2d');
     lg.lineCap = 'round';
     lg.lineJoin = 'round';
-    lg.lineWidth = CONFIG.ROUTE_WIDTH;
+    lg.lineWidth = CONFIG.ROUTE_WIDTH * L;
     for (let k = 0; k < colors.length; k++) {
       lg.strokeStyle = colors[k].lineCss || colors[k].css;
       lg.beginPath();
-      for (const i of colorShapes[k]) tracePolyline(lg, network.shapes[i].xy);
+      for (const i of colorShapes[k]) trace(lg, network.shapes[i].xy);
       lg.stroke();
     }
     g.globalAlpha = CONFIG.ROUTE_ALPHA;
@@ -2146,18 +2556,26 @@ function buildBaseV4(basemap, network) {
   }
   if (CONFIG.ROUTE_BLEND === 'bounded') {
     g.globalCompositeOperation = 'source-over';
+    // The mode layers are frame sized and shared with the trails; a view gets one of its own.
+    let viewLayer = null;
+    if (v) {
+      const vc = document.createElement('canvas');
+      vc.width = bw;
+      vc.height = bh;
+      viewLayer = vc.getContext('2d');
+    }
     for (let m = 0; m < modes.length; m++) {
-      const ml = modeLayer(m);
+      const ml = viewLayer || modeLayer(m);
       ml.globalCompositeOperation = 'source-over';
       ml.globalAlpha = 1;
-      ml.clearRect(0, 0, W, H);
+      ml.clearRect(0, 0, bw, bh);
       ml.lineCap = 'round';
       ml.lineJoin = 'round';
-      ml.lineWidth = CONFIG.ROUTE_WIDTH;
+      ml.lineWidth = CONFIG.ROUTE_WIDTH * L;
       ml.strokeStyle = rgba(modes[m].color, 1);
       ml.beginPath();
       for (let i = 0; i < network.shapes.length; i++) {
-        if (shapeMode[i] === m) tracePolyline(ml, network.shapes[i].xy);
+        if (shapeMode[i] === m) trace(ml, network.shapes[i].xy);
       }
       ml.stroke();
       g.globalAlpha = CONFIG.ROUTE_ALPHA;
@@ -2174,7 +2592,7 @@ function buildBaseV4(basemap, network) {
       cur = m;
     }
     g.beginPath();
-    if (tracePolyline(g, network.shapes[i].xy)) g.stroke();
+    if (trace(g, network.shapes[i].xy)) g.stroke();
   }
   g.globalCompositeOperation = 'source-over';
   return c;
@@ -2368,7 +2786,10 @@ function buildWarpV4() {
     if (mode === 'linear') { w[i] = 1; continue; }
     const m = m0 + i;
     const peak = mode === 'activity-daily' ? dayPeak[Math.floor(mod(m - 270, histN) / 1440) % days] : peakAll;
-    w[i] = peak > 0 ? Math.max(floor, (s[mod(m, histN)] / peak) ** gamma) : 1;
+    // The running sum leaves about -1e-15 over a run of empty minutes (a
+    // trains-only night), and a fractional gamma turns that into NaN frames.
+    const a = Math.max(0, s[mod(m, histN)]);
+    w[i] = peak > 0 ? Math.max(floor, (a / peak) ** gamma) : 1;
   }
   const cum = new Float64Array(n + 1);
   for (let i = 0; i < n; i++) cum[i + 1] = cum[i] + w[i];
@@ -2822,10 +3243,6 @@ function buildBoundary() {
   const rings = (b.rings || []).concat(b.holes || []);
   if (!rings.length) return;
   const C = CONFIG.COLORS;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const g = c.getContext('2d');
   const path = new Path2D();
   for (const ring of rings) {
     if (ring.length < 6) continue;
@@ -2833,6 +3250,23 @@ function buildBoundary() {
     for (let i = 2; i < ring.length; i += 2) path.lineTo(OX + ring[i] * SCALE, OY - ring[i + 1] * SCALE);
     path.closePath();
   }
+  if (cam) {
+    // Drawn per frame under the camera (drawBoundaryCam). The outside is the
+    // whole headroom with the rings cut out by the even-odd rule, which is
+    // what the overlay's fill and punch leave.
+    cam.rings = path;
+    if (CONFIG.OUTSIDE_DIM > 0) {
+      cam.outside = new Path2D();
+      cam.outside.rect(cam.ax, cam.ay, cam.w / (cam.k * cam.q), cam.h / (cam.k * cam.q));
+      cam.outside.addPath(path);
+      cam.dim = rgba(cssToRGB(C.outside, bgRGB()), clamp01(CONFIG.OUTSIDE_DIM));
+    }
+    return;
+  }
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
   if (CONFIG.OUTSIDE_DIM > 0) {
     g.fillStyle = rgba(cssToRGB(C.outside, bgRGB()), clamp01(CONFIG.OUTSIDE_DIM));
     g.fillRect(0, 0, W, H);
@@ -2875,14 +3309,18 @@ function fillCardTemplate(tpl) {
     modes_plural: joinWords(plural.map((m) => m.label)),
     peak_time: variantV.peak ? clockText(variantV.peak.time) : '',
     peak_count: variantV.peak ? withCommas(variantV.peak.count) : '',
+    // The count line's noun at the peak: a video of trains alone names trains, not vehicles.
+    vehicles: countNoun({ nounMode: plural.length === 1 ? plural[0] : null }, variantV.peak ? variantV.peak.count : 0),
     trips: withCommas(meta.trips_total || trips.length),
     month: (meta.timeline && meta.timeline.month_label) || '',
   };
-  return String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
+  const text = String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
     if (Object.hasOwn(values, key)) return values[key];
     console.error(`card template "${tpl}": unknown placeholder {${key}}`);
     return all;
   });
+  // A place such as "the GTA" can open a line, which still starts with a capital.
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Card layout (B10), for the active variant and CARD_LINES.
@@ -3317,11 +3755,15 @@ function drawCard(a) {
 // One frame of the map at T: base, trails, dots, boundary overlay. The
 // per-trip body is renderAt's, run over the occurrences that can be on screen
 // (B7), with each vehicle's inside flag recorded for lastVehicles (B11).
-function drawMapV4(T) {
+// cm is the camera (B18) or null: the trips are sampled in base px as always
+// and only drawing goes through it, so the inside flags read the mask at the
+// vehicle's own km position while lastVehicles reports where it is on screen.
+function drawMapV4(T, cm = null) {
   if (!baseCanvas) throw new Error('busmap not ready');
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
-  ctx.drawImage(baseCanvas, 0, 0);
+  if (cm) drawBaseCam(cm);
+  else ctx.drawImage(baseCanvas, 0, 0);
 
   const bounded = !byRoute && CONFIG.TRAIL_BLEND === 'bounded' && CONFIG.TRAIL_MODE !== 'sprite';
   const ts = bounded ? 1 : CONFIG.TRAIL_SCALE;
@@ -3363,18 +3805,20 @@ function drawMapV4(T) {
       runningByMode[m]++;
       if (runningByGroup) runningByGroup[tripGroup[n]]++;
       const sx = sampleX[0] / ts, sy = sampleY[0] / ts;
-      buses.push(sx, sy, byRoute ? tripColor[n] : m);
+      const qx = cm ? cm.z * sx + cm.e : sx, qy = cm ? cm.z * sy + cm.f : sy;
+      buses.push(qx, qy, byRoute ? tripColor[n] : m);
       if (3 * vehN + 3 > vehBuf.length) {
         const grown = new Float32Array(vehBuf.length * 2);
         grown.set(vehBuf);
         vehBuf = grown;
       }
-      vehBuf[3 * vehN] = sx;
-      vehBuf[3 * vehN + 1] = sy;
+      vehBuf[3 * vehN] = qx;
+      vehBuf[3 * vehN + 1] = qy;
       vehBuf[3 * vehN + 2] = insideKm((sx - OX) / SCALE, (OY - sy) / SCALE);
       vehN++;
     }
     if (byRoute) addRibbonColor(trip, tripColor[n], first, last);
+    else if (sprite && cm) stampTrailSpritesCam(layer, trailSprites[m], first, last, ts, cm);
     else if (sprite) stampTrailSprites(layer, trailSprites[m], first, last);
     else addRibbon(trip, bandPaths[m], first, last);
   }
@@ -3382,7 +3826,8 @@ function drawMapV4(T) {
     colorLayer.globalCompositeOperation = 'source-over';
     colorLayer.globalAlpha = 1;
     colorLayer.clearRect(0, 0, colorLayer.canvas.width, colorLayer.canvas.height);
-    strokeColorRibbons(colorLayer, ts);
+    if (cm) strokeColorRibbonsCam(colorLayer, ts, cm);
+    else strokeColorRibbons(colorLayer, ts);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
     ctx.drawImage(colorLayer.canvas, 0, 0, W, H);
@@ -3392,14 +3837,16 @@ function drawMapV4(T) {
       const ml = modeLayer(m);
       ml.globalCompositeOperation = 'source-over';
       ml.clearRect(0, 0, W, H);
-      strokeRibbons(ml, 1, m);
+      if (cm) strokeRibbonsCam(ml, 1, m, cm);
+      else strokeRibbons(ml, 1, m);
       ctx.globalCompositeOperation = m === onTopMode ? 'source-over' : 'lighter';
       ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
       ctx.drawImage(ml.canvas, 0, 0);
       ctx.globalAlpha = 1;
     }
   } else {
-    if (!sprite) strokeRibbons(layer, ts);
+    if (!sprite && cm) strokeRibbonsCam(layer, ts, undefined, cm);
+    else if (!sprite) strokeRibbons(layer, ts);
     if (ts !== 1) {
       ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(trailCanvas, 0, 0, W, H);
@@ -3413,14 +3860,16 @@ function drawMapV4(T) {
     ctx.drawImage(busSprites[buses[b + 2]], x - busHalf, y - busHalf);
   }
   ctx.globalCompositeOperation = 'source-over';
-  if (boundaryOverlay) ctx.drawImage(boundaryOverlay, 0, 0);
+  if (cm) drawBoundaryCam(cm);
+  else if (boundaryOverlay) ctx.drawImage(boundaryOverlay, 0, 0);
   return running;
 }
 
-// The whole frame at T with the HUD at hudAlpha and the card at cardA.
-function drawV4(T, hudAlpha, cardA) {
+// The whole frame at T with the HUD at hudAlpha and the card at cardA, the
+// map under the camera at phase u (B18).
+function drawV4(T, hudAlpha, cardA, u) {
   lastBoxes = [];
-  drawMapV4(T);
+  drawMapV4(T, cameraAt(u));
   const n = roundHalfEven(histRaw(T / 60));
   if (hudMode !== 'none') {
     if (shorts) drawHudShorts(T, hudAlpha);
@@ -3441,8 +3890,9 @@ function drawSafe() {
 }
 
 // A still at T: full HUD, no card (B10). Returns the count line's number.
+// The camera is where the video has it at T, unless setCamera pinned a phase.
 function renderAtV4(T) {
-  const n = drawV4(T, 1, 0);
+  const n = drawV4(T, 1, 0, camPin !== null ? camPin : (cam ? progressAt(T) : 0));
   drawSafe();
   return n;
 }
@@ -3460,7 +3910,7 @@ function renderFrameV4(i) {
     s = smoothstep(clamp01((idx - (N - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN));
     if (s > 0 && !loopSnapshot) {
       const a0 = cardAlphaV4(0);
-      drawV4(frameTimeV4(0), 1 - a0, a0);
+      drawV4(frameTimeV4(0), 1 - a0, a0, 0);
       loopSnapshot = document.createElement('canvas');
       loopSnapshot.width = W;
       loopSnapshot.height = H;
@@ -3468,7 +3918,7 @@ function renderFrameV4(i) {
     }
   }
   const a = cardAlphaV4(idx);
-  drawV4(T, 1 - a, a);
+  drawV4(T, 1 - a, a, idx / N);
   if (s > 0) {
     ctx.globalAlpha = s;
     ctx.drawImage(loopSnapshot, 0, 0);
@@ -3609,6 +4059,22 @@ const busmap = {
     return c ? { ids: c.parts.map((p) => p.id), size: c.size, gap: c.gap, merged: c.merged.slice(), width: shorts.textW,
       tried: c.tried.map((t) => ({ ...t })) } : null;
   },
+  // The camera (B18), or null when it is off: path, zoom amplitude, drift in
+  // px, the speed cap's factor, the city line's factor with the line's fitted
+  // bbox and its keep rect (null when the frame crops the line), the fastest
+  // on-screen motion in frame widths a second, the pivot and the cached base.
+  get camera() {
+    return cam ? { path: cam.path, zoom: cam.Z, drift: cam.R, scale: cam.scale, amp: cam.amp, bound: cam.bound,
+      box: cam.box && cam.box.slice(), keep: cam.keep && cam.keep.slice(), peak_speed: cam.peak,
+      pivot: CAMERA_PIVOT.slice(), base: { w: cam.w, h: cam.h, k: cam.k * cam.q, x0: cam.ax, y0: cam.ay } } : null;
+  },
+  // screen = zoom * base + (e, f) at phase u (frame i of N is u = i / N).
+  cameraAt: (u) => {
+    const m = cameraAt(Number(u));
+    return m ? { zoom: m.z, e: m.e, f: m.f } : { zoom: 1, e: 0, f: 0 };
+  },
+  // Pins the phase renderAt draws the camera at; null follows T again.
+  setCamera: (u) => { camPin = u === null || u === undefined ? null : Number(u); },
 };
 window.busmap = busmap;
 

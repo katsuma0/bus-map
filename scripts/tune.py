@@ -11,7 +11,7 @@ built: tuning never runs a data step. Arm b is the current value; it reuses the
 previous knob's chosen arm when that arm rendered the same things.
 
 Outputs per knob in build/<id>/tune/<variant>/<nn>-<knob>/: a/, b/, c/ (the C5
-files), sheet.jpg, crops.jpg, motion.jpg, clock.jpg or card.jpg (each at most
+files), sheet.jpg, crops.jpg, motion.jpg, clock.jpg, camera.jpg or card.jpg (each at most
 1,568 px on its long edge, the judge's image limit), and scores.json; the pass
 keeps its picks in state.json.
 """
@@ -27,6 +27,9 @@ KNOBS = [
     (1, "zoom", "FRAME_ZOOM", "frame", False, ("day", "rush")),
     (2, "cx", "FRAME_DX_KM", "frame", False, ("day", "rush")),
     (3, "cy", "FRAME_DY_KM", "frame", False, ("day", "rush")),
+    # The camera move (B18) right after the frame it moves over. Numbered after
+    # the spec's knobs, like 23, so earlier tune directories keep their names.
+    (24, "camamp", "CAMERA_AMP", "camera", True, ("day", "rush", "week")),
     (4, "trailmin", "TRAIL_MINUTES", "look", True, ("day", "rush", "week")),
     (5, "corew", "TRAIL_CORE_W", "look", True, ("day",)),
     (6, "shoulderw", "TRAIL_SHOULDER_W", "look", True, ("day",)),
@@ -127,6 +130,13 @@ def arm_values(name, v, k_km=None, other=None):
     if name == "outside":
         # At 1 the neighbours vanish and the outline loses its context.
         return max(0, r2(v - 0.2)), min(0.95, r2(v + 0.2))
+    if name == "camamp":
+        # The arms scale the move B18's caps leave, which differs by path: on the day 0.75
+        # pushes in 4.9 to 5.7% on a pull-out (3% on a drift) and 1.25 8.2 to 9.5% (5%), on
+        # the rush 2.4 to 2.8% and 4.0 to 4.7%. Where the city line's cap holds the move
+        # under 0.75 of it (a city that fills the fit box width) all three arms render the
+        # same move. 1.5 holds the fastest point under 1% of the frame width a second.
+        return (0.5, 1.0) if v == 0 else (r2(v * 0.75), min(1.5, r2(v * 1.25)))
     raise TuneError(f"unknown knob {name}")
 
 
@@ -359,6 +369,15 @@ def auto_pick(kind, arms, v):
         tied = [a for s, a in known if abs(s - best) <= within + 1e-12]
         return tied
 
+    if kind == "camera":
+        # At these speeds the move adds no strobe worth the name: b, unless an arm is
+        # calmer by more than the noise between two renders.
+        tied = tie_pick("strobe", False, 0.0005)
+        if isinstance(tied, str):
+            return tied
+        if "b" in [a["label"] for a in tied]:
+            return "b"
+        return min(tied, key=lambda a: a["scores"]["strobe"])["label"]
     if kind == "frame":
         tied = tie_pick("safe_share", True, 0.01)
         if isinstance(tied, str):
@@ -554,6 +573,9 @@ class Tuner:
         frames = []
         if kind == "warp":
             frames = sorted({min(n - 1, round(k * n / 8)) for k in range(9)})
+        if kind == "camera":
+            # The push-in, the way out, the fitted frame and the way back.
+            frames = sorted({min(n - 1, round(k * n / 4)) for k in range(4)})
         if kind == "card":
             return [], [0, 15, 45], False
         return times, frames, clip
@@ -725,6 +747,10 @@ class Tuner:
                 pick = [rts[i] for i in (0, 15, 30, 45, 60, 75, 89) if i < len(rts)]
                 groups.append((arm["header"], [(os.path.join(arm["dir"], p), p[8:-4]) for p in pick]))
             out["motion"] = tile_sheet(groups, os.path.join(d, "motion.jpg"), cols=7, tile=(180, 320))
+        if kind == "camera" and frames:
+            groups = [(arm["header"], [(os.path.join(arm["dir"], f"frame-{f:04d}.png"), f"frame {f}") for f in frames])
+                      for arm in arms]
+            out["camera"] = tile_sheet(groups, os.path.join(d, "camera.jpg"), cols=4)
         if kind == "warp" and frames:
             groups = [(arm["header"], [(os.path.join(arm["dir"], f"frame-{f:04d}.png"), f"frame {f}") for f in frames])
                       for arm in arms]

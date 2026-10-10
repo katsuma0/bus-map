@@ -300,13 +300,21 @@ def fit_frame(bbox_km, fit_box):
     return {"km_vertical": float(km_vertical), "center_km": [round(cx, 1), round(cy, 1)]}
 
 
-def trim_box(frame, trim_scale):
-    """A8.3: frame box scaled by trim_scale plus 1 km, in km about the origin."""
+def trim_box(frame, trim_scale, bbox_km=None):
+    """A8.3: frame box scaled by trim_scale plus 1 km, in km about the origin.
+
+    With the boundary's bbox, a box that does not hold it grows to the bbox plus
+    1 km, as trim_network does: a pinned frame may show only part of a region
+    (the GTA trains video) while the counts still cover all of it.
+    """
     kv = frame["km_vertical"]
     cx, cy = frame["center_km"]
     hw = kv * 9 / 16 / 2 * trim_scale + 1
     hh = kv / 2 * trim_scale + 1
-    return [cx - hw, cy - hh, cx + hw, cy + hh]
+    box = [cx - hw, cy - hh, cx + hw, cy + hh]
+    if bbox_km is not None and not box_inside(bbox_km, box):
+        box = union_box([box, grow_km(bbox_km, 1.0)])
+    return box
 
 
 def frame_box(frame, zoom=1.0, dx=0.0, dy=0.0):
@@ -319,13 +327,51 @@ def r6(v):
     return round(float(v), 6)
 
 
+def camera_path(rid):
+    """A city's own camera path (B18): FNV-1a of its id, as web/app.js cameraPathFor() picks it
+    for CAMERA_PATH 'auto'. camera_paths() starts from it to spread a batch."""
+    h = 2166136261
+    for ch in rid.encode("utf-8"):
+        h = ((h ^ ch) * 16777619) & 0xFFFFFFFF
+    return CAMERA_PATHS[h % len(CAMERA_PATHS)]
+
+
+def camera_paths(ids, chosen=None):
+    """The camera path of each city of a batch, walked in batch order (B18). A recipe's own
+    variety.camera (chosen) is kept; any other city takes camera_path(id) unless more cities
+    before it have that path than have the least used one, and then the next least used path in
+    CAMERA_PATHS order. The id hash alone put three of the ten GTA cities on the sway and none on
+    pull-out-east; this way every prefix of a batch is as even as it can be, and a city appended
+    to the batch never moves one before it."""
+    chosen = chosen or {}
+    count = dict.fromkeys(CAMERA_PATHS, 0)
+    n = len(CAMERA_PATHS)
+    out = {}
+    for rid in ids:
+        p = chosen.get(rid)
+        if p is None:
+            p = camera_path(rid)
+            low = min(count.values())
+            if count[p] > low:
+                i = CAMERA_PATHS.index(p)
+                p = next(CAMERA_PATHS[(i + k) % n] for k in range(1, n) if count[CAMERA_PATHS[(i + k) % n]] == low)
+        if p in count:
+            count[p] += 1
+        out[rid] = p
+    return out
+
+
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
-RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "center", "frame", "variants", "rush", "variety", "override"}
+RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "frame", "variants", "rush", "variety",
+               "override"}
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
-VARIETY_KEYS = {"panel_side", "card_line", "zoom"}
+VARIETY_KEYS = {"panel_side", "card_line", "zoom", "camera"}
+# The camera paths of the page (B18), in the order camera_path() picks from:
+# web/app.js CAMERA_NAMES lists the same names in the same order.
+CAMERA_PATHS = ("pull-out-east", "pull-out-north", "pull-out-west", "pull-out-south", "drift-orbit", "drift-sway")
 OVERRIDE_KEYS = {"render", "variant_render", "brand_colors", "_why"}
 BATCH_KEYS = {"batch", "title", "theme", "month", "overture_release", "render_epoch", "review_videos", "areas", "modes",
               "cities", "variants_default", "hashtags", "category", "release"}
@@ -334,7 +380,11 @@ AREA_KEYS = {"id", "origin", "timezone", "country", "region", "holidays", "area_
 AREA_REQUIRED = AREA_KEYS - {"month"}
 FEED_KEYS = {"id", "name", "publisher", "licence_id", "licence_text", "allow_nc", "source"}
 FEED_REQUIRED = FEED_KEYS - {"allow_nc"}
-MODE_KEYS = {"id", "label", "singular", "route_types"}
+MODE_KEYS = {"id", "label", "singular", "route_types", "routes"}
+MODE_REQUIRED = MODE_KEYS - {"routes"}
+# A route rule moves the routes it names into its mode whatever their route_type
+# (TTC's Line 5 and Line 6 are light rail with route_type 0, the streetcars' type).
+MODE_ROUTE_KEYS = {"feed", "short", "route_id", "why"}
 # Source kinds of 2.2, plus "path": a file committed on this branch, used by the
 # fixture batch so it needs no tag, URL or key.
 SOURCE_KINDS = {
@@ -349,7 +399,7 @@ LOCK_AREA_KEYS = {"feeds", "overture", "divisions", "dates", "rules"}
 LOCK_FEED_KEYS = {"source", "tag", "commit", "path", "url", "secret", "sha256", "bytes", "feed_version", "valid", "inputs"}
 LOCK_OVERTURE_KEYS = {"release", "bbox", "data_tag", "files"}
 LOCK_DIVISIONS_KEYS = {"key", "sha256", "bbox"}
-LOCK_BOUNDARY_KEYS = {"id", "division_id", "name", "subtype", "area_km2", "frame", "clip", "file", "sha256",
+LOCK_BOUNDARY_KEYS = {"id", "division_id", "name", "subtype", "area_km2", "frame", "clip", "file", "sha256", "parts",
                       "week_eligible", "week_why"}
 
 
@@ -396,6 +446,68 @@ def validate_frame(fr, where, errors):
         errors.append(f"{where}.center_km: must be [x, y]")
 
 
+def validate_boundary_part(b, where, root, errors):
+    if not isinstance(b, dict):
+        errors.append(f"{where}: must be an object")
+        return
+    unknown(b, BOUNDARY_KEYS, where, errors)
+    missing(b, {"name", "area_km2"}, where, errors)
+    if not isinstance(b.get("name", ""), str) or not b.get("name", "x"):
+        errors.append(f"{where}.name: must be a non-empty string")
+    if "area_km2" in b and not (is_num(b["area_km2"]) and b["area_km2"] > 0):
+        errors.append(f"{where}.area_km2: must be a positive number")
+    st = b.get("subtypes", list(SUBTYPES))
+    if not (isinstance(st, list) and st and all(s in SUBTYPES for s in st)):
+        errors.append(f"{where}.subtypes: must be a non-empty list of {', '.join(SUBTYPES)}")
+    if "file" in b and (not isinstance(b["file"], str) or not os.path.isfile(os.path.join(root, b["file"]))):
+        errors.append(f"{where}.file: {b.get('file')!r} is not a file in the repo")
+
+
+def validate_mode_routes(rules, where, feed_ids, errors):
+    if not isinstance(rules, list):
+        errors.append(f"{where}: must be a list of route rules")
+        return
+    for j, rule in enumerate(rules):
+        rw = f"{where}[{j}]"
+        if not isinstance(rule, dict):
+            errors.append(f"{rw}: must be an object")
+            continue
+        unknown(rule, MODE_ROUTE_KEYS, rw, errors)
+        if rule.get("feed") not in feed_ids:
+            errors.append(f"{rw}.feed: must be a feed id of the batch, got {rule.get('feed')!r}")
+        if not ({"short", "route_id"} & set(rule)):
+            errors.append(f"{rw}: needs short (a regex on route_short_name) or route_id (a regex on route_id)")
+        for k in ("short", "route_id"):
+            if k not in rule:
+                continue
+            if not (isinstance(rule[k], str) and rule[k]):
+                errors.append(f"{rw}.{k}: must be a non-empty regular expression")
+                continue
+            try:
+                re.compile(rule[k])
+            except re.error as e:
+                errors.append(f"{rw}.{k}: not a regular expression ({e})")
+        if "why" in rule and not isinstance(rule["why"], str):
+            errors.append(f"{rw}.why: must be a string")
+
+
+def boundary_parts(recipe):
+    """The divisions of a recipe's boundary: one object, or the list whose union is the boundary."""
+    b = recipe["boundary"]
+    return list(b) if isinstance(b, list) else [b]
+
+
+def boundary_name(recipe):
+    """meta.boundary.name and the lock's name: the division's name, or every division's joined with " + "."""
+    return " + ".join(p["name"] for p in boundary_parts(recipe))
+
+
+def recipe_modes(recipe, batch):
+    """The mode ids a video keeps, in batch order: the recipe's `modes`, else every mode of the batch."""
+    keep = recipe.get("modes")
+    return [m["id"] for m in batch["modes"] if keep is None or m["id"] in keep]
+
+
 def variant_block_keys(defaults):
     keys = set()
     for v in defaults.get("variants", {}).values():
@@ -430,20 +542,26 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         errors.append(f"{where}: place must be a non-empty string")
     b = recipe.get("boundary")
     if b is not None:
-        if not isinstance(b, dict):
-            errors.append(f"{where}.boundary: must be an object")
+        if isinstance(b, list):
+            # Several divisions: the boundary is their union (the GTA is Toronto and four regions).
+            if not b:
+                errors.append(f"{where}.boundary: a list must name at least one division")
+            for i, part in enumerate(b):
+                validate_boundary_part(part, f"{where}.boundary[{i}]", root, errors)
+            names = [str(p.get("name")) for p in b if isinstance(p, dict)]
+            if len(set(names)) != len(names):
+                errors.append(f"{where}.boundary: a division is named twice")
         else:
-            unknown(b, BOUNDARY_KEYS, f"{where}.boundary", errors)
-            missing(b, {"name", "area_km2"}, f"{where}.boundary", errors)
-            if not isinstance(b.get("name", ""), str) or not b.get("name", "x"):
-                errors.append(f"{where}.boundary.name: must be a non-empty string")
-            if "area_km2" in b and not (is_num(b["area_km2"]) and b["area_km2"] > 0):
-                errors.append(f"{where}.boundary.area_km2: must be a positive number")
-            st = b.get("subtypes", list(SUBTYPES))
-            if not (isinstance(st, list) and st and all(s in SUBTYPES for s in st)):
-                errors.append(f"{where}.boundary.subtypes: must be a non-empty list of {', '.join(SUBTYPES)}")
-            if "file" in b and (not isinstance(b["file"], str) or not os.path.isfile(os.path.join(root, b["file"]))):
-                errors.append(f"{where}.boundary.file: {b.get('file')!r} is not a file in the repo")
+            validate_boundary_part(b, f"{where}.boundary", root, errors)
+    if "modes" in recipe:
+        ms = recipe["modes"]
+        ids = [m.get("id") for m in (batch or {}).get("modes", []) if isinstance(m, dict)]
+        if not (isinstance(ms, list) and ms and all(isinstance(m, str) for m in ms) and len(set(ms)) == len(ms)):
+            errors.append(f"{where}.modes: must be a non-empty list of distinct mode ids")
+        elif batch is not None:
+            for m in ms:
+                if m not in ids:
+                    errors.append(f"{where}.modes: {m!r} is not a mode of the batch ({', '.join(map(str, ids))})")
     if "center" in recipe and not is_pair(recipe["center"]):
         errors.append(f"{where}.center: must be [lon, lat]")
     if "frame" in recipe:
@@ -474,6 +592,9 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         z = var.get("zoom", 1.0)
         if not (is_num(z) and 0.5 <= z <= 2.0):
             errors.append(f"{where}.variety.zoom: must be a number between 0.5 and 2")
+        cam = var.get("camera")
+        if cam is not None and cam not in CAMERA_PATHS + ("off",):
+            errors.append(f"{where}.variety.camera: must be off or one of {', '.join(CAMERA_PATHS)}")
     ov = recipe.get("override", {})
     if not isinstance(ov, dict):
         errors.append(f"{where}.override: must be an object")
@@ -546,15 +667,23 @@ def validate_batch(batch, name, licences, holidays, errors):
     if not (isinstance(rv, list) and all(isinstance(s, str) for s in rv)):
         errors.append(f"{where}.review_videos: must be a list of <id>-<variant> names")
     modes = batch.get("modes", [])
+    feed_ids = {f.get("id") for a in batch.get("areas", []) if isinstance(a, dict)
+                for f in (a.get("feeds") or []) if isinstance(f, dict)}
     if not (isinstance(modes, list) and modes):
         errors.append(f"{where}.modes: must be a non-empty list")
     else:
+        seen_modes = set()
         for i, m in enumerate(modes):
             if not isinstance(m, dict):
                 errors.append(f"{where}.modes[{i}]: must be an object")
                 continue
             unknown(m, MODE_KEYS, f"{where}.modes[{i}]", errors)
-            missing(m, MODE_KEYS, f"{where}.modes[{i}]", errors)
+            missing(m, MODE_REQUIRED, f"{where}.modes[{i}]", errors)
+            if m.get("id") in seen_modes:
+                errors.append(f"{where}.modes[{i}]: duplicate mode id {m.get('id')!r}")
+            seen_modes.add(m.get("id"))
+            if "routes" in m:
+                validate_mode_routes(m["routes"], f"{where}.modes[{i}].routes", feed_ids, errors)
     areas = batch.get("areas", [])
     if not (isinstance(areas, list) and areas):
         errors.append(f"{where}.areas: must be a non-empty list")
@@ -944,8 +1073,11 @@ class Pipeline:
             "origin": area["origin"],
             "frame": be["frame"],
             "trim_scale": d["trim_scale"],
-            "boundary": {"file": f"build/{recipe['id']}/boundary.geojson", "name": recipe["boundary"]["name"],
+            "boundary": {"file": f"build/{recipe['id']}/boundary.geojson", "name": boundary_name(recipe),
                          "simplify_km": d["boundary"]["simplify_km"], "mask_km": d["boundary"]["mask_km"]},
+            # The trim keeps only the trips of these modes; the area store holds every mode, so recipes that
+            # split one city by mode share its area build.
+            "modes": recipe_modes(recipe, batch),
             "brands": self.rel(self.brands_path()),
             "group_by": d["group_by"],
             "credit_template": credit["credit_template"],
@@ -991,11 +1123,36 @@ class Pipeline:
             "built_dir": f"build/{recipe['id']}",
         }
 
+    def camera_pick(self, recipe):
+        """B18: the camera path of a recipe without variety.camera, camera_paths() over the cities
+        of its batch up to it; a recipe its batch does not list keeps camera_path(id). The other
+        recipes are read without validation, so a broken neighbour never stops this render."""
+        rid = recipe["id"]
+        p = self.batch_path(recipe.get("batch", ""))
+        ids = list(self.load(p).get("cities", [])) if os.path.exists(p) else []
+        if rid not in ids:
+            return camera_path(rid)
+        ids = ids[:ids.index(rid) + 1]
+        chosen = {}
+        for other in ids[:-1]:
+            rp = self.recipe_path(other)
+            cam = (self.load(rp).get("variety") or {}).get("camera") if os.path.exists(rp) else None
+            if cam in CAMERA_PATHS + ("off",):
+                chosen[other] = cam
+        return camera_paths(ids, chosen)[rid]
+
     def render_query(self, recipe, variant):
         """D3.8: the render= JSON and brandhex= string for one video."""
         variety = recipe.get("variety") or {}
         ov = recipe.get("override") or {}
         rj = {"CARD_LINES": variety.get("card_line", 0)}
+        # The preset turns the camera on; the recipe only names the path (or turns it off), the
+        # same for every variant, so the rush close-up and the week move like the day.
+        cam = variety.get("camera")
+        if cam == "off":
+            rj["CAMERA"] = False
+        else:
+            rj["CAMERA_PATH"] = cam or self.camera_pick(recipe)
         rj.update(ov.get("render", {}))
         rj.update(ov.get("variant_render", {}).get(variant, {}))
         if variant in ("day", "week"):
@@ -1018,8 +1175,16 @@ class Pipeline:
         """D3.4: trim box plus 2 km, in degrees rounded outward to 0.01."""
         return box_deg_outward(area["origin"], grow_km(trim_box(frame, self.defaults()["trim_scale"]), 2.0))
 
-    def trim_box_deg(self, area, frame):
-        tb = trim_box(frame, self.defaults()["trim_scale"])
+    def boundary_bbox_km(self, area, feature):
+        b = geometry_bbox(feature["geometry"])
+        x0, y0 = to_km(area["origin"], b[0], b[1])
+        x1, y1 = to_km(area["origin"], b[2], b[3])
+        return [x0, y0, x1, y1]
+
+    def trim_box_deg(self, area, frame, feature=None):
+        """The trim box in degrees; given the boundary, grown to hold it as the trim does."""
+        tb = trim_box(frame, self.defaults()["trim_scale"],
+                      self.boundary_bbox_km(area, feature) if feature is not None else None)
         w, s = to_deg(area["origin"], tb[0], tb[1])
         e, n = to_deg(area["origin"], tb[2], tb[3])
         return [w, s, e, n]
@@ -1033,6 +1198,21 @@ class Pipeline:
         """Divisions are fetched before any frame exists, so they use the explicit area box plus 5 km."""
         u = grow_deg(area["origin"], area["area_box"], 5.0)
         return [floor_to(u[0]), floor_to(u[1]), ceil_to(u[2]), ceil_to(u[3])]
+
+    @staticmethod
+    def data_tag_of(area, release, bbox, old):
+        """overture/<area>-<release>, the lock's tag for the area's Overture extract and divisions.
+
+        A lock that moves the extract bbox within a release gets 8 hex of the new bbox
+        appended: the tag already on origin holds the old bytes, and restoring from it
+        fails on their sha256 while pushing over it breaks the lock that still pins them.
+        """
+        tag = f"overture/{area['id']}-{release}"
+        if old.get("release") != release:
+            return tag
+        if old.get("bbox") == bbox:
+            return old.get("data_tag") or tag
+        return f"{tag}-{hashlib.sha256(canonical(bbox).encode()).hexdigest()[:8]}"
 
     def divisions_key(self, area):
         # One file per area (A7: one fetch per area); a region code alone cannot
@@ -1061,9 +1241,10 @@ class Pipeline:
     def boundary_key(self, batch, recipe, lock):
         area = self.area_of(batch, recipe)
         b = recipe["boundary"]
+        files = [self.sha(p["file"]) if p.get("file") else None for p in boundary_parts(recipe)]
         payload = {"step": "boundary", "code": self.code_shas(BOUNDARY_CODE),
                    "divisions": lock["areas"][area["id"]]["divisions"], "boundary": b,
-                   "file": self.sha(b["file"]) if b.get("file") else None}
+                   "file": files if isinstance(b, list) else files[0]}
         return sha256_json(payload)
 
     def trim_key(self, batch, recipe, timeline, lock, boundary_sha, day_network_sha=None):
@@ -1404,10 +1585,8 @@ class Pipeline:
             return entry
         raise MakeError(f"feed {f['id']}: model sources are added with the Japan model PR (model_gtfs.py areas)")
 
-    def select_boundary(self, batch, recipe, divisions_file):
-        """Writes build/<id>/boundary.geojson (A7 select, or the recipe's own file) and returns the Feature."""
-        b = recipe["boundary"]
-        out = self.path("build", recipe["id"], "boundary.geojson")
+    def boundary_part(self, recipe, b, divisions_file, out):
+        """One division as a GeoJSON Feature at `out` (the recipe's own file, or A7 select) and returns it."""
         os.makedirs(os.path.dirname(out), exist_ok=True)
         if b.get("file"):
             obj = read_json(self.path(b["file"]))
@@ -1431,24 +1610,53 @@ class Pipeline:
             obj = obj["features"][0]
         return obj
 
+    def select_boundary(self, batch, recipe, divisions_file):
+        """Writes build/<id>/boundary.geojson and returns the Feature: one division, or the union of several."""
+        parts = boundary_parts(recipe)
+        out = self.path("build", recipe["id"], "boundary.geojson")
+        if len(parts) == 1:
+            return self.boundary_part(recipe, parts[0], divisions_file, out)
+        pdir = self.path("build", recipe["id"], "boundary.parts")
+        if os.path.isdir(pdir):
+            shutil.rmtree(pdir)
+        args = ["union"]
+        for i, b in enumerate(parts):
+            p = os.path.join(pdir, f"{i}.geojson")
+            self.boundary_part(recipe, b, divisions_file, p)
+            args += ["--in", self.rel(p)]
+        self.run_py("fetch_boundary.py", args + ["--out", self.rel(out)])
+        return read_json(out)
+
     def boundary_entry(self, batch, recipe, feat):
         area = self.area_of(batch, recipe)
         props = feat.get("properties", {})
         frame = self.frame_of_boundary(area, recipe, feat)
-        be = {"id": props.get("id"), "division_id": props.get("division_id"), "name": recipe["boundary"]["name"],
+        be = {"id": props.get("id"), "division_id": props.get("division_id"), "name": boundary_name(recipe),
               "subtype": props.get("subtype"), "area_km2": props.get("area_km2"),
               "frame": frame, "clip": self.clip_of(area, frame)}
-        if recipe["boundary"].get("file"):
-            be["file"] = recipe["boundary"]["file"]
-            be["sha256"] = self.sha(recipe["boundary"]["file"])
+        parts = boundary_parts(recipe)
+        if len(parts) > 1:
+            got = props.get("parts") or []
+            if len(got) != len(parts):
+                raise MakeError(f"{recipe['id']}: the boundary union has {len(got)} parts, the recipe names {len(parts)}")
+            be["parts"] = []
+            for b, pp in zip(parts, got):
+                pe = {k: pp.get(k) for k in ("id", "division_id", "name", "subtype", "area_km2")}
+                if b.get("file"):
+                    pe.update(file=b["file"], sha256=self.sha(b["file"]))
+                be["parts"].append(pe)
+        elif parts[0].get("file"):
+            be["file"] = parts[0]["file"]
+            be["sha256"] = self.sha(parts[0]["file"])
         rush_frame = (recipe.get("rush") or {}).get("frame")
         if rush_frame and not box_inside(frame_box(rush_frame), trim_box(frame, self.defaults()["trim_scale"])):
             raise MakeError(f"{recipe['id']}: rush.frame does not lie inside the day trim box")
         return be
 
-    def fetch_divisions(self, batch, area, want=None, bbox=None, refresh=False, frozen=False):
+    def fetch_divisions(self, batch, area, want=None, bbox=None, refresh=False, frozen=False, tag=None):
         """cache/overture/<release>/divisions/<key>.geojson: the cache, else the data tag, else Overture (A7 fetch)."""
         rel = batch["overture_release"]
+        tag = tag or f"overture/{area['id']}-{rel}"
         p = self.divisions_path(rel, self.divisions_key(area))
         bbox = bbox or self.divisions_bbox(area)
         info = p + ".json"
@@ -1461,7 +1669,7 @@ class Pipeline:
                         return p
                 except (FileNotFoundError, ValueError):
                     pass
-        if want and self.restore_data_tag(f"overture/{area['id']}-{rel}", {self.rel(p): want}):
+        if want and self.restore_data_tag(tag, {self.rel(p): want}):
             return p
         if frozen and not want:
             raise MakeError("--frozen: the lock has no divisions entry; run make.py lock")
@@ -1491,8 +1699,9 @@ class Pipeline:
             keep = olddiv.get("sha256") if olddiv.get("bbox") == dbbox and olddiv.get("key") == dkey else None
             mine = [self.recipe(rid, batch) for rid in batch["cities"]
                     if self.area_of(batch, self.recipe(rid, batch))["id"] == area["id"]]
-            if any(not r["boundary"].get("file") for r in mine):
-                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh)
+            if any(not b.get("file") for r in mine for b in boundary_parts(r)):
+                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh,
+                                             tag=olda.get("overture", {}).get("data_tag"))
                 divisions = {"key": dkey, "sha256": self.sha(dpath), "bbox": dbbox}
             else:
                 # Every boundary of the area is a file in the repo: no Overture divisions to fetch or pin.
@@ -1522,7 +1731,8 @@ class Pipeline:
             oldo = olda.get("overture", {})
             files = oldo.get("files", {}) if (not refresh and oldo.get("release") == rel and oldo.get("bbox") == obbox) else {}
             entry = {"feeds": feeds,
-                     "overture": {"release": rel, "bbox": obbox, "data_tag": f"overture/{area['id']}-{rel}", "files": files},
+                     "overture": {"release": rel, "bbox": obbox, "data_tag": self.data_tag_of(area, rel, obbox, oldo),
+                                  "files": files},
                      "divisions": divisions}
             same_feeds = {k: v["sha256"] for k, v in olda.get("feeds", {}).items()} == {k: v["sha256"] for k, v in feeds.items()}
             if not refresh and same_feeds:
@@ -1652,8 +1862,8 @@ class Pipeline:
             if os.path.exists(index):
                 os.remove(index)
 
-    def push_data_tag(self, area_id, release, rels):
-        tag = f"overture/{area_id}-{release}"
+    def push_data_tag(self, area_id, release, rels, tag=None):
+        tag = tag or f"overture/{area_id}-{release}"
         manifest = {"release": release, "area": area_id, "files": {}}
         files = {}
         for rel in sorted(rels):
@@ -1693,7 +1903,7 @@ class Pipeline:
             return
         if dpath:
             self.fetch_divisions(batch, area, want=lk["divisions"]["sha256"], bbox=lk["divisions"].get("bbox"),
-                                 frozen=frozen)
+                                 frozen=frozen, tag=ov["data_tag"])
         ok = all(want.get(n) and self.sha(p) == want[n] for n, p in paths.items())
         if not ok and all(want.get(n) for n in paths):
             ok = self.restore_data_tag(ov["data_tag"], {self.rel(p): want[n] for n, p in paths.items()})
@@ -1729,7 +1939,7 @@ class Pipeline:
             on_origin = self.git("ls-remote", "--tags", "origin", f"refs/tags/{ov['data_tag']}", check=False).stdout.strip()
             if self.fetched_from_overture or not on_origin:
                 self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values())
-                                                           | ({self.rel(dpath)} if dpath else set())))
+                                                           | ({self.rel(dpath)} if dpath else set())), tag=ov["data_tag"])
             else:
                 say(f"  data tag {ov['data_tag']} is already on origin")
 
@@ -1881,8 +2091,9 @@ class Pipeline:
             if frozen:
                 raise MakeError("--frozen: " + msg)
             warn(msg + "; keeping the lock's (make.py lock recomputes it)")
-        if not box_inside(self.trim_box_deg(area, be["frame"]), area["area_box"]):
-            raise MakeError(f"{rid}: the trim box {[round(v, 3) for v in self.trim_box_deg(area, be['frame'])]} is not "
+        tb = self.trim_box_deg(area, be["frame"], read_json(bpath))
+        if not box_inside(tb, area["area_box"]):
+            raise MakeError(f"{rid}: the trim box {[round(v, 3) for v in tb]} is not "
                             f"inside area_box {area['area_box']} (make.py show {batch['batch']} suggests one)")
         if not box_inside(be["clip"], lk["overture"]["bbox"]):
             raise MakeError(f"{rid}: clip {be['clip']} is not inside the Overture extract bbox {lk['overture']['bbox']}")
@@ -2016,7 +2227,9 @@ class Pipeline:
         _rj, _bh, _r, frames = self.effective_render(recipe, variant, meta)
         seconds = frames / FPS
         seconds = int(seconds) if seconds == int(seconds) else round(seconds, 1)
-        modes_present = modes_in_window(batch["modes"], meta.get("hist_by_mode", {}), V["start"], V["end"])
+        keep = recipe_modes(recipe, batch)
+        modes = [{k: v for k, v in m.items() if k != "routes"} for m in batch["modes"] if m["id"] in keep]
+        modes_present = modes_in_window(modes, meta.get("hist_by_mode", {}), V["start"], V["end"])
         keys = ("id", "name", "publisher", "licence_id", "licence_text", "dates", "rule", "median_date", "excluded",
                 "inside_share", "inside_vehicle_minutes", "major", "month_used")
         feeds = [{k: f.get(k) for k in keys if k in f} for f in meta.get("feeds", [])]
@@ -2028,7 +2241,7 @@ class Pipeline:
             "timeline": {k: tl.get(k) for k in ("kind", "period", "basis", "fallback_feeds") if k in tl},
             "peak": V["peak"], "am_peak": meta.get("am_peak"), "pm_peak": meta.get("pm_peak"),
             "window": [V.get("start"), V.get("end")],
-            "feeds": feeds, "modes_present": modes_present, "modes": batch["modes"],
+            "feeds": feeds, "modes_present": modes_present, "modes": modes,
             "groups": meta.get("groups", []), "credit": meta.get("credit"),
             "seconds": seconds, "frames": frames, "trips_total": meta.get("trips_total"), "build_key": build_key,
         }
@@ -2341,13 +2554,21 @@ class Pipeline:
 
     # ---------------------------------------------------------- show (D3.3)
 
+    def boundary_feature(self, rid):
+        """build/<id>/boundary.geojson once lock or build selected it, else None."""
+        try:
+            return read_json(self.path("build", rid, "boundary.geojson"))
+        except FileNotFoundError:
+            return None
+
     def area_box_suggestion(self, batch, area, lock):
         boxes = []
         for rid in batch["cities"]:
             recipe = self.recipe(rid, batch)
             if self.area_of(batch, recipe)["id"] != area["id"] or rid not in lock.get("boundaries", {}):
                 continue
-            boxes.append(grow_deg(area["origin"], self.trim_box_deg(area, lock["boundaries"][rid]["frame"]), 2.0))
+            boxes.append(grow_deg(area["origin"], self.trim_box_deg(area, lock["boundaries"][rid]["frame"],
+                                                                    self.boundary_feature(rid)), 2.0))
         if not boxes:
             return None
         u = union_box(boxes)
@@ -2390,9 +2611,12 @@ class Pipeline:
         batch = self.load_batch(recipe["batch"])
         lock = self.load_lock(batch)
         area = self.area_of(batch, recipe)
+        feat = self.boundary_feature(target)
+        bbox_km = self.boundary_bbox_km(area, feat) if feat else None
         info = {"id": target, "batch": batch["batch"], "area": area["id"],
                 "boundary": lock["boundaries"].get(target),
-                "trim_box_km": [round(v, 3) for v in trim_box(self.city_lock(lock, target)["frame"], self.defaults()["trim_scale"])],
+                "trim_box_km": [round(v, 3) for v in trim_box(self.city_lock(lock, target)["frame"],
+                                                              self.defaults()["trim_scale"], bbox_km)],
                 "city.day.json": self.city_config(batch, recipe, "day", lock),
                 "basemap.config.json": self.basemap_config(batch, recipe, lock),
                 "queries": {v: dict(zip(("render", "brandhex"), self.render_query(recipe, v)))

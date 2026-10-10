@@ -463,7 +463,15 @@ Additions made while implementing (they extend, never change, the formats below)
   tier also writes `vehicles-f<nnnn>.json` for each frame it renders;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
-  render key; `--upload` sends the MP4 last.
+  render key; `--upload` sends the MP4 last;
+* videos split by mode (2.15): a recipe's `modes` keeps some of the batch's modes, a batch mode's
+  `routes` moves named routes into it whatever their route_type, and a recipe's `boundary` may be a
+  list of divisions whose union is the boundary;
+* a slow camera over the map layers (B18 below): the CONFIG keys `CAMERA*`, the recipe key
+  `variety.camera`, the busmap members `camera`, `cameraAt(u)` and `setCamera(u)`, and a 24th
+  tuning knob `camamp` (`CAMERA_AMP`, right after the frame knobs in every pass, arms v x 0.75 and
+  v x 1.25 capped at 1.5, with a clip, `motion.jpg` and `camera.jpg` of frames 0, N/4, N/2 and
+  3N/4; auto pick b unless an arm strobes less by more than 0.0005).
 
 ### 2. Shared interfaces
 
@@ -500,10 +508,12 @@ does today).
 | `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
+| `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
 | `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
+| `modes` | [str] | no | every batch mode | the batch mode ids this video keeps (`["rail"]`, `["bus", "streetcar"]`); the trim drops the other modes' trips (2.15) |
 | `center` | [lon, lat] | no | boundary bbox centre | documentation and a fit fallback |
 | `frame.km_vertical`, `frame.center_km` | float, [float, float] | no | boundary fit (D3.2) | km about the area origin; pins the day frame |
 | `variants` | [str] | no | batch `variants_default` | subset of `day`, `rush`, `week`; `week` is dropped when not eligible (A3.6) |
@@ -512,6 +522,7 @@ does today).
 | `variety.panel_side` | `left` / `right` | no | `left` | preference; the side is chosen by A8.7 and this breaks ties within 10% |
 | `variety.card_line` | int 0..2 | no | 0 | index into the card templates; a `cardline` tuning pick writes here |
 | `variety.zoom` | float | no | 1.0 | multiplies FRAME_ZOOM (D3.8) |
+| `variety.camera` | one of the six B18 paths, or `off` | no | the batch pick (B18, `camera_paths`) | the camera move, the same in every variant; D3.8 passes it as `CAMERA_PATH` (`off`: `CAMERA: false`) |
 | `override.render` | obj of CONFIG keys | no | {} | for every variant; never a key that any `defaults.variants.*.render` block sets (validation error) |
 | `override.variant_render` | obj variant -> obj | no | {} | per variant, merged after `override.render` |
 | `override.brand_colors` | obj brand id -> hex | no | {} | passed as `brandhex=` |
@@ -559,7 +570,7 @@ does today).
 | `areas[].timezone`, `country`, `region`, `holidays` | str | `holidays` is a key into `cities/holidays.json`; `country`/`region` select the Overture divisions file |
 | `areas[].area_box` | [w, s, e, n] degrees | explicit. Trips whose shape bbox misses it are dropped from the area store. `make.py show <batch>` prints a suggestion (D3.3); adding a city never changes it unless the integrator edits it |
 | `areas[].feeds[]` | list | see below |
-| `modes` | list | as `cities/gta.json` modes, without colours (the theme supplies them) |
+| `modes` | list | as `cities/gta.json` modes, without colours (the theme supplies them), plus optional `routes` (2.15) |
 | `cities` | [id] | upload order |
 
 Feed entry: `id`, `name`, `publisher`, `licence_id` (exact key into `cities/licences.json`),
@@ -600,6 +611,17 @@ in the PR. `--frozen` (the default on Actions) fails on changed feed bytes, chan
 installed package version that differs from `requirements.txt`. `tools` is informational: a
 different Python patch, Chromium or ffmpeg build prints a warning only (networks and basemaps
 depend on the pinned packages, not on those; D-8 compares the outputs themselves).
+
+`overture.data_tag` is the tag that holds the extract and the divisions file, normally
+`overture/<area>-<release>`. A lock that moves the extract `bbox` within the same release names a
+new tag, `overture/<area>-<release>-<8 hex of sha256(canonical bbox)>`, since the old tag on origin
+still holds the old bytes (restoring from it fails on their sha256, and pushing over it would break
+the lock that pins them); a lock whose bbox and release stay keeps its tag.
+
+A union boundary (2.15) has `"id": "union:<16 hex>"`, `"division_id": null`, `"subtype": "union"`,
+`name` the divisions' names joined with ` + `, `area_km2` of the union, and `parts`: one
+`{"id", "division_id", "name", "subtype", "area_km2"}` per division in recipe order (plus `file` and
+`sha256` for a `boundary.file` division). Recipes that share a boundary get equal entries.
 
 #### 2.4 Brands: `cities/brands.json`
 
@@ -673,10 +695,18 @@ error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; 
 
 `cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
 filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
-`{peak_count}` (the variant's peak, 2.9), `{trips}`, `{month}`. D adds in metadata `{agencies}`,
+`{peak_count}` (the variant's peak, 2.9), `{vehicles}` (the count line's noun for `{peak_count}`
+(B9): `trains` when trains are the only mode in the window, else `vehicles`; singular for 1),
+`{trips}`, `{month}`. A filled card line starts with a capital, so a place such as `the GTA` can
+open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
-major fallback feed sets the label (Burlington: November), for sentences about the timetables.
+major fallback feed sets the label (Burlington: November), for sentences about the timetables;
+`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits", or
+for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
+Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
+`the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
+each mode the title names (`bus map`, `streetcar map`, `train map`).
 `{author}` is `cities/defaults.json` `author`, the channel's name `SOtownships`: every description
 ends its credits with `Made by SOtownships.`, and the on-screen credit (2.7 `credit_template`, B9)
 names it too. The legacy configs keep their own `Made by Katsuma Onishi` lines.
@@ -696,7 +726,7 @@ only by the untouched legacy scripts).
 | `area_box` | [w, s, e, n] | from the area | explicit, never derived from the city set |
 | `gtfs_dir` | str | `"cache/feeds/gta"` | zips named `<feed id>.zip` |
 | `feeds` | list | area feeds plus `sha256` | |
-| `modes` | list | batch modes | |
+| `modes` | list | batch modes | with their `routes` rules, which build_area applies (2.15) |
 | `timeline` | obj | see below | |
 | `stop_times_chunk` | int | 2000000 | rows per pandas chunk (A4) |
 
@@ -713,8 +743,9 @@ only by the untouched legacy scripts).
 | `title` | str | `"MARKHAM"` | uppercase place |
 | `origin` | [lon, lat] | area origin | |
 | `frame` | obj | `{"km_vertical": 49.0, "center_km": [15.7, 6.0]}` | the day frame (also the week frame) |
-| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km |
-| `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | |
+| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km; grown to the boundary bbox plus 1 km when a pinned frame shows only part of the boundary (2.15) |
+| `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | `name` joins a union's divisions with ` + ` |
+| `modes` | [str] | `["bus"]` | the recipe's modes in batch order (every batch mode by default); the trim keeps only their trips |
 | `brands` | str | `"cities/brands.json"` | |
 | `group_by` | obj | `{"field": "agency-auto", "min_share": 0.03, "max_groups": 3}` | |
 | `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM · Made by SOtownships"`, `"Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"` | on-screen credit: `defaults.json`'s with `{author}` filled by D; A fills `{agencies}` (by inside share) when that wraps into at most 2 lines at 22 px in 504 px (B9), else the fallback's `{n}` (Toronto and Mississauga: `Data: 7 transit agencies`); a fallback past 2 lines fails the trim |
@@ -740,7 +771,7 @@ small on 16 GB runners even for Paris or New York, plus `meta.json` and `stamp.j
 
 | file | dtype, shape | content |
 |---|---|---|
-| `meta.json` | JSON | `schema`, `area`, `origin`, `timeline` (with per-feed `dates`, `excluded`, `rule` per day class), `feeds[]` stats (A6), `routes[]` `{id, short, long, color, color_raw, type, feed, mode, agency}`, `day_classes` (`["wd"]` or `["mon", ..., "sun"]`), `n_dates` per feed and day class |
+| `meta.json` | JSON | `schema`, `area`, `origin`, `timeline` (with per-feed `dates`, `excluded`, `rule` per day class), `feeds[]` stats (A6), `routes[]` `{id, short, long, color, color_raw, type, feed, mode, agency}` (`mode` by the batch's route rules, else route_type), `day_classes` (`["wd"]` or `["mon", ..., "sun"]`), `n_dates` per feed and day class |
 | `shape_off.npy` | int64 (S+1) | offsets into the shape arrays |
 | `shape_xy.npy` | int32 (2 x points) | x, y interleaved, metres (= km rounded to 3 decimals, times 1000) |
 | `shape_cum.npy` | int32 (points) | cumulative length in 0.1 m (= km rounded to 4 decimals, times 10000) |
@@ -776,7 +807,7 @@ meta.origin            area origin
 meta.day_start/day_end window of the first variant (seconds; day_end may exceed 86400)
 meta.frame             {"km_vertical", "center_km"}
 meta.trim              {"scale": 1.25, "box_km": [x0, y0, x1, y1]}
-meta.modes             batch modes with "color"/"trail" omitted (the theme supplies them)
+meta.modes             the city config's modes, as batch modes with "color"/"trail"/"routes" omitted (the theme supplies colours)
 meta.attribution       [credit]   (one line, for legacy readers)
 meta.credit            "Data: YRT, TTC, GO · Map: Overture, OSM · Made by SOtownships"
 meta.build_key         sha256 of the trim step key (D2)
@@ -793,11 +824,11 @@ meta.timeline          {"kind": "day"|"week", "period": 86400|604800, "basis": "
 meta.hist_period       1440 (day) | 10080 (week), minutes
 meta.am_peak           {"count": 431, "time": 28860}   first argmax of raw hist in minutes 300..630 (week: Monday)
 meta.pm_peak           {"count", "time"}               same, 870..1170
-meta.hist_by_mode      {mode: [hist_period floats]}
+meta.hist_by_mode      {mode: [hist_period floats]}  (the kept modes only)
 meta.groups            [{"id": "yrt", "label": "YRT", "brand": "yrt", "share": 0.77}, ..., {"id": "other", "label": "other", "brand": null, "share": 0.02}]
 meta.hist_by_group     {group: [hist_period floats]}
 meta.boundary          {"name", "rings": [[x,y,...]], "holes": [[x,y,...]], "area_km2", "bbox_km": [x0,y0,x1,y1],
-                        "source": "Overture 2026-09-23.1 division_area <id>",
+                        "source": "Overture 2026-09-23.1 division_area <id>" (a union: "... division_area <id> + <id> + ..."),
                         "mask": {"cell_km": 0.025, "x0", "y0", "nx", "ny", "rle": [...]}}
 meta.panel             {"side": "right", "inside_under": {"left": 31, "right": 12}, "why": "fewer inside vehicles under the panel"}
 meta.brands            [{"id": "yrt", "label": "YRT", "hex": "0058a9", "kind": "agency"|"rule"|"line"|"gtfs"|"mode",
@@ -884,6 +915,14 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `FRAME_DX_KM` / `FRAME_DY_KM` | float | 0 / 0 | | `cx` / `cy` |
 | `BASE_ROADS_GAIN` / `BASE_WATER_GAIN` | float | 1 / 1 | | `roads` / `water` |
 | `WEEKEND_BAND` | bool | false | | |
+| `CAMERA` | bool | false | true | `camera` (0/1) |
+| `CAMERA_PATH` | `'auto'` or a B18 path | `'auto'` (FNV-1a of `meta.id`) | from `variety.camera` (D3.8) | `campath` |
+| `CAMERA_ZOOM` | float 0..0.5 | 0.08 | | `camzoom` |
+| `CAMERA_DRIFT` | float 0..0.2, share of the frame width | 0.03 | | `camdrift` |
+| `CAMERA_AMP` | float 0..3 | 1 | | `camamp` |
+| `CAMERA_MAX_SPEED` | float, frame widths a second | 0.006 | | `camspeed` |
+| `CAMERA_BOUND_MIN` | float 0..1, the city line's factor at least | 0.7 | | `cambound` |
+| `CAMERA_BASE` | `'cache'`, `'vector'` | `'cache'` | | `cambase` |
 
 New query names for existing keys: `dotcore` -> `BUS_CORE_R` (0 allowed: halo only), `halor` ->
 `BUS_HALO_R`, `haloalpha` -> `BUS_HALO_ALPHA`, `layeralpha` -> `TRAIL_LAYER_ALPHA`, `smooth` ->
@@ -924,6 +963,9 @@ Every existing member stays. Added:
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
 | `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null | the chips fit (B9): parts shown, size, the width limit, groups folded into `other`, and every width tried in order |
+| `camera` | `{path, zoom, drift, scale, amp, bound, box, keep, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the city line's factor, the line's fitted bbox and keep rect (`[x0, y0, x1, y1]` px; `keep` null when the frame crops the line), the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
+| `cameraAt(u)` | fn | `{zoom, e, f}`: screen = zoom x base px + (e, f) at phase u; frame i of N is u = i / N; identity when off |
+| `setCamera(u)` | fn | pins the phase `renderAt` draws the camera at; `null` follows T again (`renderFrame` always uses i / N) |
 
 #### 2.12 render_video.mjs additions (C implements; D calls)
 
@@ -966,7 +1008,7 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 `{"id", "variant", "place", "title", "label", "month_label", "peak", "am_peak", "pm_peak", "feeds"
 (id, name, publisher, licence_id, licence_text, dates, rule, excluded, inside_share, major),
 "modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
-window), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
+window, over the recipe's modes), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
 batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
@@ -1000,6 +1042,77 @@ Every subprocess is `sys.executable -I scripts/<tool>.py ...` or `node scripts/r
 `--no-upstream` never runs a step other than the one asked for: it checks
 `build/<id>/manifest.json` (and the area stamp) and fails on a missing input or a key mismatch.
 `--allow-nc` exists for local experiments only; Actions reads `allow_nc` from the batch file.
+
+#### 2.15 Videos split by mode, and boundaries of several divisions
+
+One video with every mode of a big city is cluttered, so a batch can make one video per group of
+modes from one boundary and one area build. Three additions, each inert by default: a recipe or
+batch without them builds the same area store arrays and networks as before (the area store's
+meta.json only gains an empty `by_rule` in each feed's build stats). Its copy changes on purpose,
+see **Copy without `modes`** below. The additions:
+
+```json
+"modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]},
+  {"id": "streetcar", "label": "streetcars", "singular": "streetcar", "route_types": [0, 5, 900]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 100, 109, 400],
+   "routes": [{"feed": "ttc", "short": "^[56]$", "why": "Line 5 and Line 6 are light rail with route_type 0"}]}
+]
+```
+
+* **Route rules** (batch `modes[].routes`, optional): each rule names routes of one `feed` by
+  `short` (a regex on `route_short_name`) and/or `route_id` (a regex on `route_id`), both
+  `re.search` as brands.json's `short`; a route matching every regex given takes that mode whatever
+  its route_type. Rules are tried in mode order before any route_type. build_area applies them, so
+  `routes[].mode` in the area store, the networks and the page all follow; the area build logs
+  `a route rule put N routes into '<mode>'`. Unknown keys, a feed that is not in the batch, a rule
+  with neither regex and a regex that does not compile are validation errors. In ttc.zip,
+  route_id and route_short_name of Line 5 Eglinton and Line 6 Finch West are `5` and `6`
+  (route_type 0); the streetcars are 301 to 312 and 501 to 512.
+* **Recipe `modes`** (optional, default every batch mode): the mode ids a video keeps, a non-empty
+  subset of the batch's. make.py writes them, in batch order, to the city config; the trim emits
+  only those modes' trips and counts only them inside the boundary, so `hist`, `hist_by_mode`
+  (kept modes only), the peaks, groups and chips, brands, feed shares (`major`, the credit, the
+  month label), the panel side, the automatic rush frame, `meta.modes` and the netmeta's `modes`
+  and `modes_present` follow. The card, the count line and the metadata name the modes in the window
+  (B9): `Every train in Toronto`, `Every bus and streetcar in Toronto`, `Every bus in Markham`,
+  `{vehicles}` reads `trains` when trains are the only mode inside, and the tags carry `train map`
+  rather than `bus map`. A trim whose modes have no trip
+  touching the boundary or the trim box fails. Recipes that differ only in `modes` share the
+  boundary, the frame, the clip and the area build; each still has its own trim and base map.
+* **Union boundary** (recipe `boundary` as a list): every division is selected as a single
+  boundary would be (exact name, subtypes, the 20% area check, or `file`) into
+  `build/<id>/boundary.parts/<i>.geojson`, and
+
+      python3 -I scripts/fetch_boundary.py union --in <part 0> --in <part 1> ... --out build/<id>/boundary.geojson
+
+  writes their union (shapely `union_all`) as one Feature: properties `id` (`union:` and 16 hex of
+  the parts' ids), `division_id` null, `name` (the parts' names joined with ` + `), `subtype`
+  `union`, `area_km2`, `parts` (each part's `id`, `division_id`, `name`, `subtype`, `area_km2`,
+  `release`, `source`), `release` and `source` (`Overture <release> division_area <id> + <id> ...`).
+  The frame fits the union's bbox (D3.2) unless the recipe pins one, and the outline, the dimming
+  mask and every count use the union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
+  title `THE GTA`, hashtag `#thegta`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
+  instead of "the <place> city limits", and `{the_city}` reads "the region".
+  A union is usually far larger than one city: the GTA (Toronto and the Peel, York, Durham and
+  Halton regions, 139 x 136 km) fits a 325.5 km frame, where its trains are specks, so its recipe
+  pins a 150 km frame on the west end of the lake and lets the region run off the frame's sides.
+* **Pinned frame smaller than the boundary**: a trim box that does not hold the boundary bbox grows
+  to that bbox plus 1 km on the sides it misses (A8.3 no longer exits there), so every vehicle
+  inside is still drawn and counted; the trim logs `trim box grown to [...]`. The clip stays the
+  frame's trim box plus 2 km, since only the frame is drawn. `make.py build` checks the grown box
+  against `area_box`, and `make.py show` suggests an area box that holds it (the GTA's grown box
+  needs `[-80.18, 42.65, -78.41, 44.53]`). A fitted frame always holds its boundary, so no other
+  city's trim box changes.
+* **Copy without `modes`** (an intended change for every video, split or not): the count noun and
+  the mode tags follow the modes in the window (B9), so the card and the description say what the
+  count line already said. A window with one mode reads `Busiest at 4:20 pm with 50 buses` on the
+  card and `Busiest moment: 50 buses at 4:20 pm.` in the description, where both read `50
+  vehicles`; a window with several modes still reads `vehicles`. The tags carry one `<mode> map`
+  per mode in the window where they carried a fixed `bus map` (Toronto: `bus map`, `streetcar
+  map`, `train map`; Markham: `bus map`, `train map`). Titles, the other description lines and
+  the hashtags are as before. The page code and the templates are in the render and meta keys, so
+  a published video takes the new copy at its next render and `make.py meta`.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 
@@ -1229,3 +1342,139 @@ Frame to time:
 
 `renderAtV4(T)` stays pure and draws the HUD at full alpha with no card (stills); only
 `renderFrameV4(i)` applies the card and the snapshot.
+
+### B18. Camera
+
+A slow drone move over the map layers: the base map, the dormant network, the trails, the dots,
+the outside dimming and the city line. The title scrim, the HUD panel and everything in it, the
+card and the `?safe=1` overlay are drawn after it at identity and stay put in the safe zone. It is
+off by default (`CAMERA` false), so legacy files and any v4 load without the shorts preset draw
+exactly what they did; the shorts preset turns it on.
+
+**Phase.** The camera is a function of the loop phase only: `u = i / N` for frame i
+(`N = totalFrames`), reduced modulo 1, so the virtual frame N is frame 0 and the day and week loops
+stay exact; the rush's cross-fade snapshot is frame 0 at u = 0, and the live frames before it run
+up to u = 1, so both images in the fade have nearly the same camera. A still at T (`renderAt`) uses
+`u = progressAt(T)`, the phase the video shows T at, unless `setCamera(u)` pins one.
+
+**Path.** With pivot `c = (460, 760)` (the fit box centre, taken from `ZONES.fit`: D3.2 puts the boundary bbox centre and
+A8.6 the rush vehicles there), zoom amplitude Z and drift R px, at
+`th = 2 pi u`:
+
+```
+z(u)    = 1 + Z (1 + cos th) / 2              push-in at frame 0, the fitted frame at u = 1/2
+screen  = c + z (base - c - R D(u))           base: the fitted frame's px
+```
+
+| path | D(u), x east, y south | zoom, drift share |
+|---|---|---|
+| `pull-out-east` | `((1 - cos th) / 2, 0.4 sin th / 2)` | 1, 1 |
+| `pull-out-north` | `(0.4 sin th / 2, -(1 - cos th) / 2)` | 1, 1 |
+| `pull-out-west` | `(-(1 - cos th) / 2, -0.4 sin th / 2)` | 1, 1 |
+| `pull-out-south` | `(-0.4 sin th / 2, (1 - cos th) / 2)` | 1, 1 |
+| `drift-orbit` | `(sin th / 2, -0.4 cos th)`, an ellipse round the core, clockwise | 0.5, 1.5 |
+| `drift-sway` | `(sin th / 2, sin 2th / 4)`, a figure of eight across the core | 0.5, 1.5 |
+
+The share multiplies `CAMERA_ZOOM` and `CAMERA_DRIFT` for that path. With one share for all, every
+upload made the same push-in and pull-out in step and only the drift's direction told them apart;
+the drifts push in half as far and travel half as far again, so they read as pans (the city core
+travels 56 to 63 px over the loop, against 31 to 35 px on a pull-out) and the pull-outs as
+pull-outs. Every path but the orbit starts on the pivot, so frame 0 is the fitted frame pushed in
+about the city core (the orbit's core sits 0.4 R z, under 2% of the width, off it). The zoom eases in and out
+(zero zoom speed at u = 0 and 1/2) while the sideways part keeps moving, so the motion never stops,
+never runs at constant speed and is smooth to every derivative. `CAMERA_PATH 'auto'` picks
+`CAMERA_NAMES[fnv1a(meta.id) % 6]` in the order of the table; `make.py camera_path()` is the same
+function. D3.8 passes the recipe's `variety.camera`, or else make.py's batch pick, as `CAMERA_PATH`,
+the same for day, rush and week. The batch pick (`make.py camera_paths()`) walks the batch's
+`cities` in order: each city keeps its `camera_path(id)` unless more cities before it have that path
+than have the least used one, and then takes the next least used path in table order; a recipe's
+own `variety.camera` is kept and counted. The id hash alone put three of the ten GTA cities on the
+sway and none on `pull-out-east`; the batch pick uses all six, none more than twice (Markham moves
+to `pull-out-east`, Oakville to `drift-orbit`). Appending a city never moves one before it;
+reordering the list, or naming a path in an earlier recipe, can move later ones. A recipe its batch
+does not list keeps `camera_path(id)`.
+
+**Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width), each
+times the path's share. Both are scaled by one factor s <= 1, found by bisection, until the fastest
+point of the frame (the step of the four corners between sampled phases; the step is affine in the
+point, so the corners bound it) moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a
+second over `N / 30` s; then both are multiplied by `CAMERA_AMP` and by the city line's factor
+(below). How fast a path moves at full amplitude depends on its shape, so s, and with it the move,
+differs by path (drift as a share of the width; `CAMERA_AMP` 1, before the city line's factor):
+
+| path | day, 50 s: s, zoom, drift | week, 60 s | rush, 25 s |
+|---|---|---|---|
+| `pull-out-east` | 0.882, 7.05%, 2.65% | 1, 8%, 3% | 0.437, 3.49%, 1.31% |
+| `pull-out-north` | 0.937, 7.50%, 2.81% | 1, 8%, 3% | 0.465, 3.72%, 1.40% |
+| `pull-out-west` | 0.950, 7.60%, 2.85% | 1, 8%, 3% | 0.470, 3.76%, 1.41% |
+| `pull-out-south` | 0.816, 6.53%, 2.45% | 0.982, 7.86%, 2.95% | 0.405, 3.24%, 1.21% |
+| `drift-orbit` | 1, 4%, 4.5% | 1, 4%, 4.5% | 0.592, 2.37%, 2.66% |
+| `drift-sway` | 1, 4%, 4.5% | 1, 4%, 4.5% | 0.541, 2.16%, 2.44% |
+
+Where s is under 1 the speed cap is the binding limit and the fastest point moves at exactly 0.6%
+of the width a second, 0.22 px a frame; where s is 1 the path moves slower than that. So every
+variant stays at or under the same super slow speed, and the rush, half the day's length, keeps
+about half the day's move. The camera is off only when both amplitudes end at zero: a zero
+`CAMERA_ZOOM` alone leaves a drift with no push-in.
+
+**City line.** The push-in about the pivot and the drift both carry the city line outward, and the
+speed cap does not know the city: one that fills the fit box width (D3.2, x 50..870) would reach
+x 19..901 at frame 0, off the frame with `FRAME_ZOOM` over 1 (Markham's west tip went to x -4.6,
+off screen for 11 s) or under the action buttons beyond x 880 (Toronto's east end, x 901). So when
+the fitted frame shows the whole line (the bbox of `meta.boundary.rings` inside the frame), both
+amplitudes are scaled by one more factor, found by bisection over the same sampled phases, until the
+line's bbox stays inside the keep rect at every phase: each side at the looser of the safe zone and
+the fitted bbox, plus 10 px, and never past the frame edge. The factor never goes under
+`CAMERA_BOUND_MIN` (0.7, `cambound`). Above that floor the camera takes the line at most 10 px past
+the safe zone, or past where the fitted frame already has it; the slack is the fit box's own (it
+reaches 10 px past the safe zone's left edge), and without it a city that fills the fit box width
+could not move at all. The factor is 1 when the whole move fits. For the four GTA cities that fill
+the width (Toronto, Vaughan, Burlington, Markham) the keep rect alone gave about 0.3, a push-in of
+2.3 to 2.5% and a drift of 0.9% that nobody notices. A visible move beats keeping a wide city's
+whole outline in frame at every phase, so their factor stops at the floor: the day videos push in by
+4.9 to 5.3% and drift 1.9 to 2.0% (the week 5.6% and 2.1%), and frame 0 is still the push-in. Only
+at the floor may the line leave the keep rect, and on those day videos it does by 11 to 12 px. It
+never leaves the frame (Markham's west tip comes closest, at x 7.9 on frame 0) and goes at most
+26 px past x 880, under the action buttons, on Markham's frame 0, whose fitted line already reaches
+x 885 (Toronto 11 px at u 0.94, Vaughan 11 px at u 0.22, Burlington 8 px at u 0.24). The text is
+drawn at identity and does not move. Across the GTA day videos the zoom thus runs from 4% (the
+drifts) through 4.9 to 5.3% (the wide cities) to 6.5% (Brampton and Oshawa, whose whole move
+fits). A frame that crops the line (the rush close-ups) has no keep rect, and only the speed cap
+applies. `busmap.camera` reports the factor (`bound`), the fitted bbox (`box`) and the rect
+(`keep`).
+
+**Sharpness.** The base map and the dormant network are drawn once into a cache that covers the
+union over the loop of the base rectangle on screen (plus 3 px), at `2 (1 + Z)` times the fitted
+scale with widths and dashes scaled along (so zoom 1 shows today's base), its origin placed so that
+at frame 0 its pixel grid lands on the frame's. Each frame draws it scaled down by `z / (2 (1 + Z))`
+with `imageSmoothingQuality 'medium'` (mipmapped), never up. Against the base drawn afresh as
+vectors under the same camera (`CAMERA_BASE 'vector'`, the reference only) on Toronto's base this
+keeps about 91% of the edge energy and flickers a third as much frame to frame at the fastest phase
+(vector anti-aliasing of 1 px roads at a fresh subpixel offset each frame is the larger shimmer);
+a 1x cache with bilinear filtering kept 83 to 90% and flickered more. On whole frames (trails, dots
+and outline included) the test measures 98% of the vector render's edge energy, about 30% less
+flicker and 50 dB. Trails, dots, the outside dimming
+and the city line are drawn each frame under the camera: ribbons are stroked through the layer
+transform with widths divided by z, dots are drawn at the camera's image of their position at their
+own size, and the dimming is the cache rectangle with the rings cut out (even-odd) plus the rings
+stroked at `CITY_LINE_W / z`, so every line keeps its width in screen px.
+
+**Counting.** Trips are sampled in base px as before; only drawing goes through the camera.
+`lastVehicles` reports screen positions (where the dots are), and each inside flag reads the mask
+at the vehicle's own km position, which is the screen position mapped back through the camera.
+`hist`, the count line, the chips, the peak and the card numbers do not change.
+
+**Cost.** Toronto day from the am peak (B17's frame, `tests/web/v4_perf.mjs`): 240 ms a frame with
+the camera off, 283 ms with it on, about 43 ms of it the mipmapped base draw; the limit is 450.
+
+**Tests.** `tests/web/v4_camera.mjs`: the path from the id, the loop seam, the speed cap and its
+smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the city
+line's keep rect at every frame (the fixture's frame on all six paths, a frame with room, the
+cropped rush, and Markham and Toronto when built), and where the floor binds the factor at
+`CAMERA_BOUND_MIN` with the line at most 30 px past its rect (inside it with `cambound=0`), the
+HUD and the counts with and without the
+camera, all six paths, `CAMERA_ZOOM` 0 and the sprite, scaled and bounded trail modes, and the
+cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
+knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path`, the batch
+pick and the
+`camamp` knob.

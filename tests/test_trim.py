@@ -332,6 +332,121 @@ class Fixtures(unittest.TestCase):
                 self.assertIn(f"missing {drop}", p.stderr)
 
 
+# Mode rules of the batch: King (route 1, a bus by route_type) becomes a streetcar by its short name and
+# route R4 (route_type 1700, in no list) becomes rail by its route_id, as TTC's Line 5 and 6 do. Ferry has
+# no route at all.
+RULE_MODES = [dict(U.MODES[0]), dict(U.MODES[1], routes=[{"feed": "stable", "short": "^1$", "why": "test"}]),
+              dict(U.MODES[2], routes=[{"feed": "stable", "route_id": "^R4$"}]),
+              {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4]}]
+
+
+class ModeSplit(unittest.TestCase):
+    """A trim that keeps some modes: one area store, every number from the kept trips only."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp(prefix="test_trim_modes_")
+        area = U.area_config("fx", ORIGIN, AREA_BOX, FIX, [fixture_feed("stable")], "day", chunk=5000, modes=RULE_MODES)
+        acfg = os.path.join(cls.tmp, "area.day.json")
+        U.dump_json(acfg, area)
+        cls.store = os.path.join(cls.tmp, "areas", "day")
+        cls.area_log = U.run("build_area.py", "--config", acfg, "--out", cls.store)[0].stderr
+        frame = U.fit_frame(U.boundary_bbox_km(BOUNDARY, ORIGIN))
+        base = U.city_config("fx-stable", "Fixture", ORIGIN, BOUNDARY, frame, ["day", "rush"], "day", batch="fx", area="fx")
+        cls.res = {}
+        for name, modes in (("none", None), ("all", ["bus", "streetcar", "rail", "ferry"]), ("rail", ["rail"]),
+                            ("road", ["bus", "streetcar"]), ("tram", ["tram"]), ("ferry", ["ferry"])):
+            cfg = dict(base, modes=modes) if modes else dict(base)
+            path = os.path.join(cls.tmp, f"city.{name}.json")
+            U.dump_json(path, cfg)
+            out = os.path.join(cls.tmp, name, "day", "network.json.gz")
+            p, _s, _g = U.run("trim_network.py", "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64,
+                              check=False)
+            cls.res[name] = (p, out)
+        # A pinned close-up at a quarter of the fitted height shows only part of the boundary.
+        part = dict(base, frame={"km_vertical": frame["km_vertical"] / 4, "center_km": frame["center_km"]})
+        path = os.path.join(cls.tmp, "city.part.json")
+        U.dump_json(path, part)
+        out = os.path.join(cls.tmp, "part", "day", "network.json.gz")
+        p, _s, _g = U.run("trim_network.py", "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64,
+                          check=False)
+        cls.res["part"] = (p, out)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def net(self, name):
+        p, out = self.res[name]
+        self.assertEqual(p.returncode, 0, p.stderr[-2000:])
+        return U.load_json(out)
+
+    def test_route_rules_in_the_store(self):
+        modes = {r["id"]: r["mode"] for r in area_store.Store(self.store).meta["routes"]}
+        # R5 runs outside the area box, so the store has no route of it.
+        self.assertEqual(modes, {"stable:R1": "streetcar", "stable:R2": "bus", "stable:R3": "rail", "stable:R4": "rail"})
+        self.assertIn("a route rule put 1 routes into 'streetcar': R1", self.area_log)
+        self.assertIn("a route rule put 1 routes into 'rail': R4", self.area_log)
+        self.assertNotIn("route_type 1700 is in no mode's list", self.area_log)
+
+    def test_every_mode_is_the_default(self):
+        self.assertEqual(read_bytes(self.res["none"][1]), read_bytes(self.res["all"][1]))
+
+    def test_split_partitions_the_trips(self):
+        full, rail, road = self.net("all"), self.net("rail"), self.net("road")
+        mode_of = lambda net: [net["routes"][t["r"]]["mode"] for t in net["trips"]]  # noqa: E731
+        self.assertEqual(set(mode_of(rail)), {"rail"})
+        self.assertEqual(set(mode_of(road)), {"bus", "streetcar"})
+        self.assertEqual(sorted(mode_of(rail) + mode_of(road)), sorted(mode_of(full)))
+        self.assertEqual(rail["meta"]["trips_total"] + road["meta"]["trips_total"], full["meta"]["trips_total"])
+        self.assertEqual([m["id"] for m in rail["meta"]["modes"]], ["rail"])
+        self.assertEqual([m["id"] for m in road["meta"]["modes"]], ["bus", "streetcar"])
+        self.assertFalse(any("routes" in m for m in full["meta"]["modes"]), "route rules stay out of the network")
+        self.assertEqual(sorted(rail["meta"]["hist_by_mode"]), ["rail"])
+        self.assertEqual(sorted(road["meta"]["hist_by_mode"]), ["bus", "streetcar"])
+        # The counts are the kept modes' share of the full counts, minute by minute.
+        self.assertEqual(rail["hist"], full["meta"]["hist_by_mode"]["rail"])
+        self.assertGreater(sum(rail["hist"]), 0)
+        fm = full["meta"]["hist_by_mode"]
+        for a, b, c in zip(road["hist"], fm["bus"], fm["streetcar"]):
+            self.assertLessEqual(abs(a - (b + c)), 0.011)
+        for name, net in (("rail", rail), ("road", road)):
+            m = net["meta"]
+            P = m["hist_period"]
+            for V in m["variants"].values():
+                best = max(net["hist"][x % P] for x in range(-(-V["start"] // 60), -(-V["end"] // 60)))
+                self.assertEqual(V["peak"]["count"], round(best), name)
+            used = {r["brand"] for r in net["routes"]}
+            self.assertTrue(all(i < len(m["brands"]) for i in used), name)
+            self.assertLessEqual(sum(g["share"] for g in m["groups"]), 1.0001, name)
+        self.assertLess(rail["meta"]["am_peak"]["count"], full["meta"]["am_peak"]["count"])
+
+    def test_frame_showing_part_of_the_boundary(self):
+        """The trim box grows to hold the boundary, so every count matches the fitted frame's."""
+        full, part = self.net("none"), self.net("part")
+        self.assertIn("trim box grown", self.res["part"][0].stderr)
+        m = part["meta"]
+        self.assertEqual(m["frame"]["km_vertical"], full["meta"]["frame"]["km_vertical"] / 4)
+        kv, (cx, cy) = m["frame"]["km_vertical"], m["frame"]["center_km"]
+        hw, hh = kv * 9 / 32 * 1.25 + 1, kv / 2 * 1.25 + 1
+        bb = m["boundary"]["bbox_km"]
+        self.assertFalse(bb[0] >= cx - hw and bb[1] >= cy - hh and bb[2] <= cx + hw and bb[3] <= cy + hh)
+        want = [min(cx - hw, bb[0] - 1), min(cy - hh, bb[1] - 1), max(cx + hw, bb[2] + 1), max(cy + hh, bb[3] + 1)]
+        self.assertEqual(m["trim"]["box_km"], [round(v, 3) for v in want])
+        self.assertEqual(part["hist"], full["hist"])
+        for k in ("am_peak", "pm_peak", "hist_by_mode", "hist_by_group", "groups", "brands", "boundary"):
+            self.assertEqual(m[k], full["meta"][k], k)
+
+    def test_unknown_or_empty_modes_fail(self):
+        p, out = self.res["tram"]
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("must be a non-empty subset", p.stderr)
+        p, out = self.res["ferry"]
+        self.assertEqual(p.returncode, 1)
+        self.assertIn("no trip of the modes ferry", p.stderr)
+        self.assertFalse(os.path.exists(out))
+
+
 class Units(unittest.TestCase):
     def test_informative(self):
         self.assertTrue(tn.informative("ED1C24"))
@@ -461,6 +576,47 @@ class Units(unittest.TestCase):
         self.assertLessEqual(len(tn.wrap_lines(F.replace("{n}", "12"), 22, 504)), 2)
         with self.assertRaises(tn.Fail):
             tn.credit_text(tor, T, F.replace("SOtownships", "A Much Longer Channel Name Than The Panel Holds"))
+
+    def test_route_mode(self):
+        """build_area's mode of a routes.txt row: a route rule first, then route_type, then the first mode."""
+        import build_area
+        modes = [dict(U.MODES[0]), dict(U.MODES[1]), dict(U.MODES[2], routes=[{"feed": "ttc", "short": "^[56]$"},
+                                                                         {"feed": "go", "route_id": "-LW$"}])]
+        t2m = {rt: m["id"] for m in modes for rt in m["route_types"]}
+        row = lambda rid, short, rt: {"route_id": rid, "route_short_name": short, "route_type": rt}  # noqa: E731
+        cases = [("ttc", row("5", "5", "0"), ("rail", "rule")), ("ttc", row("6", "6", "0"), ("rail", "rule")),
+                 ("ttc", row("504", "504", "0"), ("streetcar", "type")), ("ttc", row("56", "56", "3"), ("bus", "type")),
+                 ("ttc", row("1", "1", "1"), ("rail", "type")), ("miway", row("5", "5", "3"), ("bus", "type")),
+                 ("go", row("09261126-LW", "LW", "2"), ("rail", "rule")), ("go", row("x", "", "1700"), ("bus", "unknown")),
+                 ("go", row("y", "", ""), ("bus", "unknown"))]
+        for feed, r, want in cases:
+            self.assertEqual(build_area.route_mode(feed, r, modes, t2m), want, (feed, r))
+
+    def test_boundary_union(self):
+        """fetch_boundary.py union: one Feature of several divisions, with their properties under parts."""
+        sq = os.path.join(U.ROOT, "tests", "fixtures", "test")
+        with tempfile.TemporaryDirectory() as tmp:
+            outs = []
+            for n in ("a", "b"):
+                out = os.path.join(tmp, f"union-{n}.geojson")
+                p, _s, _g = U.run("fetch_boundary.py", "union", "--in", os.path.join(sq, "centre.geojson"),
+                                  "--in", os.path.join(sq, "north.geojson"), "--out", out, seed="1" if n == "b" else "0")
+                outs.append(read_bytes(out))
+            self.assertEqual(outs[0], outs[1])
+            feat = json.loads(outs[0])
+            props = feat["properties"]
+            parts = [U.load_json(os.path.join(sq, f"{n}.geojson")) for n in ("centre", "north")]
+            self.assertEqual(props["subtype"], "union")
+            self.assertEqual(props["name"], " + ".join(f["properties"]["name"] for f in parts))
+            self.assertEqual([q["name"] for q in props["parts"]], [f["properties"]["name"] for f in parts])
+            self.assertTrue(props["id"].startswith("union:"))
+            import fetch_boundary
+            want = shapely.union_all([geo_shape(f["geometry"]) for f in parts])
+            self.assertAlmostEqual(props["area_km2"], round(fetch_boundary.area_km2(want), 2), places=2)
+            self.assertTrue(geo_shape(feat["geometry"]).equals(want))
+            p, _s, _g = U.run("fetch_boundary.py", "union", "--in", os.path.join(sq, "centre.geojson"),
+                              "--out", os.path.join(tmp, "one.geojson"), check=False)
+            self.assertNotEqual(p.returncode, 0)
 
     def test_mask_rle_round_trip(self):
         poly = shapely.Polygon([(0, 0), (1, 0), (1, 1), (0.5, 0.4), (0, 1)])

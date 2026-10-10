@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // B-7: every knob of spec 2.10 and G1 changes the frame when moved and leaves
 // it unchanged when given its effective value (the "v" of G1: the default
-// after the profile, the preset and the variant block).
+// after the profile, the preset and the variant block), the camera knobs of
+// B18 included.
 //
 // Each knob is read on the frame where it shows: map and HUD knobs on the
 // am-peak still, the sparkline knobs after the peak, the warp knobs at a
@@ -42,6 +43,14 @@ const KNOBS = [
   ['shoulder', 'TRAIL_SHOULDER_ALPHA', 0.3, STILL], ['trailalpha', 'TRAIL_ALPHA', 0.4, STILL], ['routealpha', 'ROUTE_ALPHA', 0.3, STILL],
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
+  // The camera (B18) mid loop, where the zoom and the drift both show, on a
+  // frame that leaves the city line room for the whole move, so the line's cap
+  // hides no knob; its floor (cambound) moves on the fixture's own frame, the
+  // one where the cap binds.
+  ['camera', 'CAMERA', false, MID, 'framed'], ['campath', 'CAMERA_PATH', 'drift-orbit', MID, 'framed'],
+  ['camzoom', 'CAMERA_ZOOM', 0.05, MID, 'framed'], ['camdrift', 'CAMERA_DRIFT', 0.015, MID, 'framed'],
+  ['camamp', 'CAMERA_AMP', 0.5, MID, 'framed'], ['camspeed', 'CAMERA_MAX_SPEED', 0.003, MID, 'framed'],
+  ['cambase', 'CAMERA_BASE', 'vector', MID, 'framed'], ['cambound', 'CAMERA_BOUND_MIN', 1, MID],
 ];
 
 async function hashOf(h, query, where) {
@@ -78,6 +87,7 @@ delete fixture.meta.color_by;
 fs.writeFileSync(nobrandPath, JSON.stringify(fixture));
 const BASES = {
   tiny: TINY,
+  framed: `${TINY}&zoom=0.8`,
   nobrand: 'data=../build/test_web/tiny_nobrand.json&basemap=../tests/fixtures/v4_tiny/basemap.json&colorby=',
 };
 
