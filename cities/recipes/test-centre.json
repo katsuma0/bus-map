@@ -1,0 +1,11 @@
+{
+ "id": "test-centre",
+ "batch": "test",
+ "place": "Tsukuba",
+ "boundary": {"name": "Tsukuba centre square", "area_km2": 64.0, "file": "tests/fixtures/test/centre.geojson"},
+ "center": [140.11, 36.08],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

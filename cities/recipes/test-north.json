@@ -1,0 +1,11 @@
+{
+ "id": "test-north",
+ "batch": "test",
+ "place": "North Tsukuba",
+ "boundary": {"name": "Tsukuba north square", "area_km2": 36.0, "file": "tests/fixtures/test/north.geojson"},
+ "center": [140.10, 36.17],
+ "variants": ["day", "rush"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 1, "zoom": 1.05},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}
