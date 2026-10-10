@@ -46,6 +46,8 @@ KNOBS = [
     (20, "cardscrim", "CARD_SCRIM", "card", False, ("day",)),
     (21, "cardy", "CARD_CENTER_Y", "card", False, ("day",)),
     (22, "panelalpha", "PANEL_ALPHA", "card", False, ("day",)),
+    # Numbered after the spec's 22 so earlier tune directories keep their names.
+    (23, "outside", "OUTSIDE_DIM", "look", False, ("day",)),
 ]
 BY_NAME = {k[1]: k for k in KNOBS}
 FRAME_KEYS = ("FRAME_ZOOM", "FRAME_DX_KM", "FRAME_DY_KM")
@@ -117,6 +119,9 @@ def arm_values(name, v, k_km=None, other=None):
         return v - 80, v + 80
     if name == "panelalpha":
         return r2(v * 0.85), r2(v * 1.15)
+    if name == "outside":
+        # At 1 the neighbours vanish and the outline loses its context.
+        return max(0, r2(v - 0.2)), min(0.95, r2(v + 0.2))
     raise TuneError(f"unknown knob {name}")
 
 

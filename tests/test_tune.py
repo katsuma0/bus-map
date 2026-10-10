@@ -101,6 +101,9 @@ class Arms(unittest.TestCase):
         self.assertEqual(tune.arm_values("shoulder", 0.8), (0.48, 1))
         self.assertEqual(tune.arm_values("cx", 0.0, 49.0), (-1.96, 1.96))
         self.assertEqual(tune.arm_values("halor", 11), (8, 14))
+        self.assertEqual(tune.arm_values("outside", 0.55), (0.35, 0.75))
+        self.assertEqual(tune.arm_values("outside", 0.8), (0.6, 0.95))
+        self.assertEqual(tune.arm_values("outside", 0.1), (0, 0.3))
         self.assertEqual(tune.arm_values("warpfloor", 0.15), (0.08, 0.25))
 
     def test_frame_arms_stay_inside_the_trim_box(self):
@@ -117,7 +120,7 @@ class Arms(unittest.TestCase):
 
     def test_pass_knobs(self):
         knobs = lambda v: [k[0] for k in tune.KNOBS if v in k[5]]
-        self.assertEqual(knobs("day"), list(range(1, 23)))
+        self.assertEqual(knobs("day"), list(range(1, 24)))
         self.assertEqual(knobs("rush"), [1, 2, 3, 4, 19])
         self.assertEqual(knobs("week"), [4, 10, 12, 17, 19])
 
