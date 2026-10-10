@@ -456,7 +456,14 @@ Additions made while implementing (they extend, never change, the formats below)
   when every boundary of the area is a `boundary.file`);
 * `<stem>.netmeta.json` also carries `month`, `timeline`, `window`, `modes`, `frames` and
   `trips_total`, and `<stem>.meta.json` also carries `licence_flags` (the CSV column);
-* make.py passes each step key to the builders as `--key` (the trim writes it to `meta.build_key`).
+* make.py passes each step key to the builders as `--key` (the trim writes it to `meta.build_key`);
+* tuning (G) has a 23rd knob, `outside` (`OUTSIDE_DIM`, day pass, arms v - 0.2 and v + 0.2 capped
+  at 0.95), and a G4 score `card_cover` for the card knobs: the share of on-screen inside vehicles
+  in the rows of the frame-0 card band (card text extent +- 60 px), hard limit 0.4; for it the tune
+  tier also writes `vehicles-f<nnnn>.json` for each frame it renders;
+* release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
+  name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
+  render key; `--upload` sends the MP4 last.
 
 ### 2. Shared interfaces
 
