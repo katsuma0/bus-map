@@ -711,6 +711,7 @@ only by the untouched legacy scripts).
 | `render` | obj | `{}` | copied to meta.render (base values only) |
 | `variants` | obj | 2.9 | `start: "am_peak"` and the rush frame are filled by A |
 | `rush` | obj | `{"auto": true, "zoom": [1.4, 2.2], "share": 0.6}` | A8.6 |
+| `fit_box` | [x0, y0, x1, y1] px | `[50, 390, 870, 1300]` | the box an automatic rush frame fits the city into (A8.6), from `defaults.json` |
 | `panel` | obj | `{"preferred": "right", "tie": 0.10, "rect": [60, 1140, 620, 1500]}` | A8.7 |
 | `card` | obj | `{"title": "MARKHAM", "templates": {...}}` | copied |
 | `major_share` | float | 0.05 | a feed is major in this city at this share of inside vehicle-minutes |
@@ -902,7 +903,7 @@ Every existing member stays. Added:
 | `variant` | str | active variant, `''` for legacy |
 | `window` | `{start, end}` | seconds |
 | `safe` | `{x0: 60, y0: 240, x1: 880, y1: 1500}` | |
-| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle`, `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`; `size` in px |
+| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle`, `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
 | `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
 | `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
 | `setCard(on)` | fn | turns the card on or off without reload |

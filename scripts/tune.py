@@ -58,12 +58,12 @@ SAFE = (60, 240, 880, 1500)
 MAP_TOP = 380
 CLIP_FRAMES = 90
 HUD_TEXT = ("title", "subtitle", "weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2")
-CARD_TEXT = ("card_title", "card_title2", "card_line0", "card_line0b", "card_line1")
+CARD_TEXT = ("card_title", "card_title2", "card_line0", "card_line0b", "card_line1", "card_line1b")
 PANEL_TEXT = ("weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2", "peak")
 # B9 and B10 minimum sizes in px.
 MIN_SIZES = {"title": 48, "subtitle": 32, "weekday": 64, "clock": 40, "count": 36, "count2": 36, "chips": 24,
              "peak": 26, "axis": 26, "credit": 22, "credit2": 22, "card_title": 72, "card_title2": 72,
-             "card_line0": 40, "card_line0b": 40, "card_line1": 30}
+             "card_line0": 40, "card_line0b": 40, "card_line1": 30, "card_line1b": 30}
 LIMITS = {"whiteout": 0.03, "contrast": 4.5, "safe_share": 0.85, "strobe": 0.004, "card_cover": 0.4}
 # The card band reaches 60 px past the card text (B10), feathers included.
 CARD_BAND_PAD = 60
