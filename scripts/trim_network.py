@@ -721,7 +721,10 @@ def trim(args, t_start):
     if area_km2 is None:
         area_km2 = round(float(poly.area), 2)
 
-    # A8.3: trim box; the boundary and a pinned rush frame must lie inside it.
+    # A8.3: trim box; the boundary and a pinned rush frame must lie inside it. A pinned
+    # frame may show only part of a region (the GTA trains video centres on the lake),
+    # so a box that misses part of the boundary grows to its bbox plus 1 km: the counts
+    # then still see every vehicle inside, and the frame and clip stay as pinned.
     frame = cfg["frame"]
     kv = float(frame["km_vertical"])
     cx, cy = frame["center_km"]
@@ -729,7 +732,9 @@ def trim(args, t_start):
     hw, hh = kv * 9 / 16 / 2 * scale + 1, kv / 2 * scale + 1
     trim_box = [cx - hw, cy - hh, cx + hw, cy + hh]
     if not inside_box(bbox_km, trim_box):
-        raise Fail(f"boundary bbox {bbox_km} is not inside the trim box {[round(v, 3) for v in trim_box]}")
+        trim_box = [min(trim_box[0], bbox_km[0] - 1), min(trim_box[1], bbox_km[1] - 1),
+                    max(trim_box[2], bbox_km[2] + 1), max(trim_box[3], bbox_km[3] + 1)]
+        log(f"  the frame shows part of the boundary; trim box grown to {[round(v, 3) for v in trim_box]} to hold it")
     variants_cfg = cfg.get("variants") or {}
     rush_cfg = dict(cfg.get("rush") or {})
     pinned = None

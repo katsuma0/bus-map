@@ -1161,6 +1161,43 @@ class ModeSplit(Scratch):
         self.repo.run("lock", "test")
         self.assertEqual([c for c in self.repo.calls() if c.startswith("fetch_boundary")], ["fetch_boundary union"])
 
+    def test_pinned_frame_shows_part_of_a_union(self):
+        """The trim box, the area box check and show's suggestion hold the whole union; the clip follows the frame."""
+        r = self.repo.read_json("cities/recipes/test-both.json")
+        r["frame"] = dict(self.lock["boundaries"]["test-centre"]["frame"])
+        self.repo.write_json("cities/recipes/test-both.json", r)
+        self.repo.run("lock", "test")
+        pl = make.Pipeline(self.repo.root)
+        batch = pl.load_batch("test")
+        lock = pl.load_lock(batch)
+        area = batch["areas"][0]
+        be = lock["boundaries"]["test-both"]
+        self.assertEqual(be["frame"], r["frame"])
+        self.assertEqual(be["clip"], lock["boundaries"]["test-centre"]["clip"])
+        feat = self.repo.read_json("build/test-both/boundary.geojson")
+        bb = pl.boundary_bbox_km(area, feat)
+        self.assertFalse(make.box_inside(bb, make.trim_box(be["frame"], 1.25)))
+        tb = make.trim_box(be["frame"], 1.25, bb)
+        self.assertEqual(tb, make.union_box([make.trim_box(be["frame"], 1.25), make.grow_km(bb, 1.0)]))
+        # A fitted city's box is unchanged by its own boundary.
+        fr = lock["boundaries"]["test-north"]["frame"]
+        nb = pl.boundary_bbox_km(area, self.repo.read_json("build/test-north/boundary.geojson"))
+        self.assertEqual(make.trim_box(fr, 1.25, nb), make.trim_box(fr, 1.25))
+        # An area box that holds the frame's box but not the union stops the build.
+        b = self.repo.read_json("cities/batches/test.json")
+        b["areas"][0]["area_box"] = pl.trim_box_deg(area, be["frame"])
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        res = self.repo.run("build", "test", "--city", "test-both", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("test-both: the trim box", res.stdout + res.stderr)
+        suggestion = self.repo.show("test")["areas"]["tsukuba"]["area_box_suggestion"]
+        self.assertTrue(make.box_inside(pl.trim_box_deg(area, be["frame"], feat), suggestion))
+        b["areas"][0]["area_box"] = suggestion
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        self.repo.run("build", "test", "--city", "test-both")
+
 
 # ------------------------------------------------------------------ renders, meta, Actions (D-6 partly, D-7, D-10)
 
@@ -1413,6 +1450,31 @@ class Actions(Scratch):
         self.assertTrue(pc.restore_data_tag("overture/tsukuba-2026-09-23.1", want))
         for r, s in want.items():
             self.assertEqual(make.sha256_file(os.path.join(clone, r)), s)
+
+    def test_moved_extract_gets_its_own_tag(self):
+        # The tag on origin holds the old extract, so a lock that moves the bbox names a new one.
+        tag = make.Pipeline.data_tag_of
+        area, old = {"id": "gta"}, {"release": "r1", "bbox": [0, 0, 1, 1], "data_tag": "overture/gta-r1"}
+        self.assertEqual(tag(area, "r1", [0, 0, 1, 1], old), "overture/gta-r1")
+        self.assertEqual(tag(area, "r1", [0, 0, 1, 1], {}), "overture/gta-r1")
+        self.assertEqual(tag(area, "r2", [0, 0, 2, 1], old), "overture/gta-r2")
+        moved = tag(area, "r1", [0, 0, 2, 1], old)
+        self.assertRegex(moved, r"^overture/gta-r1-[0-9a-f]{8}$")
+        self.assertEqual(tag(area, "r1", [0, 0, 2, 1], dict(old, bbox=[0, 0, 2, 1], data_tag=moved)), moved)
+        self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        plain = git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip()
+        # As if the lock on the branch had pinned an extract of another bbox before this one.
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        bbox = lock["areas"]["tsukuba"]["overture"]["bbox"]
+        lock["areas"]["tsukuba"]["overture"]["bbox"] = [bbox[0], bbox[1], bbox[2] - 0.01, bbox[3]]
+        self.repo.write_json("cities/locks/test.lock.json", lock)
+        self.repo.run("lock", "test")
+        ov = self.repo.read_json("cities/locks/test.lock.json")["areas"]["tsukuba"]["overture"]
+        self.assertEqual(ov["bbox"], bbox)
+        self.assertRegex(ov["data_tag"], r"^overture/tsukuba-2026-09-23\.1-[0-9a-f]{8}$")
+        res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        self.assertIn(f"pushed {ov['data_tag']}", res.stdout)
+        self.assertEqual(git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip(), plain)
 
 
 if __name__ == "__main__":

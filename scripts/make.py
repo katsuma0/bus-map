@@ -300,13 +300,21 @@ def fit_frame(bbox_km, fit_box):
     return {"km_vertical": float(km_vertical), "center_km": [round(cx, 1), round(cy, 1)]}
 
 
-def trim_box(frame, trim_scale):
-    """A8.3: frame box scaled by trim_scale plus 1 km, in km about the origin."""
+def trim_box(frame, trim_scale, bbox_km=None):
+    """A8.3: frame box scaled by trim_scale plus 1 km, in km about the origin.
+
+    With the boundary's bbox, a box that does not hold it grows to the bbox plus
+    1 km, as trim_network does: a pinned frame may show only part of a region
+    (the GTA trains video) while the counts still cover all of it.
+    """
     kv = frame["km_vertical"]
     cx, cy = frame["center_km"]
     hw = kv * 9 / 16 / 2 * trim_scale + 1
     hh = kv / 2 * trim_scale + 1
-    return [cx - hw, cy - hh, cx + hw, cy + hh]
+    box = [cx - hw, cy - hh, cx + hw, cy + hh]
+    if bbox_km is not None and not box_inside(bbox_km, box):
+        box = union_box([box, grow_km(bbox_km, 1.0)])
+    return box
 
 
 def frame_box(frame, zoom=1.0, dx=0.0, dy=0.0):
@@ -1097,8 +1105,16 @@ class Pipeline:
         """D3.4: trim box plus 2 km, in degrees rounded outward to 0.01."""
         return box_deg_outward(area["origin"], grow_km(trim_box(frame, self.defaults()["trim_scale"]), 2.0))
 
-    def trim_box_deg(self, area, frame):
-        tb = trim_box(frame, self.defaults()["trim_scale"])
+    def boundary_bbox_km(self, area, feature):
+        b = geometry_bbox(feature["geometry"])
+        x0, y0 = to_km(area["origin"], b[0], b[1])
+        x1, y1 = to_km(area["origin"], b[2], b[3])
+        return [x0, y0, x1, y1]
+
+    def trim_box_deg(self, area, frame, feature=None):
+        """The trim box in degrees; given the boundary, grown to hold it as the trim does."""
+        tb = trim_box(frame, self.defaults()["trim_scale"],
+                      self.boundary_bbox_km(area, feature) if feature is not None else None)
         w, s = to_deg(area["origin"], tb[0], tb[1])
         e, n = to_deg(area["origin"], tb[2], tb[3])
         return [w, s, e, n]
@@ -1112,6 +1128,21 @@ class Pipeline:
         """Divisions are fetched before any frame exists, so they use the explicit area box plus 5 km."""
         u = grow_deg(area["origin"], area["area_box"], 5.0)
         return [floor_to(u[0]), floor_to(u[1]), ceil_to(u[2]), ceil_to(u[3])]
+
+    @staticmethod
+    def data_tag_of(area, release, bbox, old):
+        """overture/<area>-<release>, the lock's tag for the area's Overture extract and divisions.
+
+        A lock that moves the extract bbox within a release gets 8 hex of the new bbox
+        appended: the tag already on origin holds the old bytes, and restoring from it
+        fails on their sha256 while pushing over it breaks the lock that still pins them.
+        """
+        tag = f"overture/{area['id']}-{release}"
+        if old.get("release") != release:
+            return tag
+        if old.get("bbox") == bbox:
+            return old.get("data_tag") or tag
+        return f"{tag}-{hashlib.sha256(canonical(bbox).encode()).hexdigest()[:8]}"
 
     def divisions_key(self, area):
         # One file per area (A7: one fetch per area); a region code alone cannot
@@ -1544,9 +1575,10 @@ class Pipeline:
             raise MakeError(f"{recipe['id']}: rush.frame does not lie inside the day trim box")
         return be
 
-    def fetch_divisions(self, batch, area, want=None, bbox=None, refresh=False, frozen=False):
+    def fetch_divisions(self, batch, area, want=None, bbox=None, refresh=False, frozen=False, tag=None):
         """cache/overture/<release>/divisions/<key>.geojson: the cache, else the data tag, else Overture (A7 fetch)."""
         rel = batch["overture_release"]
+        tag = tag or f"overture/{area['id']}-{rel}"
         p = self.divisions_path(rel, self.divisions_key(area))
         bbox = bbox or self.divisions_bbox(area)
         info = p + ".json"
@@ -1559,7 +1591,7 @@ class Pipeline:
                         return p
                 except (FileNotFoundError, ValueError):
                     pass
-        if want and self.restore_data_tag(f"overture/{area['id']}-{rel}", {self.rel(p): want}):
+        if want and self.restore_data_tag(tag, {self.rel(p): want}):
             return p
         if frozen and not want:
             raise MakeError("--frozen: the lock has no divisions entry; run make.py lock")
@@ -1590,7 +1622,8 @@ class Pipeline:
             mine = [self.recipe(rid, batch) for rid in batch["cities"]
                     if self.area_of(batch, self.recipe(rid, batch))["id"] == area["id"]]
             if any(not b.get("file") for r in mine for b in boundary_parts(r)):
-                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh)
+                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh,
+                                             tag=olda.get("overture", {}).get("data_tag"))
                 divisions = {"key": dkey, "sha256": self.sha(dpath), "bbox": dbbox}
             else:
                 # Every boundary of the area is a file in the repo: no Overture divisions to fetch or pin.
@@ -1620,7 +1653,8 @@ class Pipeline:
             oldo = olda.get("overture", {})
             files = oldo.get("files", {}) if (not refresh and oldo.get("release") == rel and oldo.get("bbox") == obbox) else {}
             entry = {"feeds": feeds,
-                     "overture": {"release": rel, "bbox": obbox, "data_tag": f"overture/{area['id']}-{rel}", "files": files},
+                     "overture": {"release": rel, "bbox": obbox, "data_tag": self.data_tag_of(area, rel, obbox, oldo),
+                                  "files": files},
                      "divisions": divisions}
             same_feeds = {k: v["sha256"] for k, v in olda.get("feeds", {}).items()} == {k: v["sha256"] for k, v in feeds.items()}
             if not refresh and same_feeds:
@@ -1750,8 +1784,8 @@ class Pipeline:
             if os.path.exists(index):
                 os.remove(index)
 
-    def push_data_tag(self, area_id, release, rels):
-        tag = f"overture/{area_id}-{release}"
+    def push_data_tag(self, area_id, release, rels, tag=None):
+        tag = tag or f"overture/{area_id}-{release}"
         manifest = {"release": release, "area": area_id, "files": {}}
         files = {}
         for rel in sorted(rels):
@@ -1791,7 +1825,7 @@ class Pipeline:
             return
         if dpath:
             self.fetch_divisions(batch, area, want=lk["divisions"]["sha256"], bbox=lk["divisions"].get("bbox"),
-                                 frozen=frozen)
+                                 frozen=frozen, tag=ov["data_tag"])
         ok = all(want.get(n) and self.sha(p) == want[n] for n, p in paths.items())
         if not ok and all(want.get(n) for n in paths):
             ok = self.restore_data_tag(ov["data_tag"], {self.rel(p): want[n] for n, p in paths.items()})
@@ -1827,7 +1861,7 @@ class Pipeline:
             on_origin = self.git("ls-remote", "--tags", "origin", f"refs/tags/{ov['data_tag']}", check=False).stdout.strip()
             if self.fetched_from_overture or not on_origin:
                 self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values())
-                                                           | ({self.rel(dpath)} if dpath else set())))
+                                                           | ({self.rel(dpath)} if dpath else set())), tag=ov["data_tag"])
             else:
                 say(f"  data tag {ov['data_tag']} is already on origin")
 
@@ -1973,8 +2007,9 @@ class Pipeline:
             if frozen:
                 raise MakeError("--frozen: " + msg)
             warn(msg + "; keeping the lock's (make.py lock recomputes it)")
-        if not box_inside(self.trim_box_deg(area, be["frame"]), area["area_box"]):
-            raise MakeError(f"{rid}: the trim box {[round(v, 3) for v in self.trim_box_deg(area, be['frame'])]} is not "
+        tb = self.trim_box_deg(area, be["frame"], read_json(bpath))
+        if not box_inside(tb, area["area_box"]):
+            raise MakeError(f"{rid}: the trim box {[round(v, 3) for v in tb]} is not "
                             f"inside area_box {area['area_box']} (make.py show {batch['batch']} suggests one)")
         if not box_inside(be["clip"], lk["overture"]["bbox"]):
             raise MakeError(f"{rid}: clip {be['clip']} is not inside the Overture extract bbox {lk['overture']['bbox']}")
@@ -2435,13 +2470,21 @@ class Pipeline:
 
     # ---------------------------------------------------------- show (D3.3)
 
+    def boundary_feature(self, rid):
+        """build/<id>/boundary.geojson once lock or build selected it, else None."""
+        try:
+            return read_json(self.path("build", rid, "boundary.geojson"))
+        except FileNotFoundError:
+            return None
+
     def area_box_suggestion(self, batch, area, lock):
         boxes = []
         for rid in batch["cities"]:
             recipe = self.recipe(rid, batch)
             if self.area_of(batch, recipe)["id"] != area["id"] or rid not in lock.get("boundaries", {}):
                 continue
-            boxes.append(grow_deg(area["origin"], self.trim_box_deg(area, lock["boundaries"][rid]["frame"]), 2.0))
+            boxes.append(grow_deg(area["origin"], self.trim_box_deg(area, lock["boundaries"][rid]["frame"],
+                                                                    self.boundary_feature(rid)), 2.0))
         if not boxes:
             return None
         u = union_box(boxes)
@@ -2484,9 +2527,12 @@ class Pipeline:
         batch = self.load_batch(recipe["batch"])
         lock = self.load_lock(batch)
         area = self.area_of(batch, recipe)
+        feat = self.boundary_feature(target)
+        bbox_km = self.boundary_bbox_km(area, feat) if feat else None
         info = {"id": target, "batch": batch["batch"], "area": area["id"],
                 "boundary": lock["boundaries"].get(target),
-                "trim_box_km": [round(v, 3) for v in trim_box(self.city_lock(lock, target)["frame"], self.defaults()["trim_scale"])],
+                "trim_box_km": [round(v, 3) for v in trim_box(self.city_lock(lock, target)["frame"],
+                                                              self.defaults()["trim_scale"], bbox_km)],
                 "city.day.json": self.city_config(batch, recipe, "day", lock),
                 "basemap.config.json": self.basemap_config(batch, recipe, lock),
                 "queries": {v: dict(zip(("render", "brandhex"), self.render_query(recipe, v)))

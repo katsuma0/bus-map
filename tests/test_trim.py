@@ -363,6 +363,14 @@ class ModeSplit(unittest.TestCase):
             p, _s, _g = U.run("trim_network.py", "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64,
                               check=False)
             cls.res[name] = (p, out)
+        # A pinned close-up at a quarter of the fitted height shows only part of the boundary.
+        part = dict(base, frame={"km_vertical": frame["km_vertical"] / 4, "center_km": frame["center_km"]})
+        path = os.path.join(cls.tmp, "city.part.json")
+        U.dump_json(path, part)
+        out = os.path.join(cls.tmp, "part", "day", "network.json.gz")
+        p, _s, _g = U.run("trim_network.py", "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64,
+                          check=False)
+        cls.res["part"] = (p, out)
 
     @classmethod
     def tearDownClass(cls):
@@ -412,6 +420,22 @@ class ModeSplit(unittest.TestCase):
             self.assertTrue(all(i < len(m["brands"]) for i in used), name)
             self.assertLessEqual(sum(g["share"] for g in m["groups"]), 1.0001, name)
         self.assertLess(rail["meta"]["am_peak"]["count"], full["meta"]["am_peak"]["count"])
+
+    def test_frame_showing_part_of_the_boundary(self):
+        """The trim box grows to hold the boundary, so every count matches the fitted frame's."""
+        full, part = self.net("none"), self.net("part")
+        self.assertIn("trim box grown", self.res["part"][0].stderr)
+        m = part["meta"]
+        self.assertEqual(m["frame"]["km_vertical"], full["meta"]["frame"]["km_vertical"] / 4)
+        kv, (cx, cy) = m["frame"]["km_vertical"], m["frame"]["center_km"]
+        hw, hh = kv * 9 / 32 * 1.25 + 1, kv / 2 * 1.25 + 1
+        bb = m["boundary"]["bbox_km"]
+        self.assertFalse(bb[0] >= cx - hw and bb[1] >= cy - hh and bb[2] <= cx + hw and bb[3] <= cy + hh)
+        want = [min(cx - hw, bb[0] - 1), min(cy - hh, bb[1] - 1), max(cx + hw, bb[2] + 1), max(cy + hh, bb[3] + 1)]
+        self.assertEqual(m["trim"]["box_km"], [round(v, 3) for v in want])
+        self.assertEqual(part["hist"], full["hist"])
+        for k in ("am_peak", "pm_peak", "hist_by_mode", "hist_by_group", "groups", "brands", "boundary"):
+            self.assertEqual(m[k], full["meta"][k], k)
 
     def test_unknown_or_empty_modes_fail(self):
         p, out = self.res["tram"]
