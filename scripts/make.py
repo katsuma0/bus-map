@@ -1310,6 +1310,14 @@ class Pipeline:
                 return False
         return True
 
+    def step_current(self, key, stamp_path):
+        """True when `step` would find the stamp at `stamp_path` up to date for `key`."""
+        try:
+            stamp = read_json(stamp_path)
+        except (FileNotFoundError, ValueError):
+            return False
+        return stamp.get("key") == key and self.stamp_ok(stamp)
+
     def step(self, name, key, stamp_path, fn, outputs=None, out_dir=None, no_upstream=False):
         """Run `fn` unless the stamp next to the outputs carries `key` and the outputs still hash to it."""
         try:
@@ -1995,6 +2003,12 @@ class Pipeline:
         lk = lock["areas"][area["id"]]
         if no_upstream:
             self.fetch_area_overture(batch, area, lock, check_only=True)
+        elif (self.step_current(self.boundary_key(batch, recipe, lock), os.path.join(bdir, "stamps", "boundary.json"))
+              and self.step_current(self.basemap_key(batch, recipe, lock), os.path.join(bdir, "stamps", "basemap.json"))):
+            # Only the boundary and the basemap read Overture. A city whose two
+            # steps are current needs no extract, so a cache emptied to save disk
+            # (a New York extract is 485 MB) is not pulled again for a trim.
+            say(f"  {rid}: boundary and basemap up to date, Overture extracts not needed")
         else:
             self.fetch_area_overture(batch, area, lock, frozen=frozen)
         dpath = self.divisions_path(lk["overture"]["release"], lk["divisions"]["key"])

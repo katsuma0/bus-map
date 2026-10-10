@@ -423,6 +423,35 @@ def assign_brands(routes, entries, modes):
     return out, defs
 
 
+def credit_units(feeds, brands, bdefs, entries, feed_name):
+    """The credit unit and its label for each route, given as its feed and city brand.
+
+    An entry is one agency (Zum counts with Brampton). A route without an entry
+    counts with the first entry that lists its feed, because that entry already
+    names the feed's publisher: Valley Metro's feed also carries the PHX Sky
+    Train and MTS's an airport shuttle, and crediting them as their feed would
+    print the same publisher twice ("Valley Metro, Valley Metro"). A feed that
+    no entry lists counts as itself. An entry's optional `credit` names the
+    agency where its chip `label` is a plain word: New York's chips read Bus and
+    Subway, because "MTA Bus" with four-digit counts pushes Subway off the chips
+    line and its lines would lose their colours, while the credit still says
+    MTA Bus and NYC Subway.
+    """
+    feed_entry, credit = {}, {}
+    for e in entries:
+        for fid in e.get("feeds", []):
+            feed_entry.setdefault(fid, e["id"])
+        if e.get("credit"):
+            credit.setdefault(e["id"], e["credit"])
+    units, labels = [], {}
+    for fid, b in zip(feeds, brands):
+        e = bdefs[b]["entry"] or feed_entry.get(fid)
+        u = "entry:" + e if e else "feed:" + fid
+        labels[u] = (credit.get(e) or bdefs[e]["label"]) if e else feed_name[fid]
+        units.append(u)
+    return units, labels
+
+
 def verified_warnings(routes, entries, brand_of, defs):
     warns = []
     for e in entries:
@@ -882,15 +911,9 @@ def trim(args, t_start):
 
     meta_feeds = [feed_entry(f) for f in sm["feeds"]]
 
-    # Credit: agencies with inside vehicle-minutes, by share. An entry is one
-    # agency (Zum counts with Brampton); a route without an entry counts as its feed.
+    # Credit: agencies with inside vehicle-minutes, by share (credit_units).
     feed_name = {f["id"]: f["name"] for f in sm["feeds"]}
-    unit_of, unit_label = [], {}
-    for r, cb in zip(used, city_brand):
-        e = bdefs[cb]["entry"]
-        u = "entry:" + e if e else "feed:" + routes[r]["feed"]
-        unit_label[u] = bdefs[e]["label"] if e else feed_name[routes[r]["feed"]]
-        unit_of.append(u)
+    unit_of, unit_label = credit_units([routes[r]["feed"] for r in used], city_brand, bdefs, entries, feed_name)
     unit_vm = {u: float(fold(np.array([x == u for x in unit_of])).sum()) for u in sorted(unit_label)}
     agencies = [unit_label[u] for u in sorted((u for u in unit_vm if unit_vm[u] > 0), key=lambda u: (-unit_vm[u], unit_label[u]))]
     template = cfg["credit_template"]

@@ -213,11 +213,16 @@ def licence_flags(entries, names):
 
 def credit_lines(netmeta, licences, templates):
     lines = []
+    s = templates["sentences"]
     for f in inside_feeds(netmeta):
         lic = licences.get("licences", {}).get(f.get("licence_id"), {})
-        line = fmt(templates["sentences"]["credit_line"],
-                   {"name": clean(f.get("name")), "publisher": clean(f.get("publisher")),
-                    "licence": clean(lic.get("name") or f.get("licence_text") or f.get("licence_id"))}, "credit_line")
+        name, publisher = clean(f.get("name")), clean(f.get("publisher"))
+        # An agency that publishes its own feed under its own name would read
+        # "Chicago Transit Authority (Chicago Transit Authority)".
+        key = "credit_line_same" if publisher.strip().lower() in ("", name.strip().lower()) and "credit_line_same" in s \
+            else "credit_line"
+        line = fmt(s[key], {"name": name, "publisher": publisher,
+                            "licence": clean(lic.get("name") or f.get("licence_text") or f.get("licence_id"))}, key)
         if lic.get("statement"):
             line += " " + clean(lic["statement"])
         lines.append(line)

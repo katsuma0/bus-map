@@ -42,7 +42,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
-| `boundary.area_km2` | number | yes | | census land area; the match must be within 20% |
+| `boundary.area_km2` | number | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | path | no | | a GeoJSON Feature in the repo instead of Overture |
 | `modes` | list of batch mode ids | no | every mode | the modes this video shows; the others' trips are left out of the network and every count |
 | `center` | [lon, lat] | no | | documentation |

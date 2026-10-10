@@ -506,7 +506,7 @@ does today).
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
-| `boundary.area_km2` | float | yes | | census land area; the match must be within 20% |
+| `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
 | `modes` | [str] | no | every batch mode | the batch mode ids this video keeps (`["rail"]`, `["bus", "streetcar"]`); the trim drops the other modes' trips (2.15) |
 | `center` | [lon, lat] | no | boundary bbox centre | documentation and a fit fallback |
@@ -643,6 +643,7 @@ A union boundary (2.15) has `"id": "union:<16 hex>"`, `"division_id": null`, `"s
 | `verified` | bool | true only when the hex is the dominant informative `route_color` of the agency in its own GTFS (A10 warns otherwise); false = from the livery, checked by a person before the batch PR merges |
 | `lines` | `none` / `rail` / `all` | which routes keep their own informative `color_raw` as a line brand (rail = any mode other than `bus`) |
 | `alt` | `#rrggbb` or null | second candidate of the distinctness ladder (B6) |
+| `credit` | str or absent | the agency's name in the on-screen credit when `label` (the chip word) is not one, e.g. label `Bus`, credit `MTA Bus`; absent = `label` |
 | `rules[]` | list | `short` (regex on `route_short_name`) or `route_ids` ([str]) to a sub-brand |
 
 #### 2.5 Holidays: `cities/holidays.json` (A owns)

@@ -952,6 +952,21 @@ class Caching(Scratch):
                          ["2026-10-04", "2026-10-11", "2026-10-18", "2026-10-25"])
         self.assertTrue(lock["areas"]["tsukuba"]["overture"]["files"]["segments"])
 
+    def test_trim_without_the_extracts(self):
+        """A city whose boundary and basemap are current builds its trims with the Overture cache emptied."""
+        self.repo.run("build", "test")
+        for name in ("segments", "water"):
+            os.remove(os.path.join(self.repo.root, f"cache/overture/2026-09-23.1/tsukuba/{name}.geojson"))
+        r = self.repo.read_json("cities/recipes/test-north.json")
+        r["variety"]["panel_side"] = "right" if r["variety"].get("panel_side") != "right" else "left"
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.clear_calls()
+        out = self.repo.run("build", "test").stdout
+        calls = self.repo.calls()
+        self.assertEqual(sorted(c for c in calls if c.startswith("trim")), ["trim test-north day"])
+        self.assertFalse(any(c.startswith("fetch_overture") for c in calls), calls)
+        self.assertIn("Overture extracts not needed", out)
+
     def test_override_reruns_only_that_city(self):
         self.repo.run("build", "test")
         before = self.keys()
