@@ -2492,8 +2492,11 @@ function buildShortsLayout() {
     }
   }
   L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX, y: ZONES.subtitleY, dy: 42 };
-  // The title scrim reaches as far under a second subtitle line as under the first.
+  // The title scrim reaches as far under a second subtitle line as under the
+  // first, and holds full strength down to the last line's descenders: at
+  // half strength the rush's second line over dense trails reads at 2.2:1.
   L.scrimH = ZONES.scrimH + (subLines.length - 1) * L.subtitle.dy;
+  L.scrimFull = L.subtitle.y + (subLines.length - 1) * L.subtitle.dy + Math.ceil(0.3 * ss);
 
   // The count noun: a mode's own word when only one mode is inside in the window.
   const present = modesInWindow();
@@ -2683,17 +2686,19 @@ function buildShortsStatics() {
   const scrim = cssToRGB(C.scrim, bgRGB());
   if (CONFIG.TITLE_SCRIM > 0) {
     const s = CONFIG.TITLE_SCRIM;
-    // Down to 220 px under SAFE.y0, one line more for a wrapped subtitle: past
-    // the subtitle, fading out over the map.
+    // Down to 220 px under SAFE.y0, one line more for a wrapped subtitle: full
+    // strength through the subtitle, fading out over the map.
     const sh = L.scrimH;
+    // A tenth of the sprite at least is left to fade over.
+    const full = Math.min(0.9, L.scrimFull / sh);
     st.titleScrim = document.createElement('canvas');
     st.titleScrim.width = W;
     st.titleScrim.height = sh;
     const g = st.titleScrim.getContext('2d');
     const grad = g.createLinearGradient(0, 0, 0, sh);
     grad.addColorStop(0, rgba(scrim, s));
-    grad.addColorStop(0.55, rgba(scrim, s));
-    grad.addColorStop(0.80, rgba(scrim, 0.55 * s));
+    grad.addColorStop(full, rgba(scrim, s));
+    grad.addColorStop(full + 0.55 * (1 - full), rgba(scrim, 0.55 * s));
     grad.addColorStop(1, rgba(scrim, 0));
     g.fillStyle = grad;
     g.fillRect(0, 0, W, sh);

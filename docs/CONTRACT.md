@@ -1104,7 +1104,7 @@ count line 44 px more.
 
 | element | font | colour | x | baseline y | fit |
 |---|---|---|---|---|---|
-| title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, 42 px more under a wrapped subtitle): alpha stops 0: S, 0.55: S, 0.80: 0.55 S, 1: 0; S = `TITLE_SCRIM` |
+| title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, 42 px more under a wrapped subtitle): alpha S from y 0 down to F = the last subtitle baseline + ceil(0.3 x its size) (431, or 473 wrapped), 0.55 S at F + 0.55 (h - F) for the sprite's height h, 0 at h; S = `TITLE_SCRIM`. At half strength the rush's second line read 2.2:1 over dense trails |
 | title (`meta.title`) | MontserratX 700, `TITLE_SIZE` 64, letter-spacing 0.12 em | title | 132 | 366 | width <= 656: shrink by 2 down to 48 |
 | subtitle (variant label) | MontserratX 400 36 | subtitle | 132 | 420 | width <= 656: 36 down to 32; past that two lines 42 px apart from 36 px down, broken after the comma when both halves fit, else balanced (the rush label: `Morning rush,` / `an average October weekday`) |
 | panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95) | 120+dx..680+dx | | y `PANEL_TOP`..1440 |
