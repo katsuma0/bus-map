@@ -208,7 +208,7 @@ as `application/gzip` without a Content-Encoding header.
 * Title and attribution come from meta when present.
 * Modes: static route lines, trails and dot halos take the colour of the route's mode (`meta.modes[...]`); the halo is the mode's `trail` colour under the white 3 px core, and with one mode it stays white as today. With one mode everything renders as today. Ribbon trails keep one Path2D per (mode, band) and stroke per mode.
 * HUD with more than one mode: the count line reads `2,058 vehicles running` (thousands separator) and a second line below it, Montserrat 500 24 px `#9a9da6`, reads `1,842 buses · 120 streetcars · 96 trains` at baseline 1374 in mode order using each mode's `label` (singular form when the count is 1); its size is fixed once at init so the widest line the day can produce (every mode at its `hist_by_mode` peak) fits 540 px, and the page warns on the console when it had to shrink. The sparkline, axis labels and attribution shift down by 30 px when that line is present. With one mode the HUD is unchanged (`24 buses running`).
-* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 12 px. The panel top is `meta.frame.hud_top` (default 1120) and every HUD y moves with it, so a city can put the block on its water (the GTA uses 1200).
+* Attribution: draw every line in `meta.attribution` at 23 px pitch; the panel bottom is the last baseline plus 12 px plus `meta.frame.hud_pad_bottom` (default 0, see v3). The panel top is `meta.frame.hud_top` (default 1120) and every HUD y moves with it, so a city can put the block on its water (the GTA uses 1200).
 * `hud_side: "right"` moves the whole panel block right by 400 px (panel x 440..1040, text x 470, sparkline x 470..1010); text stays left-aligned inside the panel.
 * Performance target: a GTA frame at the morning peak (roughly 3,000 running vehicles, 60k trips in the file) in under 400 ms including raster in headless Chromium. Trips are sorted by start time, so stop scanning once `t[0] > T`.
 * Large frames (`CONFIG.LARGE_FRAME_KM` = 60 km and up) take `CONFIG.LARGE_FRAME`: 12-minute trails, `TRAIL_ALPHA` 0.35, 3 px core, 12 px shoulder at 0.35 on the 5 freshest bands, `TRAIL_BLEND` and `ROUTE_BLEND` `bounded`, `TRAIL_LAYER_ALPHA` 0.65, `ROUTE_ALPHA` 0.2, `BUS_HALO_ALPHA` 0.12, `BUS_HALO_R` 8, `BUS_CORE_R` 2.2. Bounded blending: each mode's trails are stroked with normal alpha into their own layer (so one mode never exceeds its own trail colour), the layer lands on the frame with `lighter` at `TRAIL_LAYER_ALPHA`; the dormant network is unioned per mode at full alpha in a layer and composited once at `ROUTE_ALPHA`, so thirty overlapping shapes are as dim as one. Frames under 60 km keep the additive `add` blend and the values above, so Tsukuba is unchanged. A query knob given explicitly is pinned against the profile; `?knob=0` is honoured.
@@ -249,7 +249,8 @@ nothing. Two open national datasets fill the gaps:
   licence non-commercial. Per route feature: `N07_001` bus class code (1
   private route bus, 2 public route bus, 3 community bus, 4 demand bus, 5
   other), `N07_002` operator, `N07_003` route (系統), `N07_004` weekday
-  trips per day (average, real), `N07_005` Saturday, `N07_006` Sunday,
+  trips per day in one direction (average of the two, real), `N07_005`
+  Saturday, `N07_006` Sunday,
   `N07_007` remarks; geometry is a gml:Curve whose posList is **lat lon**
   order. The 2022 edition (`n07_<pref>.zip`) has no trip counts and is not used.
 
@@ -271,23 +272,51 @@ Reads `cities/japan_model.json` and writes into the area's `gtfs_dir`:
    * Per (operator, line): order the sections into chains (a section follows
      another when its 起点駅 equals the previous 終点駅; branches start new
      chains), and orient each WKT so it runs 起点駅 to 終点駅 (compare the
-     ends against the station points).
+     ends against the station points). A closed chain (its last 終点駅 is
+     its first 起点駅) of fewer than 3 sections has each section split at
+     the vertex nearest half its length into two legs with the section's
+     counts, so no trip stops twice in a row at one stop: the one-section
+     ディズニーリゾートライン would otherwise start and end every trip at the
+     same stop and its trains would never move. The split point is a timing
+     stop named "<起点駅>～<終点駅> 中間点", not a station.
    * Per chain and direction, decompose the per-section counts into service
      patterns by levels: for L = 1..max count, every maximal run of
      consecutive sections with count >= L is one train running that run end
      to end. Merge equal runs into (pattern, number of trains).
-   * Departure times: the n trains of a pattern leave at the times where
-     the weekday departure profile's cumulative share reaches (k + phase)/n,
-     k = 0..n-1, with phase in [0,1) from a stable hash of
-     (operator, line, pattern, direction) so lines do not all depart
-     together. The profile is the per-minute count of first departures of
-     the weekday (2026-10-16) trips in `profiles.rail` (Toei's real train
-     GTFS), smoothed over 15 minutes.
+   * Departure profile: the per-minute count of first departures of the
+     weekday (2026-10-16) trips in `profiles.rail` (Toei's real train GTFS),
+     smoothed over 15 minutes. A pattern of running time d may only use the
+     profile up to 25:15 - d: the profile is cut there and the pattern's n
+     trains take the quantiles of what is left, so the whole day keeps the
+     profile's shape and nothing is squeezed into the evening.
+   * Departure times, in rounds per chain and direction. With one speed and
+     no dwell, two patterns timed apart keep their gap along all the track
+     they share, so patterns that share track are timed together. Each
+     round takes the leg with the most trains among the patterns not yet
+     timed, and the patterns running over it. Each train gets an ideal time
+     at that leg: its pattern's cut-profile quantile (k + 0.5)/n,
+     k = 0..n-1, plus the running time from the pattern's origin to the
+     leg. In the first round the trains, ordered by ideal time, enter the
+     leg at the times where the round's summed expected arrivals there
+     reach i + phase, i = 0..N-1, with phase in [0,1) from a stable hash of
+     (operator, line, chain, direction, leg) so lines do not all depart
+     together. In later rounds the trains already timed through the leg
+     stay, and the new trains, in the same order, share each gap between
+     two of them evenly (before the first and after the last they keep
+     their ideal time). The origin departure is the time at the leg minus
+     the running time to it, held at the profile's first minute (04:53) or
+     at 25:15 - d where it would fall outside, so every departure is at or
+     after 04:53 and every arrival at or before 25:15. A pattern alone in
+     a round with no earlier trains on its leg thus leaves at its
+     cut-profile quantiles (k + phase)/n.
    * Running time: section length / speed, speed by kind: subway or metro
-     operator 32 km/h, JR and private railways 42 km/h, monorail and
-     automated guideway 28 km/h, streetcar 13 km/h. Stops at every section
-     end with times proportional to distance (no dwell). The shape is the
-     chain's concatenated section geometry.
+     operator 30 km/h, JR and private railways 34 km/h, monorail and
+     automated guideway 27 km/h, streetcar 13 km/h (the Arakawa line's
+     average) unless `streetcar_speeds` in `cities/japan_model.json` gives
+     the line its own ({"事業者名:路線名": km/h}: 東急電鉄:世田谷線 17,
+     京福電気鉄道:嵐山本線 and 北野線 19, 阪堺電気軌道:阪堺線 and 上町線 16).
+     Stops at every section end with times proportional to distance (no
+     dwell). The shape is the chain's concatenated section geometry.
    * GTFS output: agency per operator (agency_name = 事業者名), route per
      line (route_long_name = 路線名, route_color from `cities/line_colors.json`
      keyed "事業者名:路線名", falling back to a per-operator colour, then grey),
@@ -295,15 +324,33 @@ Reads `cities/japan_model.json` and writes into the area's `gtfs_dir`:
      everything else; one weekday service id with calendar Mon-Fri
      20260101-20271231; feed_info.feed_publisher_name mentions the model.
 4. `model_bus.zip` from the N07 2010 file when the area has a `bus` block:
-   one route per (operator, 系統); weekday trips N07_004 rounded (minimum 1)
-   split as evenly as possible between the two directions of the curve;
-   departures spread by the weekday profile of `profiles.bus` (Toei Bus
-   real GTFS) the same way; 13 km/h; demand buses (class 4) and routes
-   longer than 60 km dropped; operators in `exclude_operators` dropped.
+   one route per (operator, 系統). N07_004 is one direction's weekday trips
+   (the mean of the two directions: N07's Toei routes match one direction
+   of Toei's own GTFS, overnight coaches read 1.0 and many values end in
+   .5), so each direction of the curve gets N07_004 rounded (minimum 1)
+   trips; 999.9 (unknown) gives 1 trip each way. Departures at the
+   quantiles (k + phase)/n of the weekday profile of `profiles.bus` (Toei
+   Bus real GTFS), cut at 25:15 minus the running time as for trains, with
+   phase from a stable hash of (operator, 系統, feature, direction);
+   13 km/h. Dropped, in this order: demand buses (class 4), operators in
+   `exclude_operators`, features not touching `bbox`, routes longer than
+   60 km, highway coaches and airport buses, features with N07_004 = 0.
+   N07 files are cut at the prefecture line, so a long-distance coach
+   shows up as a short in-prefecture leg that passes the length test; it
+   is dropped when its 系統 matches `highway_route_pattern` or its operator
+   matches `highway_operator_pattern` (Python `re.search` on the whole
+   N07_003 or N07_002 string, so `^京都交通（株）$` drops that one operator
+   and keeps 京阪京都交通（株）).
    route_color "ffffff", route_type 3, agency per operator.
 5. A summary per area: lines and sections used, trains per weekday, peak
-   trains running and when, buses likewise, and a list of counted lines in
-   the bbox that got no colour from line_colors.json.
+   trains running and when, buses likewise with the features dropped for
+   each reason above, and a list of counted lines in the bbox that got no
+   colour from line_colors.json. Unless `--no-verify`, the written zips are
+   then read back and checked: trips per section and direction equal the
+   count, shape ends lie within 50 m of the first and last stops, trip ids
+   are unique, no trip stops twice in a row at one stop, and every trip of
+   a shaped feed has a shape with its stops within 150 m. Any failure ends
+   the run with a non-zero exit.
 
 ### cities/line_colors.json
 
@@ -325,12 +372,13 @@ and say so in a `notes` key).
 ### City config additions (cities/<video>.json)
 
     "basemap_city": "tokyo"          // build_basemap writes data/tokyo/built/basemap.json.gz once; every video of the area uses it
-    "subtitle": "A weekday in October"   // shown under the title instead of the date when present
+    "subtitle": "A modelled weekday"   // shown under the title instead of the date when present
     "include_route_types": [1, 2, 12]     // routes of other types are dropped before anything else (Toei's feed carries both the subway and the tram)
     "color_by": "route"              // static lines, trails and halos take routes[].color; default "mode"
     "group_by": {"field": "agency", "groups": [{"id","label","match": [agency names]}], "default": {"id","label"}}
     "theme": {"accent": "#9ad04a"}   // HUD count, sparkline
     "render": {...}                  // optional CONFIG overrides passed through meta.render
+    "frame": {..., "hud_pad_bottom": 36}  // extra panel under the last attribution baseline, default 0
     feeds[].modelled: true           // carried to meta.feeds and routes[].modelled
 
 ### network.json additions
@@ -372,6 +420,15 @@ shapefile (`.dbf`, cp932) rather than the GML.
   tabular-digit rules as the mode breakdown. Groups win over modes when both
   exist.
 * Subtitle from meta.subtitle.
+* `meta.frame.hud_pad_bottom` (default 0) adds that many px to the panel
+  under the last attribution baseline. The blur thins the panel's bottom
+  edge, so over a dense map the last line needs it; the six Japan videos
+  use 36.
+* `render.STREETCAR_ON_TOP` (default false): under bounded blending the
+  `streetcar` mode's layer lands after every other mode's layer with
+  `source-over` instead of `lighter`, so a tram sharing a street with buses
+  keeps its colour instead of adding up to white. The three Japan bus
+  videos set it; Tsukuba and the GTA leave it off.
 * Performance: under 400 ms per frame at the peak for every video.
 
 ### Video script
