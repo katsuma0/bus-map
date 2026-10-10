@@ -18,6 +18,7 @@ run node tests/web/v4_loop.mjs
 run node tests/web/v4_knobs.mjs
 run node tests/web/v4_hud.mjs
 run node tests/web/v4_camera.mjs
+run node tests/web/v4_modes.mjs
 run node tests/web/v4_perf.mjs
 echo "== renderer tests: $([ $status -eq 0 ] && echo PASS || echo FAIL)"
 exit $status

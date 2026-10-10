@@ -5,12 +5,18 @@
     python3 -I scripts/fetch_boundary.py select --in cache/overture/2026-09-23.1/divisions/CA-ON.geojson \
             --name Markham --subtypes locality --area-km2 210.93 --out build/gta-markham/boundary.geojson
 
+    python3 -I scripts/fetch_boundary.py union --in build/gta-trains/boundary.parts/0.geojson \
+            --in build/gta-trains/boundary.parts/1.geojson ... --out build/gta-trains/boundary.geojson
+
 `fetch` runs once per area. It reads the division_area parquet files of the
 release with the row-group bbox pruning of fetch_overture.py and keeps land
 localities, localadmins and counties of one country and region that carry a
 primary name. `select` picks one city from that file by its exact name and
 census area, and writes it as a single GeoJSON Feature for trim_network.py.
 The selected Feature's properties are also printed as one JSON line on stdout.
+`union` merges Features that `select` (or a recipe's own file) wrote into one
+Feature, for a video whose boundary is several divisions (the GTA is Toronto
+and the regions of Peel, York, Durham and Halton).
 """
 import argparse
 import json
@@ -115,6 +121,55 @@ def select(args):
     print(f"{args.name}: {props['subtype']} {props['id']}, {props['area_km2']} km2 (census {args.area_km2})", file=sys.stderr)
 
 
+def union(args):
+    import hashlib
+
+    import shapely
+    from shapely.geometry import mapping, shape
+
+    parts = []
+    for path in args.inp:
+        with open(path, encoding="utf-8") as fh:
+            obj = json.load(fh)
+        if obj.get("type") == "FeatureCollection":
+            if len(obj.get("features", [])) != 1:
+                sys.exit(f"union: {path} must hold exactly one Feature")
+            obj = obj["features"][0]
+        parts.append(obj)
+    if len(parts) < 2:
+        sys.exit("union: needs at least two --in Features")
+    geoms = [shape(p["geometry"]) for p in parts]
+    # Neighbouring divisions share their border vertices, so the union has no
+    # slivers along it; a real gap between parts stays as it is.
+    geom = shapely.union_all(geoms)
+    if geom.geom_type not in ("Polygon", "MultiPolygon"):
+        sys.exit(f"union: the parts make a {geom.geom_type}, not a polygon")
+    props = [p.get("properties") or {} for p in parts]
+    ids = [str(q.get("id")) for q in props]
+    releases = sorted({q["release"] for q in props if q.get("release")})
+    keep = ("id", "division_id", "name", "subtype", "area_km2", "release", "source")
+    out = {
+        # The parts keep their own ids; the union's id only has to be stable and short.
+        "id": "union:" + hashlib.sha256(",".join(ids).encode("utf-8")).hexdigest()[:16],
+        "division_id": None,
+        "name": " + ".join(str(q.get("name")) for q in props),
+        "subtype": "union",
+        "area_km2": round(area_km2(geom), 2),
+        "parts": [{k: q[k] for k in keep if k in q} for q in props],
+    }
+    if len(releases) == 1 and all(q.get("release") for q in props):
+        out["release"] = releases[0]
+        out["source"] = f"Overture {releases[0]} division_area " + " + ".join(ids)
+    else:
+        out["source"] = " + ".join(str(q.get("source") or q.get("id")) for q in props)
+    feat = {"type": "Feature", "properties": out, "geometry": mapping(geom)}
+    write_json(args.out, feat)
+    props_out = dict(out)
+    props_out["bbox"] = [round(v, 6) for v in geom.bounds]
+    print(json.dumps(props_out, ensure_ascii=False, sort_keys=True))
+    print(f"union of {len(parts)}: {out['name']}, {out['area_km2']} km2", file=sys.stderr)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -130,6 +185,9 @@ def main():
     s.add_argument("--subtypes", default=",".join(SUBTYPES), help="comma list in preference order")
     s.add_argument("--area-km2", type=float, required=True)
     s.add_argument("--out", required=True)
+    u = sub.add_parser("union", help="one Feature out of several selected ones")
+    u.add_argument("--in", dest="inp", action="append", required=True, help="a Feature file; give two or more")
+    u.add_argument("--out", required=True)
     # A box that starts west of Greenwich ("--bbox -80.12,...") looks like an
     # option to argparse; glue it to its flag so the A2 command line works.
     argv, rest = [], list(sys.argv[1:])
@@ -139,6 +197,8 @@ def main():
     args = ap.parse_args(argv)
     if args.cmd == "fetch":
         fetch(args)
+    elif args.cmd == "union":
+        union(args)
     else:
         select(args)
 

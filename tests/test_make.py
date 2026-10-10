@@ -158,6 +158,18 @@ if cmd == "fetch":
                            "subtype": "locality", "class": "land", "area_km2": 36.0 if "north" in p else 64.0}
         feats.append(f)
     json.dump({"type": "FeatureCollection", "features": feats}, open(arg("--out"), "w"), sort_keys=True)
+elif cmd == "union":
+    # Every --in Feature as one MultiPolygon, with the properties fetch_boundary.py union writes.
+    ins = [sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--in"]
+    parts = [json.load(open(p)) for p in ins]
+    polys = [f["geometry"]["coordinates"] for f in parts]
+    props = [f["properties"] for f in parts]
+    feat = {"type": "Feature", "geometry": {"type": "MultiPolygon", "coordinates": polys},
+            "properties": {"id": "union:" + "-".join(str(q["id"]) for q in props), "division_id": None,
+                           "name": " + ".join(q["name"] for q in props), "subtype": "union",
+                           "area_km2": round(sum(q["area_km2"] for q in props), 2), "parts": props,
+                           "source": " + ".join(q.get("source", q["id"]) for q in props)}}
+    json.dump(feat, open(arg("--out"), "w"), sort_keys=True)
 else:
     fc = json.load(open(arg("--in")))
     subs = arg("--subtypes").split(",")
@@ -585,6 +597,52 @@ class Validation(unittest.TestCase):
             else:
                 self.assertTrue(any("variety.camera: must be off or one of" in e for e in errs), bad)
 
+    def test_recipe_modes(self):
+        """A recipe's `modes` is a subset of the batch's mode ids; the trim keeps them in batch order."""
+        for ok in (["rail"], ["bus", "streetcar"], ["rail", "bus", "streetcar"]):
+            self.assertEqual(self.recipe_errors(dict(self.recipe, modes=ok)), [], ok)
+        for bad, want in ((["tram"], "'tram' is not a mode of the batch"), ([], "non-empty list"),
+                          (["bus", "bus"], "distinct"), ("bus", "non-empty list")):
+            self.assertTrue(any(want in e for e in self.recipe_errors(dict(self.recipe, modes=bad))), bad)
+        self.assertEqual(make.recipe_modes(self.recipe, self.batch), ["bus", "streetcar", "rail"])
+        self.assertEqual(make.recipe_modes(dict(self.recipe, modes=["rail", "bus"]), self.batch), ["bus", "rail"])
+
+    def test_mode_route_rules(self):
+        """modes[].routes moves named routes into a mode whatever their route_type (TTC Line 5 and 6)."""
+        b = json.loads(json.dumps(self.batch))
+        rail = b["modes"][2]
+        rail["routes"] = [{"feed": "ttc", "short": "^[56]$", "why": "Line 5 and Line 6 are light rail, route_type 0"},
+                          {"feed": "go", "route_id": "^\\d+-LW$"}]
+        self.assertEqual(self.batch_errors(b), [])
+        for rule, want in (({"feed": "nope", "short": "5"}, "feed: must be a feed id"),
+                           ({"feed": "ttc"}, "needs short"),
+                           ({"feed": "ttc", "short": "("}, "not a regular expression"),
+                           ({"feed": "ttc", "route_id": ""}, "non-empty regular expression"),
+                           ({"feed": "ttc", "short": "5", "colour": "red"}, "unknown key 'colour'")):
+            rail["routes"] = [rule]
+            self.assertTrue(any(want in e for e in self.batch_errors(b)), (rule, self.batch_errors(b)))
+        rail["routes"] = {"feed": "ttc"}
+        self.assertTrue(any("must be a list of route rules" in e for e in self.batch_errors(b)))
+        del rail["routes"]
+        b["modes"].append(dict(b["modes"][0]))
+        self.assertTrue(any("duplicate mode id 'bus'" in e for e in self.batch_errors(b)))
+
+    def test_boundary_of_several_divisions(self):
+        """A boundary list names divisions whose union is the boundary; each is checked as a single one."""
+        parts = [{"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+                 {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9}]
+        r = dict(self.recipe, place="the GTA", boundary=parts)
+        self.assertEqual(self.recipe_errors(r), [])
+        self.assertEqual(make.boundary_name(r), "Toronto + Peel Region")
+        self.assertEqual(make.boundary_name(self.recipe), "Markham")
+        self.assertEqual(make.boundary_parts(self.recipe), [self.recipe["boundary"]])
+        bad = dict(r, boundary=[parts[0], {"name": "Peel Region"}])
+        self.assertTrue(any("boundary[1]: missing key 'area_km2'" in e for e in self.recipe_errors(bad)))
+        bad = dict(r, boundary=[parts[0], dict(parts[0])])
+        self.assertTrue(any("named twice" in e for e in self.recipe_errors(bad)))
+        self.assertTrue(any("at least one division" in e for e in self.recipe_errors(dict(r, boundary=[]))))
+        self.assertTrue(any("boundary[0]: must be an object" in e for e in self.recipe_errors(dict(r, boundary=["x"]))))
+
     def test_other_errors(self):
         r = json.loads(json.dumps(self.recipe))
         r["variants"] = ["day", "night"]
@@ -830,9 +888,12 @@ class Derivation(Scratch):
         self.assertEqual(ac["feeds"][0]["sha256"], self.lock["areas"]["tsukuba"]["feeds"]["tsukubus"]["sha256"])
         cc = self.pl.city_config(self.batch, recipe, "day", self.lock)
         self.assertEqual(set(cc), {"schema", "kind", "id", "batch", "area", "place", "title", "origin", "frame",
-                                   "trim_scale", "boundary", "brands", "group_by", "credit_template", "credit_fallback",
-                                   "preset", "theme", "render", "variants", "rush", "fit_box", "panel", "card", "major_share"})
+                                   "trim_scale", "boundary", "modes", "brands", "group_by", "credit_template",
+                                   "credit_fallback", "preset", "theme", "render", "variants", "rush", "fit_box", "panel",
+                                   "card", "major_share"})
         self.assertEqual(cc["title"], "NORTH TSUKUBA")
+        self.assertEqual(cc["modes"], ["bus"], "a recipe without modes keeps every mode of the batch")
+        self.assertEqual(cc["boundary"]["name"], "Tsukuba north square")
         self.assertEqual(list(cc["variants"]), ["day", "rush"])
         self.assertEqual(cc["variants"]["rush"]["render"]["DURATION_FRAMES"], 750)
         self.assertEqual(cc["variants"]["day"]["label"], "An average {month} weekday")
@@ -1103,6 +1164,133 @@ class Caching(Scratch):
         self.assertNotIn("test-centre-week", self.repo.show("test")["publish_order"])
 
 
+# ------------------------------------------------------------------ videos split by mode, union boundaries
+
+class ModeSplit(Scratch):
+    """Recipes that split one city by mode share its boundary and area build; a boundary can join divisions."""
+
+    def setUp(self):
+        super().setUp()
+        self.repo = FakeRepo(self.tmp)
+        b = self.repo.read_json("cities/batches/test.json")
+        b["modes"].append({"id": "rail", "label": "trains", "singular": "train", "route_types": [2],
+                           "routes": [{"feed": "tsukubus", "short": "^TX$", "why": "a test rule"}]})
+        b["cities"] += ["test-centre-rail", "test-both"]
+        self.repo.write_json("cities/batches/test.json", b)
+        r = self.repo.read_json("cities/recipes/test-centre.json")
+        self.repo.write_json("cities/recipes/test-centre-rail.json",
+                             dict(r, id="test-centre-rail", modes=["rail"], variants=["day", "rush"]))
+        north = self.repo.read_json("cities/recipes/test-north.json")
+        self.repo.write_json("cities/recipes/test-both.json", dict(
+            north, id="test-both", place="the Tsukuba squares", modes=["bus"],
+            boundary=[r["boundary"], north["boundary"]]))
+        self.repo.run("lock", "test")
+        # Both squares need a taller frame than either one, whose trim box the area box must hold;
+        # the integrator takes show's suggestion.
+        b["areas"][0]["area_box"] = self.repo.show("test")["areas"]["tsukuba"]["area_box_suggestion"]
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.pl = make.Pipeline(self.repo.root)
+        self.batch = self.pl.load_batch("test")
+        self.lock = self.pl.load_lock(self.batch)
+
+    def test_lock_and_derived_configs(self):
+        lock = self.lock
+        a, b = lock["boundaries"]["test-centre"], lock["boundaries"]["test-centre-rail"]
+        self.assertEqual(a, b, "one boundary, one frame and one clip for both videos of the city")
+        u = lock["boundaries"]["test-both"]
+        self.assertEqual((u["subtype"], u["name"]), ("union", "Tsukuba centre square + Tsukuba north square"))
+        self.assertEqual([p["name"] for p in u["parts"]], ["Tsukuba centre square", "Tsukuba north square"])
+        self.assertEqual([p["file"] for p in u["parts"]], ["tests/fixtures/test/centre.geojson",
+                                                          "tests/fixtures/test/north.geojson"])
+        self.assertTrue(all(len(p["sha256"]) == 64 for p in u["parts"]))
+        self.assertNotIn("file", u)
+        self.assertEqual(u["area_km2"], 100.0)
+        # The union's frame fits both squares, so it is taller than either one's.
+        self.assertGreater(u["frame"]["km_vertical"], a["frame"]["km_vertical"])
+        self.assertEqual([c for c in self.repo.calls() if c.startswith("fetch_boundary")], ["fetch_boundary union"])
+        feat = self.repo.read_json("build/test-both/boundary.geojson")
+        self.assertEqual(len(feat["geometry"]["coordinates"]), 2)
+        cfg = lambda rid: self.pl.city_config(self.batch, self.pl.recipe(rid, self.batch), "day", self.lock)  # noqa: E731
+        self.assertEqual(cfg("test-centre")["modes"], ["bus", "rail"])
+        self.assertEqual(cfg("test-centre-rail")["modes"], ["rail"])
+        self.assertEqual(cfg("test-both")["modes"], ["bus"])
+        self.assertEqual(cfg("test-both")["boundary"]["name"], "Tsukuba centre square + Tsukuba north square")
+        self.assertEqual(cfg("test-both")["title"], "THE TSUKUBA SQUARES")
+        ac = self.pl.area_config(self.batch, self.batch["areas"][0], "day", self.lock)
+        self.assertEqual(ac["modes"][1]["routes"], [{"feed": "tsukubus", "short": "^TX$", "why": "a test rule"}])
+        # The two Tsukuba centre videos differ only by their modes, which every key below the area sees.
+        k1 = self.pl.trim_key(self.batch, self.pl.recipe("test-centre", self.batch), "day", self.lock, "b" * 64)
+        k2 = self.pl.trim_key(self.batch, self.pl.recipe("test-centre-rail", self.batch), "day", self.lock, "b" * 64)
+        self.assertNotEqual(k1, k2)
+
+    def test_one_area_build_for_every_split(self):
+        self.repo.clear_calls()
+        self.repo.run("build", "test")
+        calls = self.repo.calls()
+        self.assertEqual(sorted(c for c in calls if c.startswith("build_area")),
+                         ["build_area tsukuba day", "build_area tsukuba week"])
+        trims = sorted(c for c in calls if c.startswith("trim"))
+        self.assertEqual(trims, ["trim test-both day", "trim test-centre day", "trim test-centre week",
+                                 "trim test-centre-rail day", "trim test-north day"])
+        self.assertEqual(self.repo.read_json("build/test-centre-rail/city.day.json")["modes"], ["rail"])
+        nm, _meta = self.pl.write_netmeta(self.batch, self.pl.recipe("test-centre-rail", self.batch), "day")
+        nm = load(nm)
+        self.assertEqual([m["id"] for m in nm["modes"]], ["rail"])
+        self.assertNotIn("routes", nm["modes"][0], "the route rules stay in the batch and the area build")
+        # The stub's network has only buses, so no rail mode is in the window.
+        self.assertEqual(nm["modes_present"], [])
+        nm2, _meta = self.pl.write_netmeta(self.batch, self.pl.recipe("test-centre", self.batch), "day")
+        self.assertEqual([m["id"] for m in load(nm2)["modes"]], ["bus", "rail"])
+        self.repo.clear_calls()
+        self.repo.run("build", "test")
+        self.assertEqual(self.repo.calls(), [])
+        # A changed part of a union boundary selects that boundary again, and nothing else.
+        north = self.repo.read_json("tests/fixtures/test/north.geojson")
+        north["properties"]["note"] = "edited"
+        self.repo.write_json("tests/fixtures/test/north.geojson", north)
+        self.repo.run("lock", "test")
+        self.assertEqual([c for c in self.repo.calls() if c.startswith("fetch_boundary")], ["fetch_boundary union"])
+
+    def test_pinned_frame_shows_part_of_a_union(self):
+        """The trim box, the area box check and show's suggestion hold the whole union; the clip follows the frame."""
+        r = self.repo.read_json("cities/recipes/test-both.json")
+        r["frame"] = dict(self.lock["boundaries"]["test-centre"]["frame"])
+        self.repo.write_json("cities/recipes/test-both.json", r)
+        self.repo.run("lock", "test")
+        pl = make.Pipeline(self.repo.root)
+        batch = pl.load_batch("test")
+        lock = pl.load_lock(batch)
+        area = batch["areas"][0]
+        be = lock["boundaries"]["test-both"]
+        self.assertEqual(be["frame"], r["frame"])
+        self.assertEqual(be["clip"], lock["boundaries"]["test-centre"]["clip"])
+        feat = self.repo.read_json("build/test-both/boundary.geojson")
+        bb = pl.boundary_bbox_km(area, feat)
+        self.assertFalse(make.box_inside(bb, make.trim_box(be["frame"], 1.25)))
+        tb = make.trim_box(be["frame"], 1.25, bb)
+        self.assertEqual(tb, make.union_box([make.trim_box(be["frame"], 1.25), make.grow_km(bb, 1.0)]))
+        # A fitted city's box is unchanged by its own boundary.
+        fr = lock["boundaries"]["test-north"]["frame"]
+        nb = pl.boundary_bbox_km(area, self.repo.read_json("build/test-north/boundary.geojson"))
+        self.assertEqual(make.trim_box(fr, 1.25, nb), make.trim_box(fr, 1.25))
+        # An area box that holds the frame's box but not the union stops the build.
+        b = self.repo.read_json("cities/batches/test.json")
+        b["areas"][0]["area_box"] = pl.trim_box_deg(area, be["frame"])
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        res = self.repo.run("build", "test", "--city", "test-both", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("test-both: the trim box", res.stdout + res.stderr)
+        suggestion = self.repo.show("test")["areas"]["tsukuba"]["area_box_suggestion"]
+        self.assertTrue(make.box_inside(pl.trim_box_deg(area, be["frame"], feat), suggestion))
+        b["areas"][0]["area_box"] = suggestion
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        self.repo.run("build", "test", "--city", "test-both")
+
+
 # ------------------------------------------------------------------ renders, meta, Actions (D-6 partly, D-7, D-10)
 
 class Actions(Scratch):
@@ -1354,6 +1542,31 @@ class Actions(Scratch):
         self.assertTrue(pc.restore_data_tag("overture/tsukuba-2026-09-23.1", want))
         for r, s in want.items():
             self.assertEqual(make.sha256_file(os.path.join(clone, r)), s)
+
+    def test_moved_extract_gets_its_own_tag(self):
+        # The tag on origin holds the old extract, so a lock that moves the bbox names a new one.
+        tag = make.Pipeline.data_tag_of
+        area, old = {"id": "gta"}, {"release": "r1", "bbox": [0, 0, 1, 1], "data_tag": "overture/gta-r1"}
+        self.assertEqual(tag(area, "r1", [0, 0, 1, 1], old), "overture/gta-r1")
+        self.assertEqual(tag(area, "r1", [0, 0, 1, 1], {}), "overture/gta-r1")
+        self.assertEqual(tag(area, "r2", [0, 0, 2, 1], old), "overture/gta-r2")
+        moved = tag(area, "r1", [0, 0, 2, 1], old)
+        self.assertRegex(moved, r"^overture/gta-r1-[0-9a-f]{8}$")
+        self.assertEqual(tag(area, "r1", [0, 0, 2, 1], dict(old, bbox=[0, 0, 2, 1], data_tag=moved)), moved)
+        self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        plain = git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip()
+        # As if the lock on the branch had pinned an extract of another bbox before this one.
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        bbox = lock["areas"]["tsukuba"]["overture"]["bbox"]
+        lock["areas"]["tsukuba"]["overture"]["bbox"] = [bbox[0], bbox[1], bbox[2] - 0.01, bbox[3]]
+        self.repo.write_json("cities/locks/test.lock.json", lock)
+        self.repo.run("lock", "test")
+        ov = self.repo.read_json("cities/locks/test.lock.json")["areas"]["tsukuba"]["overture"]
+        self.assertEqual(ov["bbox"], bbox)
+        self.assertRegex(ov["data_tag"], r"^overture/tsukuba-2026-09-23\.1-[0-9a-f]{8}$")
+        res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        self.assertIn(f"pushed {ov['data_tag']}", res.stdout)
+        self.assertEqual(git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip(), plain)
 
 
 if __name__ == "__main__":

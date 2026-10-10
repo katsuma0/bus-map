@@ -39,10 +39,12 @@ recipe, and only inside `override` and `variety.card_line`.
 | `batch` | str | yes | | the batch must list this id in `cities` |
 | `area` | str | when the batch has several areas | the only area | |
 | `place` | str | yes | | the name on screen, in the title and the count line |
+| `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
 | `boundary.area_km2` | number | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | path | no | | a GeoJSON Feature in the repo instead of Overture |
+| `modes` | list of batch mode ids | no | every mode | the modes this video shows; the others' trips are left out of the network and every count |
 | `center` | [lon, lat] | no | | documentation |
 | `frame` | `{km_vertical, center_km}` | no | fitted to the boundary | pins the day frame |
 | `variants` | subset of `day`, `rush`, `week` | no | the batch's `variants_default` | a week that is not eligible is dropped |
@@ -81,7 +83,7 @@ like any other.
 | `render_epoch` | int | part of every render key: bump it to render everything again |
 | `review_videos` | list of `<id>-<variant>` | videos whose frames 0, 300 and N - 1 go to `review/<batch>` (default: the first city's) |
 | `areas` | list | see below |
-| `modes` | list of `{id, label, singular, route_types}` | colours come from the theme |
+| `modes` | list of `{id, label, singular, route_types, routes?}` | colours come from the theme; `routes` moves named routes into the mode (see below) |
 | `cities` | list of recipe ids | upload order |
 | `variants_default` | list | for recipes without `variants` |
 | `hashtags` | list of `#word` | `#shorts` always comes first in the metadata |
@@ -138,8 +140,14 @@ the CSV's `licence_flags`.
   area box plus 5 km: `cache/overture/<release>/divisions/<region>-<area>.geojson`.
   When every boundary of the area is a `boundary.file`, nothing is fetched and the
   lock records `"sha256": null`.
+* A union boundary's entry has `"subtype": "union"`, the divisions' names joined
+  with ` + ` and a `parts` list with each division's id, division_id, name, subtype
+  and area.
 * `dates` and `rules` are written by the first area build and are part of every
   render key of the area; `files` is written by the first `make.py fetch`.
+* `data_tag` is `overture/<area>-<release>` until a lock moves the extract `bbox`
+  within the release: that lock adds 8 hex of the new bbox, so the tag pushed for
+  the old extract keeps its bytes.
 * `boundaries.<id>.week_eligible: false` and `week_why` are written when the week
   trim finds the city not eligible; `plan` then skips that week.
 * `--frozen` (Actions) fails on changed feed bytes, changed dates, a changed frame
@@ -148,6 +156,58 @@ the CSV's `licence_flags`.
 * `make.py lock` keeps `locked_at` when nothing else changed, so relocking an
   unchanged batch leaves the file as it is. `--refresh` fetches the divisions and
   URL feeds again and keeps nothing from the old lock.
+
+## Splitting a city by mode
+
+A city with buses, streetcars and trains reads better as two videos. Give each
+recipe the modes it shows and the same boundary; they share the area build, the
+boundary, the frame and the clip:
+
+```json
+{"id": "gta-toronto-trains", "place": "Toronto", "boundary": {"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+ "modes": ["rail"], ...}
+{"id": "gta-toronto-buses", "place": "Toronto", "boundary": {"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+ "modes": ["bus", "streetcar"], ...}
+```
+
+Titles, cards, descriptions and tags follow: "Every train in Toronto in 24 hours",
+"Every bus and streetcar in Toronto in 24 hours"; the trains card says "Busiest at
+8:17 am with 168 trains" where the buses and streetcars one says "with 1,561
+vehicles", and the trains video is tagged "train map", not "bus map".
+
+A feed can give a route the wrong route_type for this split: ttc.zip gives Line 5
+Eglinton and Line 6 Finch West (route_id and route_short_name `5` and `6`)
+route_type 0, the streetcars' type. A batch mode's `routes` moves them:
+
+```json
+{"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 100, 109, 400],
+ "routes": [{"feed": "ttc", "short": "^[56]$", "why": "Line 5 and Line 6 are light rail with route_type 0"}]}
+```
+
+A rule needs `feed` and `short` (a regex on `route_short_name`) or `route_id` (a
+regex on `route_id`), or both; `why` is for people. The first mode whose rule
+matches wins over every route_type. The area build prints the routes each rule moved.
+
+A boundary can join several divisions, for a video of a whole region:
+
+```json
+{"id": "gta-trains", "place": "the GTA", "modes": ["rail"],
+ "boundary": [{"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+              {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9},
+              {"name": "York Region", "subtypes": ["county"], "area_km2": 1762.1},
+              {"name": "Durham Region", "subtypes": ["county"], "area_km2": 2523.8},
+              {"name": "Halton Region", "subtypes": ["county"], "area_km2": 964.0}]}
+```
+
+Each division is matched as a single boundary is, and `fetch_boundary.py union`
+joins them; the outline, the dimming and the counts use the union, the lock
+records its `parts`, and the description lists the divisions where a city's says
+"the Toronto city limits". `place` is written as a sentence reads it ("412 trains
+in the GTA"). Fitted, a region's frame is far larger than a city's (the GTA's would
+be 325.5 km tall), so a region video can pin a closer `frame` that shows only part
+of it. The trim box then grows to hold the whole boundary, so every vehicle inside
+is still drawn and counted, while the clip follows the frame. The grown trim box
+must fit the area's `area_box`; `make.py show <batch>` suggests one that does.
 
 ## Making a batch
 
