@@ -92,12 +92,16 @@ jobs:
       - if: steps.hit.outputs.cache-hit != 'true' && needs.plan.outputs.feed_refspecs != ''
         env: {REFSPECS: "${{ needs.plan.outputs.feed_refspecs }}"}
         run: git fetch --no-tags --depth=1 origin $REFSPECS
+      # A {"secret": "ODPT_KEY"} feed source reads its key from the environment (2.2); only the fetch
+      # gets it, and an unset secret arrives empty, which make.py reports by name.
       - if: steps.hit.outputs.cache-hit != 'true'
-        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}", TL: "${{ matrix.timeline }}"}
+        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}", ODPT_KEY: "${{ secrets.ODPT_KEY }}"}
         run: |
           pip install --require-hashes --no-deps -r requirements.txt
           python3 scripts/make.py fetch "$BATCH" --area "$AREA" --feeds-only --frozen
-          python3 scripts/make.py build "$BATCH" --area "$AREA" --area-only --timeline "$TL" --frozen
+      - if: steps.hit.outputs.cache-hit != 'true'
+        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}", TL: "${{ matrix.timeline }}"}
+        run: python3 scripts/make.py build "$BATCH" --area "$AREA" --area-only --timeline "$TL" --frozen
       - if: steps.hit.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with: {path: "build/areas/${{ matrix.area }}/${{ matrix.timeline }}", key: "area-${{ matrix.key }}"}
