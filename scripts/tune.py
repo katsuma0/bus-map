@@ -439,7 +439,7 @@ def crops_sheet(arms, out, still_name, rt_name, square):
     f = font(20)
     for i, arm in enumerate(arms):
         y0 = i * (HEADER + 360)
-        draw.text((GAP, y0 + 8), arm["header"], fill=(235, 235, 240), font=f)
+        draw.text((GAP, y0 + 8), arm.get("short", arm["header"]), fill=(235, 235, 240), font=f)
         for j, (name, box, scale) in enumerate(((still_name, (x, y, x + 360, y + 360), 1.0),
                                                 (rt_name, (x * 2 / 3, y * 2 / 3, x * 2 / 3 + 240, y * 2 / 3 + 240), None))):
             p = os.path.join(arm["dir"], name) if name else None
@@ -729,6 +729,9 @@ class Tuner:
             bits = [f"{k} {s[k]:.3f}" for k in ("whiteout", "contrast", "safe_share", "motion", "strobe") if s.get(k) is not None]
             arm["header"] = f"{arm['label']}: {key}={arm['value']}  " + "  ".join(bits) + \
                             (f"  BREAKS {','.join(arm['breaks'])}" if arm["breaks"] else "")
+            # crops.jpg is 744 px wide: the arm, its value and the score the crops are about.
+            arm["short"] = f"{arm['label']}: {key}={arm['value']}" + "".join(
+                f"  {k} {s[k]:.3f}" for k in ("whiteout", "strobe") if s.get(k) is not None)
         pick = auto_pick(kind, arms, v)
         sheets = self.sheets(knob, arms, times, frames, n)
         scores = {"knob": name, "key": key,
