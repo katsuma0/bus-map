@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "gta",
+ "files": {
+  "2026-09-23.1/divisions/CA-ON-gta.geojson": {
+   "sha256": "26724f802d6589c35def1c3efcd01ea95724a7c939cbd1c17fd1c6ad3e6cdc7c",
+   "bytes": 783448,
+   "parts": [
+    "2026-09-23.1/divisions/CA-ON-gta.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/gta/segments.geojson": {
+   "sha256": "91fdd3ff1af067fbe81ae47a7a1194605e61f63cfa86bcd812c9ba2b8800c07b",
+   "bytes": 234558658,
+   "parts": [
+    "2026-09-23.1/gta/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/gta/water.geojson": {
+   "sha256": "abd7943e5604de2f59fc3d089594179e982c82e77a62d9ab8ac096acda107047",
+   "bytes": 53415703,
+   "parts": [
+    "2026-09-23.1/gta/water.geojson.gz.000"
+   ]
+  }
+ }
+}
