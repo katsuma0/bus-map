@@ -198,7 +198,7 @@ cfg = {"FRAME_ZOOM": 1, "FRAME_DX_KM": 0, "FRAME_DY_KM": 0, "TRAIL_MINUTES": 40,
        "TRAIL_SHOULDER_W": 9, "TRAIL_SHOULDER_ALPHA": 0.35, "TRAIL_ALPHA": 0.8, "TRAIL_LAYER_ALPHA": 0.85,
        "BUS_CORE_R": 2.4, "BUS_HALO_R": 11, "BUS_HALO_ALPHA": 0.35, "ROUTE_ALPHA": 0.3, "BASE_ROADS_GAIN": 1,
        "BASE_WATER_GAIN": 1, "TIME_WARP_GAMMA": 1, "TIME_WARP_FLOOR": 0.15, "CARD_TITLE_MAX": 132, "CARD_LINES": 0,
-       "CARD_SCRIM": 0.25, "CARD_CENTER_Y": 620, "PANEL_ALPHA": 1}
+       "CARD_SCRIM": 0.25, "CARD_CENTER_Y": 620, "PANEL_ALPHA": 1, "CAMERA_AMP": 1}
 cfg.update(V["render"])
 cfg.update(json.loads(arg("--render-json") or "{}"))
 cfg["KM_VERTICAL"] = (V.get("frame") or meta["frame"])["km_vertical"] / cfg["FRAME_ZOOM"]
