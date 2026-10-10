@@ -2412,7 +2412,9 @@ class Pipeline:
             mk = self.meta_key(batch, recipe, v, lock, rk)
             meta_keys.append(mk)
             stem = stem_of(rid, v)
-            if labels.get(f"{stem}.mp4") != f"key:{rk[:16]}":
+            # A job stopped between swaps can leave a new file next to old ones, so a
+            # video is done only when the MP4 and both sidecars carry its key.
+            if any(labels.get(stem + sfx) != f"key:{rk[:16]}" for sfx in (".mp4", ".json", ".netmeta.json")):
                 renders.append({"city": rid, "variant": v, "key": rk})
             if labels.get(f"{stem}.meta.json") != f"key:{mk[:16]}":
                 publish = True
@@ -2493,10 +2495,12 @@ class Pipeline:
             raise MakeError(f"no draft release {batch['release']['tag']}; plan creates it")
         assets = {a["name"]: a for a in gh.assets(rel["id"])}
         done = []
-        for fname, label, mime in ((f"{stem}.mp4", f"key:{rk[:16]}", "video/mp4"),
-                                   (f"{stem}.json", f"key:{rk[:16]}", "application/json"),
+        # The MP4 goes last: its label is what marks the video done, so a stop
+        # before it leaves the video pending, never a new MP4 with old sidecars.
+        for fname, label, mime in ((f"{stem}.json", f"key:{rk[:16]}", "application/json"),
                                    (f"{stem}.netmeta.json", f"key:{rk[:16]}", "application/json"),
-                                   (f"{stem}.meta.json", f"key:{meta['meta_key'][:16]}", "application/json")):
+                                   (f"{stem}.meta.json", f"key:{meta['meta_key'][:16]}", "application/json"),
+                                   (f"{stem}.mp4", f"key:{rk[:16]}", "video/mp4")):
             release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname, label, mime)
             done.append(fname)
             say(f"uploaded {fname} ({label})")

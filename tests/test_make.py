@@ -331,6 +331,8 @@ elif m := re.fullmatch(r"repos/[^/]+/[^/]+/releases/(\d+)/assets", p):
         out(st["assets"][m.group(1)])
     else:
         lst = st["assets"][m.group(1)]
+        if os.environ.get("FAKE_GH_FAIL") == "upload:" + q["name"]:
+            sys.stderr.write("simulated cancel"); sys.exit(1)
         if any(x["name"] == q["name"] for x in lst):
             sys.stderr.write("422 already_exists"); sys.exit(1)
         aid = nid()
@@ -1048,12 +1050,30 @@ class Actions(Scratch):
         self.assertNotEqual(res.returncode, 0)
         st = load(state)
         names = [a["name"] for a in st["assets"][str(st["releases"][0]["id"])]]
-        self.assertIn("test-centre-day.mp4.part", names)
-        self.assertNotIn("test-centre-day.mp4", names)
+        self.assertIn("test-centre-day.json.part", names)
+        self.assertNotIn("test-centre-day.json", names)
         p = self.plan(env)
         st = load(state)
         names = [a["name"] for a in st["assets"][str(st["releases"][0]["id"])]]
         self.assertFalse([n for n in names if n.endswith(".part")])
+        self.assertIn({"city": "test-centre", "variant": "day"},
+                      [{k: r[k] for k in ("city", "variant")} for r in p["renders"]["include"]])
+        # Stopped after the sidecars, before the MP4: the MP4 is uploaded last, and
+        # plan wants the key on the MP4 and both sidecars, so the video stays pending.
+        self.render_all()
+        for stem in self.repo.show("test")["publish_order"]:
+            self.repo.run("release", "test", "--upload", stem, env=env)
+        b["render_epoch"] = 2
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("render", "test-centre", "--variant", "day")
+        self.repo.run("meta", "test", "--only", "test-centre-day")
+        res = self.repo.run("release", "test", "--upload", "test-centre-day",
+                            env=dict(env, FAKE_GH_FAIL="upload:test-centre-day.mp4.part"), check=False)
+        self.assertNotEqual(res.returncode, 0)
+        st = load(state)
+        lab = {a["name"]: a["label"] for a in st["assets"][str(st["releases"][0]["id"])]}
+        self.assertNotEqual(lab["test-centre-day.json"], lab["test-centre-day.mp4"])
+        p = self.plan(env)
         self.assertIn({"city": "test-centre", "variant": "day"},
                       [{k: r[k] for k in ("city", "variant")} for r in p["renders"]["include"]])
         # review branch: one commit, under the cap, frames only for the review videos
