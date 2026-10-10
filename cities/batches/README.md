@@ -127,6 +127,8 @@ the CSV's `licence_flags`.
   `bbox` is the union of the area's clips plus 5 km.
 * The divisions file is fetched once per area, before any frame exists, over the
   area box plus 5 km: `cache/overture/<release>/divisions/<region>-<area>.geojson`.
+  When every boundary of the area is a `boundary.file`, nothing is fetched and the
+  lock records `"sha256": null`.
 * `dates` and `rules` are written by the first area build and are part of every
   render key of the area; `files` is written by the first `make.py fetch`.
 * `boundaries.<id>.week_eligible: false` and `week_why` are written when the week

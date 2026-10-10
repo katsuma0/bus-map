@@ -452,7 +452,8 @@ Additions made while implementing (they extend, never change, the formats below)
 * the lock may carry `areas.<area>.rules` (the composite rule per feed and day class, next to
   `dates`), `areas.<area>.divisions.bbox`, and `boundaries.<id>.week_eligible: false` with
   `week_why` after a week trim exits 3; the divisions file is
-  `cache/overture/<release>/divisions/<region>-<area>.geojson`, one per area;
+  `cache/overture/<release>/divisions/<region>-<area>.geojson`, one per area (`sha256` null
+  when every boundary of the area is a `boundary.file`);
 * `<stem>.netmeta.json` also carries `month`, `timeline`, `window`, `modes`, `frames` and
   `trips_total`, and `<stem>.meta.json` also carries `licence_flags` (the CSV column);
 * trims get the trim step key in `$SHORTS_BUILD_KEY` for `meta.build_key`.
