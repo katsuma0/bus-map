@@ -1,0 +1,38 @@
+{
+ "name": "gta-vaughan-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 18,
+ "kbps": 10951,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 136.2,
+ "query": "record=1&data=../build/gta-vaughan/week/network.json.gz&basemap=../build/gta-vaughan/basemap.json.gz&variant=week&render=%7B%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A1.0%2C%22OUTSIDE_DIM%22%3A0.8%7D",
+ "network_sha256": "b3dce70bbb6e9be4a368d4ee0a71d306f000c255aa81b505b0854f8c762539c1",
+ "basemap_sha256": "d2d4c398f54a7d917ac90050d5356a56e305b89fbd295eeb5c3d8d82f55a6db4",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001645, 4 cpus",
+ "started_at": "2026-10-10T13:52:37.817Z",
+ "key": "2f067049265fa2855e59ae90c8c6e51e273e3d41dde8389715103dc88e9a2d29",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 10951
+  }
+ ]
+}

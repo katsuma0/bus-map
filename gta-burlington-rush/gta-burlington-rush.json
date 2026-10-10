@@ -1,0 +1,42 @@
+{
+ "name": "gta-burlington-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 16,
+ "kbps": 8383,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 42.3,
+ "query": "record=1&data=../build/gta-burlington/day/network.json.gz&basemap=../build/gta-burlington/basemap.json.gz&variant=rush&render=%7B%22CARD_LINES%22%3A1%7D&brandhex=burlington%3A890a07",
+ "network_sha256": "be0f4ff1799d4302553b4229f36c1d1df9c63aba590f0c2aace0a196102f7a02",
+ "basemap_sha256": "872be80b0ed37a3449e8bf5e62705e9f5d1f4acba18ca636826998a3cf4f1671",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001635, 4 cpus",
+ "started_at": "2026-10-10T13:49:43.382Z",
+ "key": "2bca2e8a41074483d1446182da10bd88794150d7cd5be64b66be4586eee4122a",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 6858
+  },
+  {
+   "crf": 16,
+   "kbps": 8383
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "name": "gta-richmond-hill-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 16,
+ "kbps": 9581,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 51.1,
+ "query": "record=1&data=../build/gta-richmond-hill/day/network.json.gz&basemap=../build/gta-richmond-hill/basemap.json.gz&variant=rush&render=%7B%22CARD_LINES%22%3A0%2C%22OUTSIDE_DIM%22%3A0.8%7D",
+ "network_sha256": "11ab0ec43077aef1a18e7d8e8b4e5746308c20dd4853c4a749297561078dfd73",
+ "basemap_sha256": "6f677a3f20c00d7728d7a46f579ed1ebfdd9c49c4ea02864c72a5f812d3f5caa",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001631, 4 cpus",
+ "started_at": "2026-10-10T13:49:47.180Z",
+ "key": "b1a265e4388abce1b3a6bb3497afe5b0601384bdbf02fd92b3c0e70b677fe196",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7780
+  },
+  {
+   "crf": 16,
+   "kbps": 9581
+  }
+ ]
+}

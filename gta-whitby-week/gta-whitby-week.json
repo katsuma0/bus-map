@@ -1,0 +1,42 @@
+{
+ "name": "gta-whitby-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 16,
+ "kbps": 8632,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 28.9,
+ "query": "record=1&data=../build/gta-whitby/week/network.json.gz&basemap=../build/gta-whitby/basemap.json.gz&variant=week&render=%7B%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A1.0%7D&brandhex=drt%3Acc6600",
+ "network_sha256": "78662f1c4010ad6372739c7638e84622b67dbb19b5ecde9cdeaf54f4438d7f97",
+ "basemap_sha256": "1597cdd1eca3ace5d6470f9904358151ee94c363d83da41980e120d74ab88fb6",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001649, 4 cpus",
+ "started_at": "2026-10-10T13:52:59.362Z",
+ "key": "45b34c187f2682ff8a53acb32d94115b92239209833ba59431c3e2dc3e3f3db1",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 6932
+  },
+  {
+   "crf": 16,
+   "kbps": 8632
+  }
+ ]
+}

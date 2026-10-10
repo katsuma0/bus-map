@@ -1,0 +1,107 @@
+{
+ "file": "gta-oshawa-week.mp4",
+ "title": "A week of every bus and train in Oshawa",
+ "description": "A week of every bus and train in Oshawa, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Oshawa city limits are faded and not counted.\n\nBusiest moment: 50 vehicles, Monday at 4:20 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Thanksgiving (October 12). October 31 is left out because the clocks change that night. GO Transit ran a reduced timetable on October 10, so that Saturday is left out. GO Transit ran a reduced timetable on October 11, so that Sunday is left out. Durham Region Transit changed its timetables during October, so its Tuesday and Wednesday each use one typical date. GO Transit changed its timetables during October, so its Tuesday uses one typical date. GO Transit has fewer than three usable October Saturdays and Sundays, so its Saturday and Sunday each use one typical date.\n\nDurham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by Katsuma Onishi.\n\n#shorts #transit #ontario #oshawa",
+ "tags": [
+  "Oshawa",
+  "Durham Region Transit",
+  "GO Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#oshawa"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Durham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence."
+ ],
+ "licences": [
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "upx",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "yrt",
+   "licence_id": "ogl-york",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "miway",
+   "licence_id": "ogl-mississauga",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "brampton",
+   "licence_id": "ogl-brampton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "drt",
+   "licence_id": "ogl-durham",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "oakville",
+   "licence_id": "ogl-oakville",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "burlington",
+   "licence_id": "ogl-burlington",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "milton",
+   "licence_id": "ogl-milton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 28,
+ "meta_key": "1c6573311d27587a1f051f44c063a94ecb160a28aa91c64f6edb16ec5708e445"
+}

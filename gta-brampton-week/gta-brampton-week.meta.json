@@ -1,0 +1,113 @@
+{
+ "file": "gta-brampton-week.mp4",
+ "title": "A week of every bus and train in Brampton",
+ "description": "A week of every bus and train in Brampton, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Brampton city limits are faded and not counted.\n\nBusiest moment: 263 vehicles, Thursday at 6:00 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Thanksgiving (October 12). October 31 is left out because the clocks change that night. GO Transit ran a reduced timetable on October 10, so that Saturday is left out. GO Transit ran a reduced timetable on October 11, so that Sunday is left out. GO Transit changed its timetables during October, so its Tuesday uses one typical date. GO Transit has fewer than three usable October Saturdays and Sundays, so its Saturday and Sunday each use one typical date. Milton Transit has fewer than three usable October Mondays, so its Monday uses one typical date.\n\nBrampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nMiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.\nYork Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.\nMilton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by Katsuma Onishi.\n\n#shorts #transit #ontario #brampton",
+ "tags": [
+  "Brampton",
+  "Brampton Transit",
+  "GO Transit",
+  "MiWay",
+  "York Region Transit",
+  "Milton Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#brampton"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Brampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "MiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.",
+  "York Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.",
+  "Milton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton."
+ ],
+ "licences": [
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "upx",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "yrt",
+   "licence_id": "ogl-york",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "miway",
+   "licence_id": "ogl-mississauga",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "brampton",
+   "licence_id": "ogl-brampton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "drt",
+   "licence_id": "ogl-durham",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "oakville",
+   "licence_id": "ogl-oakville",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "burlington",
+   "licence_id": "ogl-burlington",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "milton",
+   "licence_id": "ogl-milton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 23,
+ "meta_key": "f24352477b0954dc6074c1a6af5e63eb899ecf1d294f4067affe04057e8c781b"
+}

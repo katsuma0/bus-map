@@ -1,0 +1,38 @@
+{
+ "name": "gta-brampton-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 18,
+ "kbps": 13351,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 57.3,
+ "query": "record=1&data=../build/gta-brampton/day/network.json.gz&basemap=../build/gta-brampton/basemap.json.gz&variant=rush&render=%7B%22CARD_LINES%22%3A2%2C%22OUTSIDE_DIM%22%3A0.7%7D",
+ "network_sha256": "8283e5a78e8b82ff78851deb6cc8fe97bb221937fa62126cd03c96dea8ed5be5",
+ "basemap_sha256": "cef953d4c5dc062f291e807b1cf9827826a38afcd0fadc4f04115e63479bd83c",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001636, 4 cpus",
+ "started_at": "2026-10-10T13:49:46.953Z",
+ "key": "c2535d88a3efd3d07d6a5c9e2442318da382d93370238e5798c428187fac86d2",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 13351
+  }
+ ]
+}

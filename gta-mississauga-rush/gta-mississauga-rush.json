@@ -1,0 +1,38 @@
+{
+ "name": "gta-mississauga-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 18,
+ "kbps": 13928,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 55.2,
+ "query": "record=1&data=../build/gta-mississauga/day/network.json.gz&basemap=../build/gta-mississauga/basemap.json.gz&variant=rush&render=%7B%22CARD_CENTER_Y%22%3A540%2C%22CARD_LINES%22%3A1%2C%22OUTSIDE_DIM%22%3A0.7%7D",
+ "network_sha256": "15db8f7190b08a3e6f368d516f667c5f33d1071ca3b6e4c9314d0fd1bbd86674",
+ "basemap_sha256": "9d0f1d52b12432e74d01c4664720d50c5564435f3e4cc9fbdce3acf99153dff6",
+ "code_sha256": {
+  "app.js": "e199967f83ce8a5ccbbf4af693aabe48dc3c29bd140677e5d03127e370fed8d0",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "34593f59a43f8631b84ce988bfa020e328f0724f8a800d1f901d76ec510fd48b",
+  "render_video.mjs": "ac080a147f9fbbd635253c71be36bda96790ccdb8961a0ea75fcb9820e51897e"
+ },
+ "git_commit": "871ec210a7c738e7b0bbc4d6c4aefd81c47599da",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001632, 4 cpus",
+ "started_at": "2026-10-10T13:49:34.344Z",
+ "key": "cc07de615ba19cda0da96bbf6770a2222bee795e104e8c80e1ef075d8c876a7d",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 13928
+  }
+ ]
+}
