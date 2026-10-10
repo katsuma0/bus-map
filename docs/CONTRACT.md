@@ -719,8 +719,8 @@ only by the untouched legacy scripts).
 | `render` | obj | `{}` | copied to meta.render (base values only) |
 | `variants` | obj | 2.9 | `start: "am_peak"` and the rush frame are filled by A |
 | `rush` | obj | `{"auto": true, "zoom": [1.4, 2.2], "share": 0.6}` | A8.6 |
-| `fit_box` | [x0, y0, x1, y1] px | `[50, 390, 870, 1300]` | the box an automatic rush frame fits the city into (A8.6), from `defaults.json` |
-| `panel` | obj | `{"preferred": "right", "tie": 0.10, "rect": [60, 1140, 620, 1500]}` | A8.7 |
+| `fit_box` | [x0, y0, x1, y1] px | `[120, 440, 800, 1080]` | the page's text-free band (B9 zones): the box the lock frame (D3.2) and an automatic rush frame (A8.6) fit the city into, from `defaults.json` |
+| `panel` | obj | `{"preferred": "right", "tie": 0.10, "rect": [120, 1080, 680, 1440]}` | A8.7: the left day panel; its right-hand position ends on the safe zone's x 800 |
 | `card` | obj | `{"title": "MARKHAM", "templates": {...}}` | copied |
 | `major_share` | float | 0.05 | a feed is major in this city at this share of inside vehicle-minutes |
 
@@ -865,7 +865,7 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `CARD_HOLD` / `CARD_FADE_OUT` / `CARD_FADE_IN` | int frames | 27 / 18 / 30 | | |
 | `CARD_SCRIM` | float | 0.25 | | `cardscrim` |
 | `CARD_BAND` | float | 0.85 | | `cardband` |
-| `CARD_CENTER_Y` | int px | 620 | | `cardy` |
+| `CARD_CENTER_Y` | int px | 0 (auto: 670, B10) | | `cardy` |
 | `CARD_TITLE_MAX` | int px | 132 | | `cardsize` |
 | `CARD_LINES` | int | 0 | from `variety.card_line` | `cardline` |
 | `PEAK_MARKER` | bool | false | true | `peak` |
@@ -895,7 +895,7 @@ New non-CONFIG query parameters:
 | `render` | URI-encoded JSON object of CONFIG keys | applied after `meta.render` and the variant block, before pinned knobs; carries D3.8's merge |
 | `brandhex` | `id:rrggbb;id:rrggbb` | replaces `meta.brands[].hex` before normalisation; carries `override.brand_colors` |
 | `hud` | `left`, `right` (today), `none`, `notext` | `none` skips HUD and card; `notext` draws every scrim, band and panel backdrop but no text |
-| `safe` | `1` | draws the safe zone and the YouTube overlay zones (judge only) |
+| `safe` | `1` | draws the text safe zone, the zones YouTube and a tall phone cover, the tall-phone crops and the fit box (B9; judge only) |
 | `data`, `basemap` | URLs (today) | `../build/<id>/day/network.json.gz` etc. |
 
 Precedence, lowest first: CONFIG default, LARGE_FRAME profile (frames of 60 km and up, as today),
@@ -910,8 +910,9 @@ Every existing member stays. Added:
 |---|---|---|
 | `variant` | str | active variant, `''` for legacy |
 | `window` | `{start, end}` | seconds |
-| `safe` | `{x0: 60, y0: 240, x1: 880, y1: 1500}` | |
-| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle`, `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
+| `safe` | `{x0: 120, y0: 290, x1: 800, y1: 1440}` | the text safe zone (B9) |
+| `zones` | `{fit, panel: {w, pad, left, right, day, week, split}, card: {y0, y1, centerY}, phone: {crops, buttons}}` | the layout's other zones, all derived from `safe` (B9): `fit` is `defaults.json` `fit_box`, `panel` its widths and heights |
+| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle` (one box per line), `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
 | `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
 | `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
 | `setCard(on)` | fn | turns the card on or off without reload |
@@ -1081,28 +1082,44 @@ is within 0.97 to 1.03, and the date lists and rules equal E3.
 
 ### B9. Shorts layout (`HUD_LAYOUT 'shorts'`)
 
-Safe zone: x 60..880, y 240..1500; everything below is inside it. Left-aligned text throughout. On
-a 6.1-inch phone one frame pixel is about 0.06 mm and Shorts are often served at 720 x 1280, so the
-sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260 for the right one
-(panel x 320..880, text x 348..852). Font names are the `extended` families (B13).
+Safe zone `SAFE`: x 120..800, y 290..1440 (680 x 1150), the frame a tall phone leaves free for
+text. YouTube zooms a 9:16 Short to fill a 19.5:9 or 20:9 screen, which crops 97 to 108 px off
+each side of the 1080; the like, comment and share column then covers about x 811..972; the notch
+or Dynamic Island, the status bar and YouTube's top icons cover about the top 290 px; the title,
+channel and sound rows and the home indicator everything from y 1440 down. Every box below hangs
+from an edge of `SAFE` (the title block from its top, the panel from its bottom and its left or
+right side), so the numbers are `SAFE` plus fixed offsets and a new safe zone moves all of them
+(`web/app.js` `SAFE` and `ZONES`). Left-aligned text throughout. On a 6.1-inch phone one frame
+pixel is about 0.06 mm and Shorts are often served at 720 x 1280, so the sizes below are minimums,
+never shrunk further. The panel is 560 px wide against `SAFE`'s left side (x 120..680, text x
+148..652) or its right side (x 240..800, text x 268..772); `dx` = 0 for the left panel, 120 for
+the right one. Font names are the `extended` families (B13).
+
+The map stays full bleed. Between the title block and the panel lies the band no text covers, the
+**fit box** x 120..800, y 440..1080 (`SAFE.y0 + 150` to the day panel's top), which is
+`defaults.json` `fit_box`: the lock frame (D3.2) puts the city's bbox inside it, centred on
+(460, 760), so no part of the city sits under the day panel or the title, on a tall phone as on a
+9:16 one. The week panel, one row taller, reaches 30 px into the fit box's bottom edge, a split
+count line 44 px more.
 
 | element | font | colour | x | baseline y | fit |
 |---|---|---|---|---|---|
-| title scrim | | `scrim` | | | sprite 1080 x 460 at y 0: alpha stops 0: S, 0.55: S, 0.80: 0.55 S, 1: 0; S = `TITLE_SCRIM` |
-| title (`meta.title`) | MontserratX 700, `TITLE_SIZE` 64, letter-spacing 0.12 em | title | 72 | 316 | width <= 796: shrink by 2 down to 48 |
-| subtitle (variant label) | MontserratX 400 36 | subtitle | 72 | 370 | 36 down to 32 |
-| panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95) | 60+dx..620+dx | | y `PANEL_TOP`..1500 |
-| weekday (week only) | MontserratX 800, fitted once on `WEDNESDAY` from 80 down to 64 (68 with the repo fonts) | clock | 88+dx | clock row - 50 | |
-| clock | day and rush: MontserratXTnum 800 88; week: MontserratXTnum 600 40 | clock | 88+dx | 1232 (day, rush), 1238 (week) | |
-| count | MontserratXTnum 600 40 | accent | 88+dx | 1282 | fitted once on the widest text down to 36; then split (below) |
-| chips | MontserratXTnum 500 26, dots r 9 | breakdown | 88+dx | 1320 | chips rule below |
-| sparkline | area + 3 px accent stroke | accent | 88+dx..592+dx | y 1334..1386, floor line 1386.5 (1 px `floor`) | curve height `y1 - y0 - 6` |
-| peak marker | dot r 5; label MontserratXTnum 600 26 `peak 3,951` | accent | right of the dot (left when it would pass 592+dx) | dot y + 9, inside 1353..1386 | |
-| axis | MontserratX 500 26 | axis | 88+dx left, 592+dx right-aligned | 1416 | |
-| credit (`meta.credit`) | InterX 400 22 | credit | 88+dx | 1450 and 1476 | wraps at a space into at most 2 lines of 504 px; never cut |
+| title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, 42 px more under a wrapped subtitle): alpha stops 0: S, 0.55: S, 0.80: 0.55 S, 1: 0; S = `TITLE_SCRIM` |
+| title (`meta.title`) | MontserratX 700, `TITLE_SIZE` 64, letter-spacing 0.12 em | title | 132 | 366 | width <= 656: shrink by 2 down to 48 |
+| subtitle (variant label) | MontserratX 400 36 | subtitle | 132 | 420 | width <= 656: 36 down to 32; past that two lines 42 px apart from 36 px down, broken after the comma when both halves fit, else balanced (the rush label: `Morning rush,` / `an average October weekday`) |
+| panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95) | 120+dx..680+dx | | y `PANEL_TOP`..1440 |
+| weekday (week only) | MontserratX 800, fitted once on `WEDNESDAY` from 80 down to 64 (68 with the repo fonts) | clock | 148+dx | clock row - 50 | |
+| clock | day and rush: MontserratXTnum 800 88; week: MontserratXTnum 600 40 | clock | 148+dx | 1172 (day, rush), 1178 (week) | |
+| count | MontserratXTnum 600 40 | accent | 148+dx | 1222 | fitted once on the widest text down to 36; then split (below) |
+| chips | MontserratXTnum 500 26, dots r 9 | breakdown | 148+dx | 1260 | chips rule below |
+| sparkline | area + 3 px accent stroke | accent | 148+dx..652+dx | y 1274..1326, floor line 1326.5 (1 px `floor`) | curve height `y1 - y0 - 6` |
+| peak marker | dot r 5; label MontserratXTnum 600 26 `peak 3,951` | accent | right of the dot (left when it would pass 652+dx) | dot y + 9, inside 1293..1326 | |
+| axis | MontserratX 500 26 | axis | 148+dx left, 652+dx right-aligned | 1356 | |
+| credit (`meta.credit`) | InterX 400 22 | credit | 148+dx | 1390 and 1416 | wraps at a space into at most 2 lines of 504 px; never cut |
 
-* **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1140 for day
-  and rush, 1110 for the week (weekday cap top 1138), 44 px higher again when the count splits.
+* **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1080 for day
+  and rush (`SAFE.y1 - 360`), 1050 for the week (weekday cap top 1078), 44 px higher again when
+  the count splits.
 * **Count line**: `${withCommas(n)} ${noun} in ${meta.place}` with `n = round(histRaw(T / 60))`;
   noun = the mode label (singular when n is 1) when only one mode has at least 0.5 inside
   vehicles in some minute of `[start, end)` (the minutes `V.peak` is taken over), else
@@ -1121,21 +1138,25 @@ sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260
 * **Clock.** `CLOCK_ROUND` 0 (auto): the time is floored to 5 minutes while `rate(m)` exceeds 2
   minutes per frame (nights of the day video), else to the minute; the week block sets 60 (`8 am`).
 * **Axis**: day: `clockText(W0)` left and `clockText(W1)` right (the same clock time) plus a 1 px
-  floor-colour tick at midnight (y 1386..1394) with `midnight` centred under it when its centre is
+  floor-colour tick at midnight (y 1326..1334) with `midnight` centred under it when its centre is
   at least 120 px from both ends. Rush: `6:30 am` / `9:30 am`, ticks at 7, 8, 9 am. Week: day letters
   `M T W T F S S` centred on each calendar day's visible span (none under 30 px), the current day's
   letter in MontserratX 700 accent; 1 px ticks at each midnight; with `WEEKEND_BAND` an accent
-  rectangle at 0.07 alpha from x(Saturday 00:00) to x(Monday 00:00), y 1334..1386, under the area.
+  rectangle at 0.07 alpha from x(Saturday 00:00) to x(Monday 00:00), y 1274..1326, under the area.
 * **Weekday** (week): `['MONDAY', ..., 'SUNDAY'][floor(T / 86400) % 7]`, T counted from the
   composite Monday 00:00. It is the big line of the week panel; the clock is the small line.
 * **Peak marker** (`PEAK_MARKER`): at `V.peak.time` on the drawn curve, shown once T has passed it;
   label `peak ${withCommas(V.peak.count)}`.
-* **Asserts.** After layout, every box above and every card box (B10) is checked against x 60..880,
-  y 240..1500 with `measureText` widths, and every text size against its minimum (title 48, subtitle
-  32, weekday 64, clock 40, count 36, chips 24, peak, axis 26, credit 22, card line 0 40, card line 1
-  30); any failure is a `console.error`, which fails a render (C). `hudBoxes()` reports `size`.
-* `?safe=1`: translucent `rgba(255,0,0,0.18)` boxes over y 0..240, y 1500..1920 and x 880..1080 for
-  y 240..1500, plus a 1 px outline of the safe zone. Never set by make.py renders.
+* **Asserts.** After layout, every box above and every card box (B10) is checked against `SAFE`
+  (x 120..800, y 290..1440) with `measureText` widths, and every text size against its minimum
+  (title 48, subtitle 32, weekday 64, clock 40, count 36, chips 24, peak, axis 26, credit 22, card
+  title 72, card line 0 40, card line 1 30); any failure is a `console.error`, which fails a render
+  (C). `hudBoxes()` reports `size`.
+* `?safe=1`: translucent `rgba(255,0,0,0.18)` boxes over everything outside `SAFE` (y 0..290,
+  y 1440..1920, x 0..120 and x 800..1080 between), the button column x 811..972 filled once more and
+  outlined, each tall phone's crop (x 97 and 983 for 19.5:9, x 108 and 972 for 20:9) dashed in
+  amber and named at the top with the 19.5:9 crop shaded, a 1 px outline of `SAFE` and the fit box
+  dashed in cyan. Never set by make.py renders.
 
 ### B10. Card and loop frame mapping
 
@@ -1145,15 +1166,17 @@ Card text from `meta.card.templates[VARIANT][CARD_LINES]`, a pair `[line0, line1
 `{peak_time}` (`clockText(V.peak.time)`), `{peak_count}` (`V.peak.count` with commas), `{trips}`,
 `{month}` (`meta.timeline.month_label`). An unknown placeholder is a `console.error`.
 
-Layout per variant at init, left-aligned at x 72, width limit 796, block centred on `CARD_CENTER_Y`
-(620: above the city centre, which D3.2 puts at y 845, so the busiest part of the map stays visible
-under the card):
+Layout per variant at init, left-aligned at x 132, width limit 656 (`SAFE` less 12 px a side, as
+the title), block centred on `CARD_CENTER_Y` (0 means auto: `SAFE.y0 + 380` = 670, above the city
+centre, which D3.2 puts at y 760, so the busiest part of the map stays visible under the card; the
+resolved value goes back into `CONFIG`, so `busmap.config` reports what is drawn):
 
 * Title `meta.card.title`: MontserratX 800, letter-spacing 0.04 em, S = the largest even size <=
   `CARD_TITLE_MAX` (132) and >= 72 whose width fits. If S is under 100 and the title has a space,
-  split at the space that minimises the longer line and refit (`RICHMOND / HILL` 124 px). Baselines
+  split at the space that minimises the longer line and refit (`RICHMOND / HILL` 102 px, `SAN /
+  ANTONIO` 122 px; `MISSISSAUGA` stays one line at 84 px, `PHILADELPHIA` at 76 px). Baselines
   `B + 0.80 S + k x 0.98 S`.
-* Accent rule: x 72..168, 6 px tall, top at the last title baseline + 30.
+* Accent rule: x 132..228, 6 px tall, top at the last title baseline + 30.
 * Line 0: InterX 500 44 px, title colour, baseline = rule top + 64; wraps at a space into at most two
   lines 54 px apart (most templates need two: 792 to 1,088 px at 44 px); 40 px only if two lines are
   not enough. No break falls inside `{place}` (`Richmond / Hill` under the title reads as two
@@ -1161,7 +1184,7 @@ under the card):
 * Line 1: InterX 400 32 px, title colour at 0.85 alpha, baseline = last line-0 baseline + 52; 32
   down to 30, then wraps, also keeping `{place}` whole when it can.
 * Block height h = last baseline + 12 - B; `B = round(CARD_CENTER_Y - h / 2)`, clamped so the block
-  stays inside y 400..1100.
+  stays inside y 450..1040 (10 px under the fit box's top, 40 px over the day panel).
 * Scrim: the whole frame in `scrim` at `CARD_SCRIM x a` (0.25), so the moving map stays the hook;
   plus a full-width band from y `B - 60` to `B + h + 60` at `CARD_BAND x a` (0.85) with 48 px linear
   feathers at both edges. The card text is measured for contrast against this background (G4).
