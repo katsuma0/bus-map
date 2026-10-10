@@ -650,6 +650,23 @@ class Derivation(Scratch):
         self.repo.run("lock", "test")
         self.assertEqual(read_bytes(self.pl.lock_path("test")), before)
 
+    def test_show(self):
+        """D-2: show prints the derived configs, the keys and the area_box suggestion."""
+        info = self.repo.show("test")
+        a = info["areas"]["tsukuba"]
+        self.assertEqual(a["area_box_suggestion"], [140.01, 35.93, 140.23, 36.28])
+        self.assertEqual(a["area_box_suggestion"], self.batch["areas"][0]["area_box"])
+        self.assertEqual(set(a["keys"]), {"area_day", "area_week", "overture"})
+        self.assertEqual(a["config_day"]["kind"], "area")
+        self.assertEqual(sorted(info["videos"]["test-centre"]), ["day", "rush", "week"])
+        self.assertEqual(info["publish_order"], ["test-centre-day", "test-north-day", "test-centre-rush",
+                                                 "test-north-rush", "test-centre-week"])
+        city = self.repo.show("test-north")
+        self.assertEqual(city["city.day.json"]["frame"], {"km_vertical": 14.5, "center_km": [2.0, 8.0]})
+        self.assertNotIn("city.week.json", city)
+        self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "FRAME_ZOOM": 1.05})
+        self.assertEqual(len(city["keys"]["day"]["render_key"]), 64)
+
     def test_derived_configs(self):
         recipe = self.pl.recipe("test-north", self.batch)
         ac = self.pl.area_config(self.batch, self.batch["areas"][0], "week", self.lock)
