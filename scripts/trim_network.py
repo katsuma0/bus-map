@@ -275,10 +275,12 @@ def inside_counts(store, poly, bbox_km, route_local, n_local, batch=20000):
     K = len(store.day_classes)
     M = int(math.ceil(store.meta["max_t1"] / 60)) + 1
     cnt = np.zeros((K, n_local, M), dtype=np.int64)
+    trip_r = np.asarray(store.trip_r)
     touch = store.touching(bbox_km)
+    # A route without a local index is of a mode this video leaves out.
+    touch = touch[route_local[trip_r[touch]] >= 0]
     t0_all, t1_all = store.trip_t0_t1()
     runs = np.asarray(store.trip_runs)
-    trip_r = np.asarray(store.trip_r)
     for s in range(0, len(touch), batch):
         trips = touch[s:s + batch]
         lo = -(-t0_all[trips] // 60)
@@ -595,9 +597,14 @@ def week_eligibility(store, day_meta, min_dates, month):
     return why
 
 
-def emit(store, trim_box):
-    """A8.4: (store index, w mask or None) per emitted trip, in store order, copies in a row."""
+def emit(store, trim_box, route_kept=None):
+    """A8.4: (store index, w mask or None) per emitted trip, in store order, copies in a row.
+
+    `route_kept` (bool per store route) leaves out the trips of the other modes.
+    """
     touch = store.touching(trim_box)
+    if route_kept is not None:
+        touch = touch[route_kept[np.asarray(store.trip_r)[touch]]]
     copies = np.asarray(store.trip_copies)[touch]
     out = []
     week = copies.shape[1] > 1
@@ -731,8 +738,16 @@ def trim(args, t_start):
         if pinned and not inside_box(frame_box(pinned), trim_box):
             raise Fail(f"pinned rush frame {pinned} is not inside the trim box {[round(v, 3) for v in trim_box]}")
 
+    # Modes: the city config's subset, in store order; absent means every mode.
+    mode_ids = [m["id"] for m in sm["modes"]]
+    keep = cfg.get("modes", mode_ids)
+    if not keep or set(keep) - set(mode_ids):
+        raise Fail(f"modes {keep} must be a non-empty subset of the area's {mode_ids}")
+    modes_kept = [m for m in sm["modes"] if m["id"] in keep]
+
     # A10 brand per store route (cheap, and needed before any per-brand count).
     routes = sm["routes"]
+    route_kept = np.array([r["mode"] in keep for r in routes], dtype=bool)
     brands_path = repo_path(cfg.get("brands", "cities/brands.json"))
     with open(brands_path, encoding="utf-8") as fh:
         entries = json.load(fh).get("agencies", [])
@@ -740,13 +755,16 @@ def trim(args, t_start):
     warnings = verified_warnings(routes, entries, brand_of, bdefs)
 
     # A8.4: emitted trips.
-    emitted = emit(store, trim_box)
+    emitted = emit(store, trim_box, route_kept)
     emit_ids = sorted({i for i, _w in emitted})
 
     # A9: inside counts per day class, route and minute.
     t_counts = time.time()
     trip_r_all = np.asarray(store.trip_r).astype(np.int64)
     used = np.unique(np.concatenate([trip_r_all[store.touching(bbox_km)], trip_r_all[np.asarray(emit_ids, dtype=np.int64)]]))
+    used = used[route_kept[used]]
+    if not len(used):
+        raise Fail(f"no trip of the modes {', '.join(keep)} touches the boundary or the trim box")
     route_local = np.full(len(routes), -1, dtype=np.int64)
     route_local[used] = np.arange(len(used))
     feed_idx = {f["id"]: i for i, f in enumerate(sm["feeds"])}
@@ -945,7 +963,8 @@ def trim(args, t_start):
     validate_v4(store, emit_ids, sorted(shape_index), trim_box)
 
     build_key = args.key or local_key(args.config, store, bpath, brands_path)
-    modes_meta = [{k: v for k, v in m.items() if k not in ("color", "trail")} for m in sm["modes"]]
+    # Route rules are the area build's business; the page reads id, label and singular.
+    modes_meta = [{k: v for k, v in m.items() if k not in ("color", "trail", "routes")} for m in modes_kept]
     meta = {
         "schema": 4, "kind": "city", "id": cfg["id"], "batch": cfg["batch"], "area": cfg["area"], "place": cfg["place"],
         "title": cfg.get("title") or cfg["place"].upper(), "subtitle": first.get("label", ""),
@@ -957,8 +976,8 @@ def trim(args, t_start):
         "timeline": {"kind": tl["kind"], "period": period_s, "basis": "average-week" if week else "average-weekday",
                      "month": month, "month_label": month_label, "fallback_feeds": [f["id"] for f in fallback]},
         "hist_period": P, "am_peak": am, "pm_peak": pm, "peak": first.get("peak", am),
-        "hist_by_mode": {m["id"]: np.round(fold(np.array([routes[r]["mode"] == m["id"] for r in used])), 2).tolist()
-                         for m in sm["modes"]},
+        "hist_by_mode": {m["id"]: np.round(fold(np.array([routes[r]["mode"] == m["id"] for r in used], dtype=bool)), 2).tolist()
+                         for m in modes_kept},
         "groups": groups,
         "hist_by_group": {g: np.round(h, 2).tolist() for g, h in group_hist.items()},
         "boundary": {"name": bcfg.get("name", cfg["place"]),
@@ -978,7 +997,8 @@ def trim(args, t_start):
 
     # Summary (A12).
     log(f"{cfg['id']} {tl['kind']}: {len(trips_out)} trips ({len(emit_ids)} classes), {len(shapes_out)} shapes, "
-        f"{len(routes_out)} routes; {n_counted} trips counted inside the boundary in {t_counts:.0f}s")
+        f"{len(routes_out)} routes; {n_counted} trips counted inside the boundary in {t_counts:.0f}s"
+        + ("" if len(modes_kept) == len(mode_ids) else f"; modes {', '.join(m['id'] for m in modes_kept)} only"))
     log(f"  inside peak {int(h2.max())} at {bn.fmt_time(int(np.argmax(h2)) * 60)}; am peak {am['count']} at "
         f"{bn.fmt_time(am['time'])}, pm peak {pm['count']} at {bn.fmt_time(pm['time'])}; month label {month_label}")
     log("  feeds by inside share: " + ", ".join(f"{e['id']} {e['inside_share']:.3f}{' major' if e['major'] else ''}"
