@@ -1209,16 +1209,26 @@ class Pipeline:
                     pins[re.sub(r"[-_.]+", "-", m.group(1)).lower()] = m.group(2)
         return pins
 
+    def installed_versions(self, names):
+        """Versions as the builders see them: `python3 -I` skips user site-packages that this process may load."""
+        code = ("import json, sys\nfrom importlib import metadata\nout = {}\n"
+                "for n in json.loads(sys.argv[1]):\n"
+                "    try:\n        out[n] = metadata.version(n)\n"
+                "    except metadata.PackageNotFoundError:\n        out[n] = None\n"
+                "print(json.dumps(out))")
+        res = subprocess.run([sys.executable, "-I", "-c", code, json.dumps(sorted(names))], capture_output=True,
+                             text=True, env=self.env(), check=True)
+        return json.loads(res.stdout)
+
     def check_frozen(self, lock):
-        from importlib import metadata
         bad = []
-        for name, want in sorted(self.pinned_packages().items()):
-            try:
-                have = metadata.version(name)
-            except metadata.PackageNotFoundError:
+        pins = self.pinned_packages()
+        have_all = self.installed_versions(pins)
+        for name, want in sorted(pins.items()):
+            have = have_all.get(name)
+            if have is None:
                 bad.append(f"{name}=={want} is not installed")
-                continue
-            if have != want:
+            elif have != want:
                 bad.append(f"{name} is {have}, requirements.txt pins {want}")
         if bad:
             raise MakeError("--frozen: installed packages differ from requirements.txt:\n  " + "\n  ".join(bad))
