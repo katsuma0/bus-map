@@ -41,7 +41,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `place` | str | yes | | the name on screen, in the title and the count line |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
-| `boundary.area_km2` | number | yes | | census land area; the match must be within 20% |
+| `boundary.area_km2` | number | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | path | no | | a GeoJSON Feature in the repo instead of Overture |
 | `center` | [lon, lat] | no | | documentation |
 | `frame` | `{km_vertical, center_km}` | no | fitted to the boundary | pins the day frame |
