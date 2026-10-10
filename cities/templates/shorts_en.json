@@ -32,7 +32,8 @@
   "median_few": "{feed} has fewer than three usable {month} {days_plural}, so its {days} {verb} one typical date.",
   "verb_one": "uses",
   "verb_many": "each use",
-  "credit_line": "{name} ({publisher}): {licence}."
+  "credit_line": "{name} ({publisher}): {licence}.",
+  "credit_line_same": "{name}: {licence}."
  },
  "tags": ["transit map", "bus map", "GTFS"],
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
