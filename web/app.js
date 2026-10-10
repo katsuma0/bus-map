@@ -131,6 +131,10 @@ const CONFIG = {
   TRAIL_BLEND: 'add',
   ROUTE_BLEND: 'add',
   TRAIL_LAYER_ALPHA: 1,
+  // A tram that shares kilometres of street with buses adds up to a white
+  // corridor under 'bounded', which hides the line. On, the streetcar layer
+  // lands last with normal alpha, so it keeps its colour over the buses.
+  STREETCAR_ON_TOP: false,
   // Darkening at the top of the frame behind the title, 0 to 1. Off for the
   // sparse maps; a dense bus map needs it or the subtitle drowns.
   TITLE_SCRIM: 0,
@@ -265,6 +269,8 @@ let sampleD = null;
 let ribbonShapes = null;
 let bandPaths = null;      // [mode][band] Path2D, rebuilt each frame
 let routeModes = null;     // mode index per route
+let layerOrder = null;     // mode indices in 'bounded' compositing order
+let onTopMode = -1;        // mode index landed with source-over, see STREETCAR_ON_TOP
 // color_by "route": lines, trails and halos take the route's own colour. The
 // layer passes run per distinct colour, not per route, so a city whose five
 // hundred routes share sixty line colours costs sixty strokes per band.
@@ -495,6 +501,11 @@ function buildModes(network) {
     : [{ id: 'bus', label: 'buses', singular: 'bus', color: C.routeRGB, trail: C.trailRGB }];
   for (const m of modes) m.trailCss = rgba(m.trail, 1);
   const index = new Map(modes.map((m, i) => [m.id, i]));
+  // Covering the other layers only works if the streetcar layer lands after them.
+  const top = CONFIG.STREETCAR_ON_TOP && index.has('streetcar') ? index.get('streetcar') : -1;
+  onTopMode = top;
+  layerOrder = modes.map((_, i) => i).filter((i) => i !== top);
+  if (top >= 0) layerOrder.push(top);
   // A route whose mode is unknown (or absent, as in pre-v2 files) is the first mode.
   const routeMode = network.routes.map((r) => index.get(r.mode) || 0);
   routeModes = routeMode;
@@ -876,6 +887,9 @@ function buildHudLayout() {
   const dy = top - 1120;
   const attrY = 1562 + shift + dy;
   const lastBaseline = attrY + (lines.length - 1) * 23;
+  // The blur thins the panel towards its bottom edge, so over a dense map the
+  // last line needs meta.frame.hud_pad_bottom more panel under it to stay legible.
+  const padBottom = (meta.frame && Number(meta.frame.hud_pad_bottom)) || 0;
   hud = {
     dx,
     multi,
@@ -886,7 +900,7 @@ function buildHudLayout() {
     panelW: 600,
     // 12 px under the last attribution baseline: with the three Tsukuba lines
     // that is the 1620 the frames were measured with.
-    panelH: lastBaseline + 12 - top,
+    panelH: lastBaseline + 12 + padBottom - top,
     textX: 70 + dx,
     clockY: 1275 + dy,
     countY: 1342 + dy,
@@ -1436,13 +1450,14 @@ function renderAt(T) {
     ctx.globalAlpha = 1;
   } else if (!sprite && CONFIG.TRAIL_BLEND === 'bounded') {
     // Each mode composes with itself under normal alpha in its own layer;
-    // the layers then add onto the frame.
-    for (let m = 0; m < modes.length; m++) {
+    // the layers then add onto the frame, except an on-top streetcar layer,
+    // which covers what is under it so shared streets keep the tram colour.
+    for (const m of layerOrder) {
       const ml = modeLayer(m);
       ml.globalCompositeOperation = 'source-over';
       ml.clearRect(0, 0, W, H);
       strokeRibbons(ml, 1, m);
-      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalCompositeOperation = m === onTopMode ? 'source-over' : 'lighter';
       // The layer saturates to the full trail colour wherever four vehicles
       // overlap; the ceiling keeps that below white once halos land on it.
       ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;

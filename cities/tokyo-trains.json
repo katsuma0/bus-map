@@ -1,7 +1,7 @@
 {
   "id": "tokyo-trains",
   "title": "TOKYO TRAINS",
-  "subtitle": "A weekday in October",
+  "subtitle": "A modelled weekday",
   "service_date": "2026-10-16",
   "origin": [
     139.7,
@@ -10,11 +10,12 @@
   "frame": {
     "km_vertical": 64,
     "center_km": [
-      2.0,
+      3.5,
       1.1
     ],
     "hud_side": "right",
-    "hud_top": 1300
+    "hud_top": 1300,
+    "hud_pad_bottom": 36
   },
   "clip": [
     139.3,
@@ -73,8 +74,8 @@
   "attribution": [
     "Toei: GTFS, Tokyo Metropolitan Government (CC BY 4.0)",
     "Other lines modelled from 2026 weekday train counts,",
-    "gtfs-gis.jp (CC BY 4.0) · Map: Overture, © OpenStreetMap",
-    "Made by Katsuma Onishi"
+    "gtfs-gis.jp (CC BY 4.0)",
+    "Map: Overture, © OpenStreetMap · Made by Katsuma Onishi"
   ],
   "basemap": {
     "simplify_km": {

@@ -1,20 +1,21 @@
 {
   "id": "tokyo-buses",
   "title": "TOKYO BUSES",
-  "subtitle": "Friday 16th October",
+  "subtitle": "Toei & ward buses · Friday 16th October",
   "service_date": "2026-10-16",
   "origin": [
     139.7,
     35.7
   ],
   "frame": {
-    "km_vertical": 36,
+    "km_vertical": 38,
     "center_km": [
-      5.0,
+      4.6,
       -2.0
     ],
     "hud_side": "right",
-    "hud_top": 1300
+    "hud_top": 1300,
+    "hud_pad_bottom": 36
   },
   "clip": [
     139.3,
@@ -150,10 +151,11 @@
     }
   ],
   "attribution": [
-    "Toei Bus, Sakura Tram: GTFS, Tokyo Metropolitan Government",
-    "(CC BY 4.0) · 9 ward community buses: GTFS · Setagaya Line",
-    "modelled from train counts, gtfs-gis.jp · Map: Overture, © OSM",
-    "Made by Katsuma Onishi"
+    "Toei Bus, Sakura Tram: GTFS,",
+    "Tokyo Metropolitan Government (CC BY 4.0)",
+    "9 ward community buses: GTFS",
+    "Setagaya Line modelled from train counts, gtfs-gis.jp",
+    "Map: Overture, © OSM · Made by Katsuma Onishi"
   ],
   "basemap": {
     "simplify_km": {
@@ -193,7 +195,7 @@
   "render": {
     "TRAIL_BLEND": "bounded",
     "ROUTE_BLEND": "bounded",
-    "TRAIL_MINUTES": 15,
+    "TRAIL_MINUTES": 9,
     "TRAIL_ALPHA": 0.6,
     "TRAIL_CORE_W": 4,
     "TRAIL_SHOULDER_W": 14,
@@ -204,6 +206,7 @@
     "BUS_HALO_ALPHA": 0.18,
     "BUS_HALO_R": 9,
     "BUS_CORE_R": 2.5,
-    "TITLE_SCRIM": 0.6
+    "TITLE_SCRIM": 0.6,
+    "STREETCAR_ON_TOP": true
   }
 }

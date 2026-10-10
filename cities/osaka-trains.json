@@ -1,7 +1,7 @@
 {
   "id": "osaka-trains",
   "title": "OSAKA TRAINS",
-  "subtitle": "A weekday in October",
+  "subtitle": "A modelled weekday",
   "service_date": "2026-10-16",
   "origin": [
     135.505,
@@ -14,7 +14,8 @@
       0.55
     ],
     "hud_side": "left",
-    "hud_top": 1300
+    "hud_top": 1300,
+    "hud_pad_bottom": 36
   },
   "clip": [
     135.25,
@@ -135,7 +136,7 @@
     "TRAIL_MINUTES": 10,
     "TRAIL_CORE_W": 4,
     "TRAIL_SHOULDER_W": 14,
-    "TRAIL_SHOULDER_BANDS": 5,
+    "TRAIL_SHOULDER_BANDS": 16,
     "TRAIL_LAYER_ALPHA": 0.85,
     "ROUTE_ALPHA": 0.25,
     "TITLE_SCRIM": 0.55

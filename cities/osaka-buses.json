@@ -1,7 +1,7 @@
 {
   "id": "osaka-buses",
   "title": "OSAKA BUSES",
-  "subtitle": "A weekday · bus routes as of 2010",
+  "subtitle": "A modelled weekday · 2010 routes",
   "service_date": "2026-10-16",
   "origin": [
     135.505,
@@ -14,7 +14,8 @@
       1.5
     ],
     "hud_side": "right",
-    "hud_top": 1300
+    "hud_top": 1300,
+    "hud_pad_bottom": 36
   },
   "clip": [
     135.25,
@@ -91,10 +92,10 @@
     }
   ],
   "attribution": [
-    "Buses modelled from 国土数値情報 バスルート (MLIT, 2010,",
-    "non-commercial) · Hankai modelled from train counts,",
-    "gtfs-gis.jp (CC BY 4.0) · Map: Overture, © OpenStreetMap",
-    "Made by Katsuma Onishi"
+    "Buses modelled from",
+    "国土数値情報 バスルート (MLIT, 2010, non-commercial)",
+    "Hankai modelled from train counts, gtfs-gis.jp (CC BY 4.0)",
+    "Map: Overture, © OpenStreetMap · Made by Katsuma Onishi"
   ],
   "basemap": {
     "simplify_km": {
@@ -135,17 +136,18 @@
   "render": {
     "TRAIL_BLEND": "bounded",
     "ROUTE_BLEND": "bounded",
-    "TRAIL_MINUTES": 15,
+    "TRAIL_MINUTES": 12,
     "TRAIL_ALPHA": 0.6,
     "TRAIL_CORE_W": 4,
     "TRAIL_SHOULDER_W": 14,
     "TRAIL_SHOULDER_ALPHA": 0.4,
     "TRAIL_SHOULDER_BANDS": 6,
     "TRAIL_LAYER_ALPHA": 0.9,
-    "ROUTE_ALPHA": 0.22,
+    "ROUTE_ALPHA": 0.16,
     "BUS_HALO_ALPHA": 0.18,
     "BUS_HALO_R": 9,
     "BUS_CORE_R": 2.5,
-    "TITLE_SCRIM": 0.82
+    "TITLE_SCRIM": 0.82,
+    "STREETCAR_ON_TOP": true
   }
 }
