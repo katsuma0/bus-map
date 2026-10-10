@@ -1572,6 +1572,9 @@ let shortsStatics = null;   // title scrim, panel backdrop, spark fill, safe zon
 
 // YouTube Shorts safe zone in frame pixels: nothing on screen leaves it (B9).
 const SAFE = { x0: 60, y0: 240, x1: 880, y1: 1500 };
+// The panel's text column (B9); the chips that decide the colours are fitted
+// into it before the layout exists.
+const SHORTS_TEXT_W = 504;
 // Smallest size each HUD and card text may take (B9 asserts).
 const MIN_SIZE = {
   title: 48, subtitle: 32, weekday: 64, clock: 40, count: 36, count2: 36, chips: 24, peak: 26, axis: 26,
@@ -1803,7 +1806,7 @@ async function initV4(basemap, network) {
   buildModesV4(network);
   chipMerged = new Set();
   if (CONFIG.HUD_LAYOUT === 'shorts' && CONFIG.MODE_CHIPS && Array.isArray(meta.groups) && meta.groups.length) {
-    chipMerged = new Set(fitChips(chipParts(meta.groups, () => null), F).merged);
+    chipMerged = new Set(fitChips(chipParts(meta.groups, () => null), F, SHORTS_TEXT_W).merged);
   }
   const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
   if (brand) buildColorsBrand(network);
@@ -2419,8 +2422,7 @@ function buildShortsLayout() {
   const side = CONFIG.PANEL_SIDE || (HUD_OVERRIDE === 'left' || HUD_OVERRIDE === 'right' ? HUD_OVERRIDE : '')
     || (meta.panel && (meta.panel.side === 'left' || meta.panel.side === 'right') ? meta.panel.side : 'left');
   const dx = side === 'right' ? 260 : 0;
-  const L = { F, week, side, dx, textX: 88 + dx, rightX: 592 + dx, textW: 504 };
-  const W0 = meta.day_start, W1 = meta.day_end;
+  const L = { F, week, side, dx, textX: 88 + dx, rightX: 592 + dx, textW: SHORTS_TEXT_W };
 
   let ts = Math.round(CONFIG.TITLE_SIZE);
   const title = meta.title || '';
@@ -2517,19 +2519,25 @@ function chipParts(list, colorOf) {
   }));
 }
 
-// The chips line (B9), fitted once at each part's maximum over the window
-// into textW px (504). Each set of parts tries 26 px, then 24 px, before the
-// smallest group joins "other", so a city keeps as many coloured groups as the
-// minimum size allows. Returns the parts, the size and the merged group ids.
-function fitChips(parts, F, textW = 504) {
+// Width of a chips line with each part at its maximum over the window, the
+// widest it can be (B9).
+function chipsWidth(list, size, gap, F) {
   const W0 = meta.day_start, W1 = meta.day_end;
   const maxOver = (series) => {
     let p = 0;
     for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
     return roundHalfEven(p);
   };
-  const widthAt = (list, size, gap) => list.reduce((sum, p, k) => sum + (k ? gap : 0) + 26
+  return list.reduce((sum, p, k) => sum + (k ? gap : 0) + 26
     + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
+}
+
+// The chips line (B9), fitted once into textW px. Each set of parts tries
+// 26 px, 24 px and 24 px with 8 px gaps before the smallest group joins
+// "other", so a city keeps as many coloured groups as the minimum size
+// allows. Returns the parts, size, gap, merged group ids and every width tried.
+function fitChips(parts, F, textW) {
+  const widthAt = (list, size, gap) => chipsWidth(list, size, gap, F);
   let list = parts;
   const merged = [];
   const tried = [];
@@ -3373,13 +3381,7 @@ function checkLayoutV4() {
   const probe = [];
   // The widest numbers the panel can show: the peak count and each chip at its maximum.
   if (L.chips) {
-    const F = L.chips.font;
-    let w = 0;
-    L.chips.parts.forEach((p, k) => {
-      let mx = 0;
-      for (let m = Math.floor(meta.day_start / 60); m <= Math.ceil(meta.day_end / 60); m++) mx = Math.max(mx, p.series[mod(m, histN)] || 0);
-      w += (k ? L.chips.gap : 0) + 26 + textWidth(`${withCommas(roundHalfEven(mx))} ${chipLabel(p, roundHalfEven(mx))}`, F);
-    });
+    const w = chipsWidth(L.chips.parts, L.chips.size, L.chips.gap, L.F);
     probe.push({ name: 'chips', x0: L.textX, x1: L.textX + w, y0: L.chips.y - 18, y1: L.chips.y, size: L.chips.size });
   }
   const problems = [];
