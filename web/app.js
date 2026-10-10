@@ -1806,12 +1806,14 @@ function cameraUnit(path, th) {
 
 // The camera at phase u as screen = z * base + (e, f), for zoom amplitude Z
 // and drift R in frame px. The phase is reduced first so u = 1 is exactly u = 0.
+// start marks frame 0's phase, where the cached base lands on the frame's
+// pixel grid; the zoom cannot mark it, since with no zoom every phase has z 1.
 function cameraMatrix(path, Z, R, u) {
   const th = 2 * Math.PI * (u - Math.floor(u));
   const z = 1 + Z * (1 + Math.cos(th)) / 2;
   const d = cameraUnit(path, th);
   const [cx, cy] = CAMERA_PIVOT;
-  return { z, e: cx - z * (cx + R * d[0]), f: cy - z * (cy + R * d[1]) };
+  return { z, e: cx - z * (cx + R * d[0]), f: cy - z * (cy + R * d[1]), start: th === 0 };
 }
 
 // The fastest on-screen motion over the loop in px per unit of phase. The
@@ -1907,7 +1909,7 @@ function drawBaseCam(m) {
   }
   const sc = m.z / (cam.k * cam.q);
   let tx = m.z * cam.ax + m.e, ty = m.z * cam.ay + m.f;
-  if (m.z === cam.k) { tx = cam.tx0; ty = cam.ty0; }
+  if (m.start) { tx = cam.tx0; ty = cam.ty0; }
   ctx.setTransform(sc, 0, 0, sc, tx, ty);
   // 'medium' filters through mipmaps; the sprites keep the default 'low'.
   ctx.imageSmoothingQuality = 'medium';

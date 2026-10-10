@@ -18,8 +18,9 @@
 //  headroom the cached base covers the visible rectangle at every phase
 //  layers   at one still, camera on and off: the same HUD boxes and counts, the
 //           same inside flags, and every dot where the camera puts it
-//  every    each of the six paths and the sprite, scaled and bounded trail modes
-//           load without errors and keep frame N equal to frame 0
+//  every    each of the six paths, the sprite, scaled and bounded trail modes
+//           and CAMERA_ZOOM 0 load without errors and keep frame N equal to
+//           frame 0; with zoom 0 the cached base still moves with the drift
 //  sharp    against CAMERA_BASE 'vector' (the base drawn afresh every frame) at
 //           the fastest phase and at frame 0: the cached base keeps at least
 //           85% of the edge energy, is within 38 dB, and flickers no more
@@ -157,11 +158,29 @@ async function layerChecks(h) {
   }
 }
 
+// The base map alone (no HUD, trails or dots) at phase u, as luminance.
+async function baseAt(h, query, u) {
+  const page = await h.open(`${query}&hud=none&trailalpha=0&haloalpha=0&dotcore=0`);
+  const lum = await page.evaluate((u) => {
+    const bm = window.busmap, c = bm.canvas;
+    bm.setCamera(u);
+    bm.renderAt(bm.stillTimes().am);
+    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const out = new Array(c.width * c.height);
+    for (let i = 0, j = 0; i < d.length; i += 4, j++) out[j] = Math.round(0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]);
+    return out;
+  }, u);
+  if (page.errors.length) failures.push(`base at ${u}: page errors ${page.errors.join('; ')}`);
+  await page.context().close();
+  return lum;
+}
+
 async function everyPath(h) {
   const variants = [
     ...['pull-out-east', 'pull-out-north', 'pull-out-west', 'pull-out-south', 'drift-orbit', 'drift-sway'].map((p) => [`campath=${p}`, p]),
     ['trailmode=sprite&colorby=', 'sprite trails'], ['trailscale=0.5&colorby=', 'scaled trails'],
     [`render=${encodeURIComponent(JSON.stringify({ TRAIL_BLEND: 'bounded', ROUTE_BLEND: 'bounded' }))}&colorby=`, 'bounded'],
+    ['camzoom=0', 'zoom 0'],
   ];
   const off = await h.open(`${TINY}&camera=0`);
   await off.evaluate(PAGE_HELPERS);
@@ -175,7 +194,16 @@ async function everyPath(h) {
     await page.context().close();
   }
   await off.context().close();
-  console.log(`  every: ${variants.length} paths and trail modes keep the loop`);
+  // With no zoom every phase has z 1, so frame 0's snap to the cache grid must
+  // key on the phase: a quarter of the way round the cached base sits where a
+  // fresh vector base does (pinned at frame 0 it was 40 dB off).
+  const q0 = `${TINY}&camzoom=0`;
+  const a = await baseAt(h, q0, 0.25), b = await baseAt(h, `${q0}&cambase=vector`, 0.25);
+  let mse = 0;
+  for (let i = 0; i < a.length; i++) mse += (a[i] - b[i]) ** 2;
+  const psnr = 10 * Math.log10(255 * 255 / Math.max(mse / a.length, 1e-9));
+  ok(psnr >= 50, `zoom 0: the cached base at u = 0.25 is ${psnr.toFixed(1)} dB from the vector base, want 50`);
+  console.log(`  every: ${variants.length} paths and trail modes keep the loop; zoom 0 base ${psnr.toFixed(1)} dB from vector at u = 0.25`);
 }
 
 // The cached base against a fresh vector render at the same camera, over 12
