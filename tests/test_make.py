@@ -716,7 +716,7 @@ class Derivation(Scratch):
         cc = self.pl.city_config(self.batch, recipe, "day", self.lock)
         self.assertEqual(set(cc), {"schema", "kind", "id", "batch", "area", "place", "title", "origin", "frame",
                                    "trim_scale", "boundary", "brands", "group_by", "credit_template", "credit_fallback",
-                                   "preset", "theme", "render", "variants", "rush", "panel", "card", "major_share"})
+                                   "preset", "theme", "render", "variants", "rush", "fit_box", "panel", "card", "major_share"})
         self.assertEqual(cc["title"], "NORTH TSUKUBA")
         self.assertEqual(list(cc["variants"]), ["day", "rush"])
         self.assertEqual(cc["variants"]["rush"]["render"]["DURATION_FRAMES"], 750)
