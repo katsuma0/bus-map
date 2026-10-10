@@ -44,7 +44,6 @@ def write_json(path, obj):
 
 
 def fetch(args):
-    from shapely import wkb  # noqa: F401  (fetch_overture needs it importable)
     from shapely.geometry import shape
 
     bbox = tuple(float(x) for x in args.bbox.split(","))
