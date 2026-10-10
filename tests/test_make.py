@@ -30,6 +30,7 @@ REPO = os.path.normpath(os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.join(REPO, "scripts"))
 
 import make  # noqa: E402
+import area_store  # noqa: E402
 
 D_FILES = ["scripts/make.py", "scripts/shorts_meta.py", "scripts/tune.py", "scripts/release.py",
            "cities/defaults.json", "cities/licences.json", "cities/templates/shorts_en.json",
@@ -900,6 +901,18 @@ class Caching(Scratch):
         self.repo.run("build", "test", "--city", "test-centre", "--frozen", "--no-upstream")
         self.assertEqual(self.repo.calls(), [])
         self.repo.run("render", "test-centre", "--variant", "day", "--no-upstream")
+        # A's builders also write the manifest; their merge keeps make.py's step keys, and a manifest
+        # without them (a build stopped after a trim) fails with a message, not a KeyError.
+        mp = os.path.join(self.repo.root, "build/test-centre/manifest.json")
+        man = load(mp)
+        area_store.update_manifest(mp, {})
+        self.assertEqual(load(mp), man)
+        self.repo.write_json("build/test-centre/manifest.json", {k: v for k, v in man.items() if k != "keys"})
+        res = self.repo.run("render", "test-centre", "--variant", "day", "--no-upstream", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("has no trim-day key", res.stderr)
+        self.assertNotIn("Traceback", res.stderr)
+        self.repo.write_json("build/test-centre/manifest.json", man)
         # A changed network fails --no-upstream instead of being rebuilt.
         p = os.path.join(self.repo.root, "build/test-centre/day/network.json.gz")
         with open(p, "ab") as fh:

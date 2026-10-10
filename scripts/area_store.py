@@ -53,7 +53,9 @@ def update_manifest(path, files, build_key=None, drop=()):
     """Merge `files` (path -> sha256) into build/<id>/manifest.json (A12).
 
     Each A step that writes into build/<id>/ records its output here, so the
-    manifest always matches the files on disk; paths are repo-relative.
+    manifest always matches the files on disk; paths are repo-relative. Keys
+    this function does not own (make.py's step keys and week eligibility) are
+    kept: dropping them made the next `--no-upstream` fail on a bare KeyError.
     """
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     # The day trim, the week trim and the base map of one city may run at once.
@@ -72,7 +74,7 @@ def update_manifest(path, files, build_key=None, drop=()):
             man["build_key"] = build_key
         tmp = path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump({"build_key": man.get("build_key"), "files": man["files"]}, fh, indent=1)
+            json.dump(dict(man, build_key=man.get("build_key")), fh, indent=1)
             fh.write("\n")
         os.replace(tmp, path)
 

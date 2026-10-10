@@ -2055,14 +2055,18 @@ class Pipeline:
         tl = TIMELINE_OF[variant]
         bpath = f"build/{rid}/boundary.geojson"
         need = [bpath, f"build/{rid}/{tl}/network.json.gz", f"build/{rid}/basemap.json.gz"]
+        files = man.get("files") or {}
         for rel in need:
-            if man["files"].get(rel) is None or self.sha(rel) != man["files"][rel]:
+            if files.get(rel) is None or self.sha(rel) != files[rel]:
                 raise MakeError(f"{rel} is missing or differs from build/{rid}/manifest.json")
         day_sha = self.sha(f"build/{rid}/day/network.json.gz") if tl == "week" else None
         want = {f"trim-{tl}": self.trim_key(batch, recipe, tl, lock, self.sha(bpath), day_sha),
                 "basemap": self.basemap_key(batch, recipe, lock)}
+        keys = man.get("keys") or {}
         for step, key in want.items():
-            if man["keys"].get(step) != key:
+            if step not in keys:
+                raise MakeError(f"build/{rid}/manifest.json has no {step} key: the last build of {rid} did not finish")
+            if keys[step] != key:
                 raise MakeError(f"build/{rid}: the {step} key in manifest.json does not match this checkout's inputs")
 
     def ensure_city(self, batch, recipe, lock, no_upstream=False, variant=None):
