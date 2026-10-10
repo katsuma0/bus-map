@@ -19,6 +19,10 @@
 //       the 8 px gap first,
 //       and (B6) its brands are drawn foreign, not placed
 //
+// Credit copies of the fixture carry the credits of the GTA batch with the
+// author (B9): each still shows the data line, then "Map: Overture, OSM ·
+// Made by SOtownships", on either panel side.
+//
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
 // five-digit count that has to split, Mississauga x12 and Toronto x8 for the
 // widest chips lines) and run the same checks. Renamed copies of the fixture
@@ -267,12 +271,47 @@ function renamed(query, place) {
   return query.replace(/data=[^&]+/, `data=../build/test_web/${name}.json`);
 }
 
+// A copy of a fixture network with another credit line.
+function credited(query, credit, name) {
+  const file = path.join(ROOT, query.match(/data=\.\.\/([^&]+)/)[1]);
+  const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
+  obj.meta.credit = credit;
+  obj.meta.attribution = [credit];
+  const out = path.join(ROOT, 'build', 'test_web', `credit-${name}.json`);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify(obj));
+  return query.replace(/data=[^&]+/, `data=../build/test_web/credit-${name}.json`);
+}
+
+// B9: the credits the trim writes with cities/defaults.json's template and
+// author, on both panel sides: the data on the first line, the map and the
+// author on the second, both inside the safe zone at 22 px. Markham and
+// Brampton keep their agencies; Toronto and Mississauga (seven) and a
+// two-digit count take the fallback.
+const MADE_BY = 'Map: Overture, OSM · Made by SOtownships';
+const CREDITS = [['markham', 'Data: YRT, TTC, GO'], ['brampton', 'Data: Brampton, GO, MiWay, YRT, Milton'],
+  ['seven', 'Data: 7 transit agencies'], ['twelve', 'Data: 12 transit agencies']];
 const LONG_NAMES = ['Mississauga', 'Richmond Hill', 'Philadelphia', 'San Antonio', 'San Francisco'];
 const h = await openBrowser();
 try {
   await run(h, 'v4_tiny', TINY, 'day');
   await run(h, 'v4_tiny', TINY, 'rush');
   await run(h, 'v4_tiny', TINY_WEEK, 'week');
+  for (const [name, data] of CREDITS) {
+    for (const side of ['left', 'right']) {
+      const q = `${credited(TINY, `${data} · ${MADE_BY}`, name)}&panelside=${side}`;
+      const r = await run(h, `credit ${name} ${side}`, q, 'day');
+      if (!r) continue;
+      for (const [k, boxes] of Object.entries(r.stills)) {
+        const credit = boxes.filter((b) => b.name === 'credit' || b.name === 'credit2');
+        const lines = credit.map((b) => b.text);
+        ok(JSON.stringify(lines) === JSON.stringify([data, MADE_BY]), `credit ${name} ${side} still ${k} B-9: lines ${JSON.stringify(lines)}`);
+        // The panel's text column: 28 px into the panel on SAFE's left or right side.
+        const x = side === 'right' ? SAFE.x1 - 560 + 28 : SAFE.x0 + 28;
+        ok(credit.every((b) => Math.abs(b.x0 - x) < 1), `credit ${name} ${side} still ${k}: x0 ${credit.map((b) => b.x0.toFixed(1))}, want ${x}`);
+      }
+    }
+  }
   for (const place of LONG_NAMES) {
     await run(h, place, renamed(TINY, place), 'day');
     await run(h, place, renamed(TINY, place), 'rush');

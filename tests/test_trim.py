@@ -433,6 +433,35 @@ class Units(unittest.TestCase):
         long = "Data: " + ", ".join(["Durham Region Transit"] * 6) + " · Map: Overture, OSM"
         self.assertGreater(len(tn.wrap_lines(long, 22, 504)), 2)
 
+    def test_credit_text(self):
+        """B9: the agencies while the credit wraps into two lines of 504 px, else their number; the stand-in
+        templates are cities/defaults.json's with the author filled, as make.py writes them."""
+        with open(os.path.join(U.ROOT, "cities", "defaults.json"), encoding="utf-8") as fh:
+            d = json.load(fh)
+        self.assertEqual(d["author"], "SOtownships")
+        self.assertEqual((U.CREDIT_TEMPLATE, U.CREDIT_FALLBACK),
+                         tuple(d[k].replace("{author}", d["author"]) for k in ("credit_template", "credit_fallback")))
+        T, F = U.CREDIT_TEMPLATE, U.CREDIT_FALLBACK
+        # Markham keeps its agencies; the page breaks it after "GO" (B9), and both lines fit.
+        self.assertEqual(tn.credit_text(["YRT", "TTC", "GO"], T, F), "Data: YRT, TTC, GO · Map: Overture, OSM · Made by SOtownships")
+        for line in ("Data: YRT, TTC, GO", "Map: Overture, OSM · Made by SOtownships"):
+            self.assertLessEqual(tn.text_width(line, 22) * tn.CREDIT_SLACK, tn.CREDIT_WIDTH, line)
+        self.assertEqual(tn.credit_text(["Brampton", "GO", "MiWay", "YRT", "Milton"], T, F),
+                         "Data: Brampton, GO, MiWay, YRT, Milton · Map: Overture, OSM · Made by SOtownships")
+        # Toronto's and Mississauga's seven agencies need a third line with the author: their number instead.
+        tor = ["TTC", "GO", "MiWay", "YRT", "Brampton", "UP", "DRT"]
+        mis = ["MiWay", "GO", "Brampton", "TTC", "Oakville", "UP", "Milton"]
+        for ag in (tor, mis):
+            self.assertGreater(len(tn.wrap_lines(T.replace("{agencies}", ", ".join(ag)), 22, 504)), 2)
+            self.assertEqual(tn.credit_text(ag, T, F), "Data: 7 transit agencies · Map: Overture, OSM · Made by SOtownships")
+        # The old credit kept Toronto's list: the author is what pushes it to the fallback.
+        self.assertEqual(tn.credit_text(tor, "Data: {agencies} · Map: Overture, OSM", "x"),
+                         "Data: TTC, GO, MiWay, YRT, Brampton, UP, DRT · Map: Overture, OSM")
+        # Two-digit counts still fit two lines; a fallback that cannot is an error, never a cut credit.
+        self.assertLessEqual(len(tn.wrap_lines(F.replace("{n}", "12"), 22, 504)), 2)
+        with self.assertRaises(tn.Fail):
+            tn.credit_text(tor, T, F.replace("SOtownships", "A Much Longer Channel Name Than The Panel Holds"))
+
     def test_mask_rle_round_trip(self):
         poly = shapely.Polygon([(0, 0), (1, 0), (1, 1), (0.5, 0.4), (0, 1)])
         mask, grid = tn.build_mask(poly, [0, 0, 1, 1], 0.025)

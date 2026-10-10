@@ -203,6 +203,13 @@ def credit_width(text):
     return sum(_FONT["hm"][_FONT["cmap"][ord(c)]][0] for c in text if ord(c) in _FONT["cmap"]) / _FONT["upm"] * 22
 
 
+def credit_templates():
+    """cities/defaults.json's credit and its fallback with the author filled, as make.py writes them."""
+    with open(os.path.join(ROOT, "cities", "defaults.json"), encoding="utf-8") as fh:
+        d = json.load(fh)
+    return tuple(d[k].replace("{author}", d["author"]) for k in ("credit_template", "credit_fallback"))
+
+
 def credit_lines(text, width=504):
     lines, cur = [], ""
     for w in text.split(" "):
@@ -306,9 +313,10 @@ def build_city(cid, recipe, net, pos, bnd, brands, week):
             continue
         entry = next((e for e in brands["agencies"] if e["id"] == k), None)
         labels.append(entry["label"] if entry else k)
-    credit = f"Data: {', '.join(labels)} · Map: Overture, OSM"
+    template, fallback = credit_templates()
+    credit = template.replace("{agencies}", ", ".join(labels))
     if len(credit_lines(credit)) > 2:
-        credit = f"Data: {len(labels)} transit agencies · Map: Overture, OSM"
+        credit = fallback.replace("{n}", str(len(labels)))
 
     def variant(name, start, end, frames, render, frame=None):
         pk = argmax(hist, start // 60, math.ceil(end / 60))

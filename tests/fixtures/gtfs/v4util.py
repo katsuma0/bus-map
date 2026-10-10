@@ -68,6 +68,9 @@ def area_config(area_id, origin, area_box, gtfs_dir, feeds, kind, month="2026-10
 # cities/defaults.json fit_box and panel.rect: the page's text-free band and its left panel (B9).
 FIT_BOX = (120, 440, 800, 1080)
 PANEL_RECT = [120, 1080, 680, 1440]
+# cities/defaults.json credit_template and credit_fallback with {author} filled, as make.py writes them.
+CREDIT_TEMPLATE = "Data: {agencies} · Map: Overture, OSM · Made by SOtownships"
+CREDIT_FALLBACK = "Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"
 
 
 def fit_frame(bbox_km, fit_box=FIT_BOX):
@@ -109,8 +112,7 @@ def city_config(cid, place, origin, boundary_file, frame, variants, kind, batch=
             "origin": list(origin), "frame": frame, "trim_scale": 1.25,
             "boundary": {"file": boundary_file, "name": place, "simplify_km": 0.02, "mask_km": 0.025},
             "brands": brands, "group_by": {"field": "agency-auto", "min_share": 0.03, "max_groups": 3},
-            "credit_template": "Data: {agencies} · Map: Overture, OSM",
-            "credit_fallback": "Data: {n} transit agencies · Map: Overture, OSM",
+            "credit_template": CREDIT_TEMPLATE, "credit_fallback": CREDIT_FALLBACK,
             "preset": "shorts", "theme": {"batch": "lake"}, "render": {}, "variants": V,
             "rush": {"auto": (rush or {}).get("auto", True), "zoom": [1.4, 2.2], "share": 0.6},
             "fit_box": list(FIT_BOX),

@@ -849,6 +849,9 @@ class Derivation(Scratch):
                                    "trim_scale", "boundary", "brands", "group_by", "credit_template", "credit_fallback",
                                    "preset", "theme", "render", "variants", "rush", "fit_box", "panel", "card", "major_share"})
         self.assertEqual(cc["title"], "NORTH TSUKUBA")
+        # The author is filled here, the agencies by the trim (B9): the credit says who made the video.
+        self.assertEqual(cc["credit_template"], "Data: {agencies} · Map: Overture, OSM · Made by SOtownships")
+        self.assertEqual(cc["credit_fallback"], "Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships")
         self.assertEqual(list(cc["variants"]), ["day", "rush"])
         self.assertEqual(cc["variants"]["rush"]["render"]["DURATION_FRAMES"], 750)
         self.assertEqual(cc["variants"]["day"]["label"], "An average {month} weekday")
@@ -858,6 +861,12 @@ class Derivation(Scratch):
         p = 18.0 / 1920 / 1.1
         self.assertAlmostEqual(bc["basemap"]["min_road_km"], 1.2 * p, places=6)
         self.assertAlmostEqual(bc["basemap"]["min_water_area_km2"], 14 * p * p, places=6)
+
+    def test_credit_needs_an_author(self):
+        recipe = self.pl.recipe("test-north", self.batch)
+        self.pl.defaults()["author"] = ""
+        with self.assertRaisesRegex(make.MakeError, "author is empty"):
+            self.pl.city_config(self.batch, recipe, "day", self.lock)
 
     def test_render_query(self):
         r = self.pl.recipe("test-north", self.batch)

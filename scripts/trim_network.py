@@ -138,6 +138,19 @@ def wrap_lines(text, px, width):
     return lines
 
 
+def credit_text(agencies, template, fallback):
+    """The on-screen credit (B9): the template with the agencies when it wraps into CREDIT_LINES
+    lines of the panel's text column, else the fallback with their number. make.py has filled
+    {author} in both; a fallback that does not fit either is an error, as the page never cuts it."""
+    credit = template.replace("{agencies}", ", ".join(agencies))
+    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) <= CREDIT_LINES:
+        return credit
+    credit = fallback.replace("{n}", str(len(agencies)))
+    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) > CREDIT_LINES:
+        raise Fail(f"credit {credit!r} needs more than {CREDIT_LINES} lines of {CREDIT_WIDTH} px at {CREDIT_PX} px")
+    return credit
+
+
 # ---------------------------------------------------------------- boundary
 
 
@@ -895,10 +908,7 @@ def trim(args, t_start):
     unit_of, unit_label = credit_units([routes[r]["feed"] for r in used], city_brand, bdefs, entries, feed_name)
     unit_vm = {u: float(fold(np.array([x == u for x in unit_of])).sum()) for u in sorted(unit_label)}
     agencies = [unit_label[u] for u in sorted((u for u in unit_vm if unit_vm[u] > 0), key=lambda u: (-unit_vm[u], unit_label[u]))]
-    template = cfg["credit_template"]
-    credit = template.replace("{agencies}", ", ".join(agencies))
-    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) > CREDIT_LINES:
-        credit = cfg["credit_fallback"].replace("{n}", str(len(agencies)))
+    credit = credit_text(agencies, cfg["credit_template"], cfg["credit_fallback"])
 
     # Vehicles at the am peak: rush frame (A8.6) and panel side (A8.7).
     period_s = P * 60

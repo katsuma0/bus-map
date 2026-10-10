@@ -677,6 +677,9 @@ filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
 major fallback feed sets the label (Burlington: November), for sentences about the timetables.
+`{author}` is `cities/defaults.json` `author`, the channel's name `SOtownships`: every description
+ends its credits with `Made by SOtownships.`, and the on-screen credit (2.7 `credit_template`, B9)
+names it too. The legacy configs keep their own `Made by Katsuma Onishi` lines.
 
 #### 2.7 Derived configs (D writes, A reads)
 
@@ -714,7 +717,7 @@ only by the untouched legacy scripts).
 | `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | |
 | `brands` | str | `"cities/brands.json"` | |
 | `group_by` | obj | `{"field": "agency-auto", "min_share": 0.03, "max_groups": 3}` | |
-| `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM"`, `"Data: {n} transit agencies · Map: Overture, OSM"` | on-screen credit; at most 2 lines at 22 px in 504 px (B9) |
+| `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM · Made by SOtownships"`, `"Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"` | on-screen credit: `defaults.json`'s with `{author}` filled by D; A fills `{agencies}` (by inside share) when that wraps into at most 2 lines at 22 px in 504 px (B9), else the fallback's `{n}` (Toronto and Mississauga: `Data: 7 transit agencies`); a fallback past 2 lines fails the trim |
 | `preset`, `theme` | str, obj | `"shorts"`, `{"batch": "lake"}` | copied to meta |
 | `render` | obj | `{}` | copied to meta.render (base values only) |
 | `variants` | obj | 2.9 | `start: "am_peak"` and the rush frame are filled by A |
@@ -775,7 +778,7 @@ meta.frame             {"km_vertical", "center_km"}
 meta.trim              {"scale": 1.25, "box_km": [x0, y0, x1, y1]}
 meta.modes             batch modes with "color"/"trail" omitted (the theme supplies them)
 meta.attribution       [credit]   (one line, for legacy readers)
-meta.credit            "Data: YRT, GO, TTC · Map: Overture, OSM"
+meta.credit            "Data: YRT, TTC, GO · Map: Overture, OSM · Made by SOtownships"
 meta.build_key         sha256 of the trim step key (D2)
 meta.feeds[]           {"id","name","publisher","licence_id","licence_text","version","sha256","month_used",
                         "dates": [...] (day) | {"mon": [...], ..., "sun": [...]} (week),
@@ -1115,7 +1118,7 @@ count line 44 px more.
 | sparkline | area + 3 px accent stroke | accent | 148+dx..652+dx | y 1274..1326, floor line 1326.5 (1 px `floor`) | curve height `y1 - y0 - 6` |
 | peak marker | dot r 5; label MontserratXTnum 600 26 `peak 3,951` | accent | right of the dot (left when it would pass 652+dx) | dot y + 9, inside 1293..1326 | |
 | axis | MontserratX 500 26 | axis | 148+dx left, 652+dx right-aligned | 1356 | |
-| credit (`meta.credit`) | InterX 400 22 | credit | 148+dx | 1390 and 1416 | wraps at a space into at most 2 lines of 504 px; never cut |
+| credit (`meta.credit`) | InterX 400 22 | credit | 148+dx | 1390 and 1416 | wraps at a space into at most 2 lines of 504 px; two lines break at the first ` · ` when both halves fit (`Data: YRT, TTC, GO` / `Map: Overture, OSM · Made by SOtownships`); never cut |
 
 * **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1080 for day
   and rush (`SAFE.y1 - 360`), 1050 for the week (weekday cap top 1078), 44 px higher again when

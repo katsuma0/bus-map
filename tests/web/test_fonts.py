@@ -3,9 +3,9 @@
 
 The strings: every place and title of the recipes, brand, rule and group labels of brands.json,
 the batch's mode words, the variant labels, the labels and card lines of
-cities/templates/shorts_en.json, the credit line and its fallback, the weekday
-names, the axis words and the digits. Both MontserratX and InterX must map every character
-(the panel uses one, the credit and card lines the other).
+cities/templates/shorts_en.json, the credit line and its fallback (cities/defaults.json, with the
+author), the weekday names, the axis words and the digits. Both MontserratX and InterX must map
+every character (the panel uses one, the credit and card lines the other).
 
   python3 -I tests/web/test_fonts.py
 """
@@ -39,8 +39,11 @@ def strings():
     for e in brands["agencies"]:
         labels.append(e["label"])
         labels += [rule["label"] for rule in e.get("rules", [])]
-    out += labels + ["other", f"Data: {', '.join(labels)} · Map: Overture, OSM",
-                     "Data: 10 transit agencies · Map: Overture, OSM"]
+    # The credit and its fallback as make.py writes them: defaults.json's with the author filled.
+    with open(os.path.join(ROOT, "cities", "defaults.json"), encoding="utf-8") as fh:
+        d = json.load(fh)
+    template, fallback = (d[k].replace("{author}", d["author"]) for k in ("credit_template", "credit_fallback"))
+    out += labels + ["other", template.replace("{agencies}", ", ".join(labels)), fallback.replace("{n}", "10")]
     out += [f"1,234 {label}" for label in labels]
     month_words = ["October", "November"]
     for month in month_words:
