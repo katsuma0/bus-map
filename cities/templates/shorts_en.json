@@ -1,10 +1,10 @@
 {
  "labels": {"day": "An average {month} weekday", "rush": "Morning rush, an average {month} weekday", "week": "An average {month} week"},
  "card": {
-  "day":  [["Every {modes_singular} in {place}, 24 hours", "Busiest at {peak_time} with {peak_count} vehicles"],
-           ["24 hours of {modes_plural} in {place}", "Busiest at {peak_time} with {peak_count} vehicles"],
+  "day":  [["Every {modes_singular} in {place}, 24 hours", "Busiest at {peak_time} with {peak_count} {vehicles}"],
+           ["24 hours of {modes_plural} in {place}", "Busiest at {peak_time} with {peak_count} {vehicles}"],
            ["A typical {month} weekday in {place}", "Every {modes_singular}, rush hour to rush hour"]],
-  "rush": [["Every {modes_singular} in {place}, 6:30 to 9:30 am", "Busiest at {peak_time} with {peak_count} vehicles"],
+  "rush": [["Every {modes_singular} in {place}, 6:30 to 9:30 am", "Busiest at {peak_time} with {peak_count} {vehicles}"],
            ["Morning rush in {place}", "Every {modes_singular}, 6:30 to 9:30 am"],
            ["{place} wakes up", "Every {modes_singular}, 6:30 to 9:30 am"]],
   "week": [["Every {modes_singular} in {place}, Monday to Sunday", "An average {month} week"],
@@ -15,9 +15,9 @@
            "rush": "Morning rush in {place}: every {modes_singular}, 6:30 to 9:30 am",
            "week": "A week of every {modes_singular} in {place}"},
  "description": {
-  "day": "Every {modes_singular} running in {place} on an average {month} weekday, from the morning rush to the next morning, in {seconds} seconds.\n\nI took the {timetable_month} {timetable_year} timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the {place} city limits. The faded ones are just outside.\n\nBusiest moment: {peak_count} vehicles at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
-  "rush": "The morning rush in {place}, 6:30 to 9:30 am, in {seconds} seconds. Every {modes_singular} inside the city on an average {month} weekday.\n\nThe timetables are from {timetable_month} {timetable_year}. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the {place} city limits are faded and not counted.\n\nBusiest moment of the morning: {peak_count} vehicles at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
-  "week": "A week of every {modes_singular} in {place}, Monday to Sunday, in {seconds} seconds.\n\nEach day is the average of that weekday in {timetable_month} {timetable_year}, so Saturday is a typical Saturday, not one particular one. Vehicles outside the {place} city limits are faded and not counted.\n\nBusiest moment: {peak_count} vehicles, {peak_day} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}"
+  "day": "Every {modes_singular} running in {place} on an average {month} weekday, from the morning rush to the next morning, in {seconds} seconds.\n\nI took the {timetable_month} {timetable_year} timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside {limits}. The faded ones are just outside.\n\nBusiest moment: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
+  "rush": "The morning rush in {place}, 6:30 to 9:30 am, in {seconds} seconds. Every {modes_singular} inside {the_city} on an average {month} weekday.\n\nThe timetables are from {timetable_month} {timetable_year}. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside {limits} are faded and not counted.\n\nBusiest moment of the morning: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
+  "week": "A week of every {modes_singular} in {place}, Monday to Sunday, in {seconds} seconds.\n\nEach day is the average of that weekday in {timetable_month} {timetable_year}, so Saturday is a typical Saturday, not one particular one. Vehicles outside {limits} are faded and not counted.\n\nBusiest moment: {peak_count} {vehicles}, {peak_day} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}"
  },
  "sentences": {
   "dates_day": "The weekday average uses every {month} {year} weekday in each timetable{leaves_out}.",
@@ -32,9 +32,14 @@
   "median_few": "{feed} has fewer than three usable {month} {days_plural}, so its {days} {verb} one typical date.",
   "verb_one": "uses",
   "verb_many": "each use",
-  "credit_line": "{name} ({publisher}): {licence}."
+  "credit_line": "{name} ({publisher}): {licence}.",
+  "limits_one": "the {place} city limits",
+  "limits_many": "{parts}",
+  "the_city_one": "the city",
+  "the_city_many": "the region"
  },
- "tags": ["transit map", "bus map", "GTFS"],
+ "tags": ["transit map", "{mode_tags}", "GTFS"],
+ "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "rail": "train map"},
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
              "JP-14": "Kanagawa", "JP-23": "Aichi", "JP-26": "Kyoto", "JP-27": "Osaka", "JP-01": "Hokkaido"},
  "banned": ["delve", "leverage", "utilize", "robust", "seamless", "elevate", "unlock", "harness", "curated", "bespoke",

@@ -226,6 +226,88 @@ class GTA(unittest.TestCase):
         sm.check_text("templates", text, t["banned"])
 
 
+GTA_PARTS = [{"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+             {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9},
+             {"name": "York Region", "subtypes": ["county"], "area_km2": 1762.1},
+             {"name": "Durham Region", "subtypes": ["county"], "area_km2": 2523.8},
+             {"name": "Halton Region", "subtypes": ["county"], "area_km2": 964.0}]
+
+
+class Split(unittest.TestCase):
+    """Videos that keep some of the batch's modes, and a boundary that joins several divisions."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, base, variant, modes, present=None, peak=None, **recipe_keys):
+        recipe = dict(self.pl.recipe(base, self.batch), modes=modes, **recipe_keys)
+        nm = netmeta(self.batch, recipe, variant)
+        nm.update(modes=[m for m in self.batch["modes"] if m["id"] in modes],
+                  modes_present=modes if present is None else present, place=recipe["place"])
+        if peak:
+            nm["peak"] = peak
+        return sm.build_meta(batch=self.batch, recipe=recipe, netmeta=nm, templates=self.pl.templates(),
+                             licences=self.pl.licences(), defaults=self.pl.defaults(), publish_order=1, meta_key="0" * 64)
+
+    def test_trains(self):
+        titles = {v: self.meta("gta-toronto", v, ["rail"], id="gta-toronto-trains")["title"] for v in PEAKS}
+        self.assertEqual(titles, {"day": "Every train in Toronto in 24 hours",
+                                  "rush": "Morning rush in Toronto: every train, 6:30 to 9:30 am",
+                                  "week": "A week of every train in Toronto"})
+        d = self.meta("gta-toronto", "day", ["rail"], id="gta-toronto-trains")["description"]
+        self.assertIn("Every train running in Toronto on an average October weekday", d)
+        self.assertIn("Busiest moment: 3,951 trains at 8:01 am.", d)
+        self.assertIn("only includes vehicles inside the Toronto city limits.", d)
+        w = self.meta("gta-toronto", "week", ["rail"], id="gta-toronto-trains")["description"]
+        self.assertIn("Busiest moment: 3,620 trains, Friday at 5:14 pm.", w)
+        one = self.meta("gta-toronto", "day", ["rail"], peak={"count": 1, "time": 28860}, id="gta-toronto-trains")
+        self.assertIn("Busiest moment: 1 train at 8:01 am.", one["description"])
+        tags = self.meta("gta-toronto", "day", ["rail"], id="gta-toronto-trains")["tags"]
+        self.assertIn("train map", tags)
+        self.assertNotIn("bus map", tags)
+        self.assertEqual(tags[-3:], ["train map", "GTFS", "Ontario"])
+
+    def test_buses_and_streetcars(self):
+        m = self.meta("gta-toronto", "day", ["bus", "streetcar"], id="gta-toronto-buses")
+        self.assertEqual(m["title"], "Every bus and streetcar in Toronto in 24 hours")
+        self.assertIn("Busiest moment: 3,951 vehicles at 8:01 am.", m["description"])
+        r = self.meta("gta-toronto", "rush", ["bus", "streetcar"], id="gta-toronto-buses")
+        self.assertIn("Every bus and streetcar inside the city on an average October weekday.", r["description"])
+        self.assertIn("Vehicles outside the Toronto city limits are faded and not counted.", r["description"])
+        # A window with no streetcar inside names the buses alone, as the count line does.
+        m = self.meta("gta-toronto", "day", ["bus", "streetcar"], present=["bus"], id="gta-toronto-buses")
+        self.assertEqual(m["title"], "Every bus in Toronto in 24 hours")
+        self.assertIn("Busiest moment: 3,951 buses at 8:01 am.", m["description"])
+        tags = self.meta("gta-toronto", "day", ["bus", "streetcar"], id="gta-toronto-buses")["tags"]
+        self.assertEqual(tags[-5:], ["transit map", "bus map", "streetcar map", "GTFS", "Ontario"])
+        m = self.meta("gta-markham", "rush", ["bus"])
+        self.assertEqual(m["title"], "Morning rush in Markham: every bus, 6:30 to 9:30 am")
+        self.assertEqual(m["tags"][-4:], ["transit map", "bus map", "GTFS", "Ontario"])
+        self.assertIn("Busiest moment of the morning: 3,951 buses at 8:01 am.", m["description"])
+
+    def test_region_of_several_divisions(self):
+        m = self.meta("gta-toronto", "day", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
+        self.assertEqual(m["title"], "Every train in the GTA in 24 hours")
+        self.assertIn("Every train running in the GTA on an average October weekday", m["description"])
+        self.assertIn("only includes vehicles inside Toronto, Peel Region, York Region, Durham Region and Halton "
+                      "Region. The faded ones are just outside.", m["description"])
+        self.assertNotIn("city limits", m["description"])
+        self.assertIn("#thegta", m["hashtags"])
+        self.assertNotIn("#gta", m["hashtags"], "on YouTube #gta files a video with Grand Theft Auto")
+        r = self.meta("gta-toronto", "rush", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
+        self.assertEqual(r["title"], "Morning rush in the GTA: every train, 6:30 to 9:30 am")
+        self.assertIn("Every train inside the region on an average October weekday.", r["description"])
+        self.assertIn("Vehicles outside Toronto, Peel Region, York Region, Durham Region and Halton Region are faded "
+                      "and not counted.", r["description"])
+        w = self.meta("gta-toronto", "week", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
+        self.assertEqual(w["title"], "A week of every train in the GTA")
+        # A list of one division reads as that division.
+        one = self.meta("gta-toronto", "day", ["rail"], boundary=GTA_PARTS[:1])
+        self.assertIn("inside the Toronto city limits.", one["description"])
+
+
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
         self.assertEqual(sm.clock_text(28860), "8:01 am")

@@ -110,10 +110,35 @@ def inside_feeds(netmeta):
     return sorted(feeds, key=lambda f: (-(f.get("inside_share") or 0), -ivm(f), f["id"]))
 
 
-def modes_words(netmeta, modes):
+def present_modes(netmeta, modes):
+    """B9's modes of the window, else every mode (as the page's modesInWindow)."""
     present = set(netmeta.get("modes_present") or [])
-    ms = [m for m in modes if m["id"] in present] or list(modes)
+    return [m for m in modes if m["id"] in present] or list(modes)
+
+
+def modes_words(netmeta, modes):
+    ms = present_modes(netmeta, modes)
     return join_words(m["singular"] for m in ms), join_words(m["label"] for m in ms)
+
+
+def count_noun(netmeta, modes, n):
+    """The count line's noun (B9): the mode's own word when only one mode is in the window, else vehicles."""
+    ms = present_modes(netmeta, modes)
+    if len(ms) == 1:
+        return ms[0]["singular"] if n == 1 else ms[0]["label"]
+    return "vehicle" if n == 1 else "vehicles"
+
+
+def limits_words(recipe, place, templates):
+    """Where the counted vehicles are: one city's limits, or the divisions a union boundary joins."""
+    s = templates["sentences"]
+    b = recipe.get("boundary")
+    if isinstance(b, list) and len(b) > 1:
+        parts = join_words(clean(p["name"]) for p in b)
+        return (fmt(s["limits_many"], {"place": place, "parts": parts}, "limits_many"),
+                fmt(s["the_city_many"], {"place": place}, "the_city_many"))
+    return (fmt(s["limits_one"], {"place": place}, "limits_one"),
+            fmt(s["the_city_one"], {"place": place}, "the_city_one"))
 
 
 def dates_sentence(netmeta, templates, week):
@@ -210,14 +235,22 @@ def hashtag_list(batch, place):
     return tags[:HASHTAGS_MAX]
 
 
-def tag_list(netmeta, batch, recipe, templates):
+def tag_list(netmeta, batch, recipe, templates, modes=None):
     area_id = recipe.get("area") or batch["areas"][0]["id"]
     area = next(a for a in batch["areas"] if a["id"] == area_id)
     region = templates.get("regions", {}).get(area.get("region"))
     # Feed names rather than the chip labels: a bare "GO" or "UP" matches nothing a viewer searches for.
     names = [clean(f.get("name")) for f in inside_feeds(netmeta) if f.get("name")]
+    # "{mode_tags}" stands for one tag per mode the title names, so a video of trains is not tagged "bus map".
+    mode_tags = templates.get("mode_tags", {})
+    fixed = []
+    for t in templates.get("tags", []):
+        if t == "{mode_tags}":
+            fixed += [mode_tags[m["id"]] for m in present_modes(netmeta, modes or batch["modes"]) if m["id"] in mode_tags]
+        else:
+            fixed.append(t)
     out, seen, total = [], set(), 0
-    for t in [clean(recipe["place"])] + names + list(templates.get("tags", [])) + ([region] if region else []):
+    for t in [clean(recipe["place"])] + names + fixed + ([region] if region else []):
         if not t or t.lower() in seen:
             continue
         cost = len(t) + (1 if out else 0)
@@ -245,7 +278,9 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     variant = netmeta["variant"]
     stem = f"{recipe['id']}-{variant}"
     place = clean(recipe["place"])
-    singular, plural = modes_words(netmeta, netmeta.get("modes") or batch["modes"])
+    modes = netmeta.get("modes") or batch["modes"]
+    singular, plural = modes_words(netmeta, modes)
+    limits, the_city = limits_words(recipe, place, templates)
     peak = netmeta["peak"]
     month = netmeta.get("month") or batch["month"]
     netmeta = dict(netmeta, month=month)
@@ -260,6 +295,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     values = {
         "place": place, "modes_singular": singular, "modes_plural": plural,
         "peak_time": clock_text(peak["time"]), "peak_count": with_commas(round(peak["count"])),
+        "vehicles": count_noun(netmeta, modes, round(peak["count"])), "limits": limits, "the_city": the_city,
         "peak_day": DAYS[int(peak["time"] // 86400) % 7],
         "month": mlabel, "year": year, "seconds": netmeta.get("seconds"),
         # Most feeds still use the batch month when the label follows a fallback,
@@ -273,7 +309,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     }
     title = fmt(templates["title"][variant], values, f"{stem} title")
     description = fmt(templates["description"][variant], values, f"{stem} description")
-    tags = tag_list(netmeta, batch, recipe, templates)
+    tags = tag_list(netmeta, batch, recipe, templates, modes)
     banned = templates.get("banned", [])
     check_text(f"{stem} title", title, banned)
     check_text(f"{stem} description", description, banned)

@@ -2759,14 +2759,18 @@ function fillCardTemplate(tpl) {
     modes_plural: joinWords(plural.map((m) => m.label)),
     peak_time: variantV.peak ? clockText(variantV.peak.time) : '',
     peak_count: variantV.peak ? withCommas(variantV.peak.count) : '',
+    // The count line's noun at the peak: a video of trains alone names trains, not vehicles.
+    vehicles: countNoun({ nounMode: plural.length === 1 ? plural[0] : null }, variantV.peak ? variantV.peak.count : 0),
     trips: withCommas(meta.trips_total || trips.length),
     month: (meta.timeline && meta.timeline.month_label) || '',
   };
-  return String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
+  const text = String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
     if (Object.hasOwn(values, key)) return values[key];
     console.error(`card template "${tpl}": unknown placeholder {${key}}`);
     return all;
   });
+  // A place such as "the GTA" can open a line, which still starts with a capital.
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Card layout (B10), for the active variant and CARD_LINES.
