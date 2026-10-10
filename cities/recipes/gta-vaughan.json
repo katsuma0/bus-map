@@ -1,0 +1,11 @@
+{
+ "id": "gta-vaughan",
+ "batch": "gta",
+ "place": "Vaughan",
+ "boundary": {"name": "Vaughan", "subtypes": ["locality"], "area_km2": 273.56},
+ "center": [-79.566, 43.837],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 1, "zoom": 1.0},
+ "override": {"render": {"OUTSIDE_DIM": 0.8}, "variant_render": {}, "brand_colors": {}, "_why": {"OUTSIDE_DIM": "outside vehicles outnumber the city's 10.1 to 1 at the am peak"}}
+}

@@ -1,0 +1,11 @@
+{
+ "id": "gta-richmond-hill",
+ "batch": "gta",
+ "place": "Richmond Hill",
+ "boundary": {"name": "Richmond Hill", "subtypes": ["locality"], "area_km2": 100.79},
+ "center": [-79.428, 43.903],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {"OUTSIDE_DIM": 0.8}, "variant_render": {}, "brand_colors": {}, "_why": {"OUTSIDE_DIM": "outside vehicles outnumber the city's 8.8 to 1 at the am peak"}}
+}
