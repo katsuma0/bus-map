@@ -1,0 +1,30 @@
+{
+ "batch": "test",
+ "title": "Pipeline test batch",
+ "theme": "ink",
+ "month": "2026-10",
+ "overture_release": "2026-09-23.1",
+ "render_epoch": 0,
+ "review_videos": ["test-centre-day", "test-centre-rush", "test-centre-week"],
+ "areas": [{
+  "id": "tsukuba",
+  "origin": [140.085, 36.09],
+  "timezone": "Asia/Tokyo",
+  "country": "JP",
+  "region": "JP-08",
+  "holidays": "JP",
+  "area_box": [140.01, 35.93, 140.23, 36.28],
+  "feeds": [
+   {"id": "tsukubus", "name": "Tsukubus", "publisher": "Tsukuba City", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"path": "data/gtfs/tsukubus.zip"}},
+   {"id": "tsukubane", "name": "Tsukubane-go", "publisher": "Tsukuba City", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"path": "data/gtfs/tsukubane.zip"}}
+  ]
+ }],
+ "modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]}
+ ],
+ "cities": ["test-centre", "test-north"],
+ "variants_default": ["day", "rush", "week"],
+ "hashtags": ["#shorts", "#transit", "#tsukuba"],
+ "category": "Travel & Events",
+ "release": {"tag": "shorts-test", "name": "Shorts: pipeline test batch"}
+}
