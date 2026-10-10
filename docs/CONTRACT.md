@@ -1260,13 +1260,27 @@ reordering the list, or naming a path in an earlier recipe, can move later ones.
 does not list keeps `camera_path(id)`.
 
 **Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width), each
-times the path's share. Both are
-scaled by one factor s <= 1, found by bisection, until the fastest point of the frame (the step of
-the four corners between sampled phases; the step is affine in the point, so the corners bound it)
-moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a second over `N / 30` s; then both are
-multiplied by `CAMERA_AMP` and by the city line's factor (below). The 50 s day keeps s 0.94 to 0.95 (zoom 7.5 to 7.6%, drift 2.8%), the 60 s
-week s 1 (8%, 3%), the 25 s rush s 0.47 (3.8%, 1.4%): the cap holds every variant to the same
-super slow speed, 0.22 px a frame at most. A zero amplitude after all that leaves the camera off.
+times the path's share. Both are scaled by one factor s <= 1, found by bisection, until the fastest
+point of the frame (the step of the four corners between sampled phases; the step is affine in the
+point, so the corners bound it) moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a
+second over `N / 30` s; then both are multiplied by `CAMERA_AMP` and by the city line's factor
+(below). How fast a path moves at full amplitude depends on its shape, so s, and with it the move,
+differs by path (drift as a share of the width; `CAMERA_AMP` 1, before the city line's factor):
+
+| path | day, 50 s: s, zoom, drift | week, 60 s | rush, 25 s |
+|---|---|---|---|
+| `pull-out-east` | 0.882, 7.05%, 2.65% | 1, 8%, 3% | 0.437, 3.49%, 1.31% |
+| `pull-out-north` | 0.937, 7.50%, 2.81% | 1, 8%, 3% | 0.465, 3.72%, 1.40% |
+| `pull-out-west` | 0.950, 7.60%, 2.85% | 1, 8%, 3% | 0.470, 3.76%, 1.41% |
+| `pull-out-south` | 0.816, 6.53%, 2.45% | 0.982, 7.86%, 2.95% | 0.405, 3.24%, 1.21% |
+| `drift-orbit` | 1, 4%, 4.5% | 1, 4%, 4.5% | 0.592, 2.37%, 2.66% |
+| `drift-sway` | 1, 4%, 4.5% | 1, 4%, 4.5% | 0.541, 2.16%, 2.44% |
+
+Where s is under 1 the speed cap is the binding limit and the fastest point moves at exactly 0.6%
+of the width a second, 0.22 px a frame; where s is 1 the path moves slower than that. So every
+variant stays at or under the same super slow speed, and the rush, half the day's length, keeps
+about half the day's move. The camera is off only when both amplitudes end at zero: a zero
+`CAMERA_ZOOM` alone leaves a drift with no push-in.
 
 **City line.** The push-in about the pivot and the drift both carry the city line outward, and the
 speed cap does not know the city: one that fills the fit box width (D3.2, x 50..870) would reach
@@ -1278,11 +1292,12 @@ line's bbox stays inside the keep rect at every phase: each side at the looser o
 the fitted bbox, plus 10 px, and never past the frame edge. The camera thus takes the line at most
 10 px past the safe zone, or past where the fitted frame already has it; the slack is the fit box's
 own (it reaches 10 px past the safe zone's left edge), and without it a city that fills the fit box
-width could not move at all. The factor is 1 when the whole move fits (Oshawa, Mississauga) and
-about 0.3 for the cities that fill the width (Toronto, Vaughan, Burlington, Markham: zoom 2 to 2.5%,
-drift 0.7 to 0.9%), and frame 0 is still the push-in. A frame that crops the line (the rush
-close-ups) has no keep rect, and only the speed cap applies. `busmap.camera` reports the factor
-(`bound`), the fitted bbox (`box`) and the rect (`keep`).
+width could not move at all. The factor is 1 when the whole move fits and about 0.3 for the four
+GTA cities that fill the width (Toronto, Vaughan, Burlington, Markham), whose day and week then push
+in by 2.3 to 2.5% and drift 0.9%; frame 0 is still the push-in. Across the GTA day videos the zoom
+thus runs from 2.3% through 4% (the drifts) to 6.5 to 7.6% (the other pull-outs). A frame that
+crops the line (the rush close-ups) has no keep rect, and only the speed cap applies.
+`busmap.camera` reports the factor (`bound`), the fitted bbox (`box`) and the rect (`keep`).
 
 **Sharpness.** The base map and the dormant network are drawn once into a cache that covers the
 union over the loop of the base rectangle on screen (plus 3 px), at `2 (1 + Z)` times the fitted

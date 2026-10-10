@@ -128,8 +128,11 @@ def arm_values(name, v, k_km=None, other=None):
         # At 1 the neighbours vanish and the outline loses its context.
         return max(0, r2(v - 0.2)), min(0.95, r2(v + 0.2))
     if name == "camamp":
-        # 0.75 and 1.25 of the default move span the 6 to 10% zoom of B18; 1.5 holds
-        # the fastest point under 1% of the frame width a second.
+        # The arms scale the move B18's caps leave, which differs by path: on the day 0.75
+        # pushes in 4.9 to 5.7% on a pull-out (3% on a drift) and 1.25 8.2 to 9.5% (5%), on
+        # the rush 2.4 to 2.8% and 4.0 to 4.7%. Where the city line's cap holds the move
+        # under 0.75 of it (a city that fills the fit box width) all three arms render the
+        # same move. 1.5 holds the fastest point under 1% of the frame width a second.
         return (0.5, 1.0) if v == 0 else (r2(v * 0.75), min(1.5, r2(v * 1.25)))
     raise TuneError(f"unknown knob {name}")
 
