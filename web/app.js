@@ -1754,7 +1754,8 @@ async function initV4(basemap, network) {
   meta.day_end = variantV.end;
   setFrame(variantV.frame || meta.frame);
 
-  CONFIG.PRESET = CONFIG.PRESET || meta.preset || '';
+  // A query value wins even when empty: ?preset= and ?theme= draw without one.
+  if (!pinned.has('PRESET')) CONFIG.PRESET = meta.preset || '';
   if (CONFIG.PRESET) {
     if (!/^[A-Za-z0-9_-]+$/.test(CONFIG.PRESET)) throw new Error(`bad preset name ${CONFIG.PRESET}`);
     const preset = await fetchJSON(`presets/${CONFIG.PRESET}.json`);
@@ -1762,7 +1763,7 @@ async function initV4(basemap, network) {
   }
   for (const [key, value] of Object.entries(V4_COLORS)) if (!(key in CONFIG.COLORS)) CONFIG.COLORS[key] = value;
   themeEnv = { ...DEFAULT_ENV };
-  CONFIG.THEME = CONFIG.THEME || (meta.theme && meta.theme.batch) || '';
+  if (!pinned.has('THEME')) CONFIG.THEME = (meta.theme && meta.theme.batch) || '';
   if (CONFIG.THEME) {
     const themes = await fetchJSON('themes.json');
     if (!Object.hasOwn(themes, CONFIG.THEME)) {
