@@ -7,5 +7,5 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.05},
- "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+ "override": {"render": {"OUTSIDE_DIM": 0.8}, "variant_render": {}, "brand_colors": {}, "_why": {"OUTSIDE_DIM": "outside vehicles outnumber the city's 10.7 to 1 at the am peak"}}
 }
