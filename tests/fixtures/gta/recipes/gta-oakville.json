@@ -1,0 +1,11 @@
+{
+ "id": "gta-oakville",
+ "batch": "gta",
+ "place": "Oakville",
+ "boundary": {"name": "Oakville", "subtypes": ["locality"], "area_km2": 138.88},
+ "center": [-79.716, 43.447],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 2, "zoom": 0.95},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

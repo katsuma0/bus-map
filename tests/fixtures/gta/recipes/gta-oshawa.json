@@ -1,0 +1,11 @@
+{
+ "id": "gta-oshawa",
+ "batch": "gta",
+ "place": "Oshawa",
+ "boundary": {"name": "Oshawa", "subtypes": ["locality"], "area_km2": 145.64},
+ "center": [-78.874, 43.939],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 2, "zoom": 1.05},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

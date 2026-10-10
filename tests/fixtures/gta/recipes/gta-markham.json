@@ -1,0 +1,11 @@
+{
+ "id": "gta-markham",
+ "batch": "gta",
+ "place": "Markham",
+ "boundary": {"name": "Markham", "subtypes": ["locality"], "area_km2": 210.93},
+ "center": [-79.299, 43.880],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.05},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

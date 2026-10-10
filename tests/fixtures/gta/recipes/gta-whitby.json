@@ -1,0 +1,11 @@
+{
+ "id": "gta-whitby",
+ "batch": "gta",
+ "place": "Whitby",
+ "boundary": {"name": "Whitby", "subtypes": ["locality"], "area_km2": 146.68},
+ "center": [-78.961, 43.923],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

@@ -1,0 +1,11 @@
+{
+ "id": "gta-toronto",
+ "batch": "gta",
+ "place": "Toronto",
+ "boundary": {"name": "Toronto", "subtypes": ["county", "locality"], "area_km2": 631.10},
+ "center": [-79.376, 43.718],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": {"km_vertical": 40.0, "center_km": [8.5, -18.4]}},
+ "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

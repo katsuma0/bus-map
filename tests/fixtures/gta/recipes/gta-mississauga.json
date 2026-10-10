@@ -1,0 +1,11 @@
+{
+ "id": "gta-mississauga",
+ "batch": "gta",
+ "place": "Mississauga",
+ "boundary": {"name": "Mississauga", "subtypes": ["locality"], "area_km2": 292.74},
+ "center": [-79.674, 43.608],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 1, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

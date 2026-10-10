@@ -1,0 +1,11 @@
+{
+ "id": "gta-brampton",
+ "batch": "gta",
+ "place": "Brampton",
+ "boundary": {"name": "Brampton", "subtypes": ["locality"], "area_km2": 265.89},
+ "center": [-79.760, 43.725],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 2, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

@@ -1,0 +1,41 @@
+{
+ "batch": "gta",
+ "title": "GTA top 10",
+ "theme": "lake",
+ "month": "2026-10",
+ "overture_release": "2026-09-23.1",
+ "render_epoch": 0,
+ "review_videos": ["gta-toronto-day", "gta-markham-rush", "gta-oshawa-week"],
+ "areas": [{
+  "id": "gta",
+  "origin": [-79.47, 43.80],
+  "timezone": "America/Toronto",
+  "country": "CA",
+  "region": "CA-ON",
+  "holidays": "CA-ON",
+  "area_box": [-80.06, 43.06, -78.58, 44.25],
+  "feeds": [
+   {"id": "ttc", "name": "TTC", "publisher": "Toronto Transit Commission", "licence_id": "ogl-toronto", "licence_text": "Open Government Licence - Toronto", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/ttc.zip"}},
+   {"id": "go", "name": "GO Transit", "publisher": "Metrolinx", "licence_id": "metrolinx-open-data", "licence_text": "Metrolinx Open Data Licence", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/go.zip"}},
+   {"id": "upx", "name": "UP Express", "publisher": "Metrolinx", "licence_id": "metrolinx-open-data", "licence_text": "Metrolinx Open Data Licence", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/upx.zip"}},
+   {"id": "yrt", "name": "York Region Transit", "publisher": "York Region", "licence_id": "ogl-york", "licence_text": "Open Government Licence - York Region", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/yrt.zip"}},
+   {"id": "miway", "name": "MiWay", "publisher": "City of Mississauga", "licence_id": "ogl-mississauga", "licence_text": "Open Government Licence - Mississauga", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/miway.zip"}},
+   {"id": "brampton", "name": "Brampton Transit", "publisher": "City of Brampton", "licence_id": "ogl-brampton", "licence_text": "Open Government Licence - Brampton", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/brampton.zip"}},
+   {"id": "drt", "name": "Durham Region Transit", "publisher": "Region of Durham", "licence_id": "ogl-durham", "licence_text": "Open Government Licence - Durham", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/drt.zip"}},
+   {"id": "oakville", "name": "Oakville Transit", "publisher": "Town of Oakville", "licence_id": "ogl-oakville", "licence_text": "Open Government Licence - Oakville", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/oakville.zip"}},
+   {"id": "burlington", "name": "Burlington Transit", "publisher": "City of Burlington", "licence_id": "ogl-burlington", "licence_text": "Open Government Licence - Burlington", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/burlington.zip"}},
+   {"id": "milton", "name": "Milton Transit", "publisher": "Town of Milton", "licence_id": "ogl-milton", "licence_text": "Open Government Licence - Milton", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/milton.zip"}}
+  ]
+ }],
+ "modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]},
+  {"id": "streetcar", "label": "streetcars", "singular": "streetcar", "route_types": [0, 5, 900]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 100, 109, 400]}
+ ],
+ "cities": ["gta-toronto", "gta-mississauga", "gta-brampton", "gta-markham", "gta-vaughan",
+            "gta-oakville", "gta-richmond-hill", "gta-burlington", "gta-oshawa", "gta-whitby"],
+ "variants_default": ["day", "rush", "week"],
+ "hashtags": ["#shorts", "#transit", "#gta"],
+ "category": "Travel & Events",
+ "release": {"tag": "shorts-gta", "name": "Shorts: GTA top 10"}
+}
