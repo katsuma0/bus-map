@@ -16,6 +16,7 @@ import io
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -594,6 +595,16 @@ E2 = {  # id: (subtype, expected area, km_vertical, center_km)
 }
 
 
+class Labels(unittest.TestCase):
+    def test_asset_labels(self):
+        self.assertEqual(make.asset_label("gta-toronto-day.mp4", "0123456789abcdef" * 4),
+                         "gta-toronto-day.mp4 key:0123456789abcdef")
+        self.assertEqual(make.label_key("gta-toronto-day.mp4 key:0123456789abcdef"), "0123456789abcdef")
+        self.assertEqual(make.label_key("key:0123456789abcdef"), "0123456789abcdef")  # labels of earlier runs
+        self.assertEqual(make.label_key(""), "")
+        self.assertEqual(make.label_key(None), "")
+
+
 class Modes(unittest.TestCase):
     MODES = [{"id": "bus"}, {"id": "rail"}]
 
@@ -1025,7 +1036,9 @@ class Actions(Scratch):
         self.assertEqual(len([n for n in names if n.endswith(".mp4")]), 5)
         self.assertIn("test-youtube.csv", names)
         self.assertEqual(len([n for n in names if n.endswith(".netmeta.json")]), 5)
-        self.assertTrue(all(a["label"].startswith("key:") for a in st["assets"][str(st["releases"][0]["id"])]))
+        # GitHub lists the label in place of the file name, so it leads with the name.
+        self.assertTrue(all(re.fullmatch(re.escape(a["name"]) + r" key:[0-9a-f]{16}", a["label"])
+                            for a in st["assets"][str(st["releases"][0]["id"])]))
         self.assertIn("| 1 | test-centre-day |", st["releases"][0]["body"])
         p = self.plan(env)
         self.assertEqual((p["renders"]["include"], p["publish"]), ([], "false"))
@@ -1072,7 +1085,7 @@ class Actions(Scratch):
         self.assertNotEqual(res.returncode, 0)
         st = load(state)
         lab = {a["name"]: a["label"] for a in st["assets"][str(st["releases"][0]["id"])]}
-        self.assertNotEqual(lab["test-centre-day.json"], lab["test-centre-day.mp4"])
+        self.assertNotEqual(make.label_key(lab["test-centre-day.json"]), make.label_key(lab["test-centre-day.mp4"]))
         p = self.plan(env)
         self.assertIn({"city": "test-centre", "variant": "day"},
                       [{k: r[k] for k in ("city", "variant")} for r in p["renders"]["include"]])

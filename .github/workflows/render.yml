@@ -2,7 +2,8 @@
 #
 # plan decides everything once: it validates the batch, creates missing feed
 # tags, finds or creates the draft release shorts-<batch>, and keeps only the
-# (city, variant) renders whose MP4 asset label is not key:<render key>. Area
+# (city, variant) renders whose MP4 and sidecars do not carry key:<render key>
+# in their asset labels ("<file> key:<16 hex>"). Area
 # stores and the Overture extract are cached by their step keys, so a one-line
 # override change goes straight to build (about a minute) and the render.
 # Inputs reach `run:` only through `env`.
@@ -43,8 +44,9 @@ jobs:
         env: {GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}", REF_NAME: "${{ github.ref_name }}"}
         # Validates the batch, recipes and lock; licence check by licence_id and allow_nc; creates missing
         # feed tags (D4); finds or creates the draft release shorts-<batch>; lists its assets once; deletes
-        # leftover *.part assets; computes render_key per (city, variant) and keeps those whose MP4 asset
-        # label is not "key:<first 16 hex>"; computes area, overture and build keys for what those need.
+        # leftover *.part assets; computes render_key per (city, variant) and keeps those whose MP4, .json
+        # or .netmeta.json label does not end in "key:<first 16 hex>"; computes area, overture and build
+        # keys for what those need.
         run: python3 scripts/make.py plan --from-branch "$REF_NAME" --github-output "$GITHUB_OUTPUT"
 
   overture:

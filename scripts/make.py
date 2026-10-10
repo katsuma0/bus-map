@@ -680,6 +680,17 @@ def modes_in_window(modes, by_mode, start, end):
     return out
 
 
+def asset_label(name, key):
+    """A release asset's label: GitHub lists the label in place of the file name, so it leads with the name."""
+    return f"{name} key:{key[:16]}"
+
+
+def label_key(label):
+    """The 16 hex key of an asset label, also from the bare "key:<hex>" labels of earlier runs."""
+    label = label or ""
+    return label.rsplit("key:", 1)[-1] if "key:" in label else ""
+
+
 def strip_why(recipe):
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
@@ -2414,11 +2425,11 @@ class Pipeline:
             stem = stem_of(rid, v)
             # A job stopped between swaps can leave a new file next to old ones, so a
             # video is done only when the MP4 and both sidecars carry its key.
-            if any(labels.get(stem + sfx) != f"key:{rk[:16]}" for sfx in (".mp4", ".json", ".netmeta.json")):
+            if any(label_key(labels.get(stem + sfx)) != rk[:16] for sfx in (".mp4", ".json", ".netmeta.json")):
                 renders.append({"city": rid, "variant": v, "key": rk})
-            if labels.get(f"{stem}.meta.json") != f"key:{mk[:16]}":
+            if label_key(labels.get(f"{stem}.meta.json")) != mk[:16]:
                 publish = True
-        if labels.get(f"{name}-youtube.csv") != f"key:{self.csv_key(meta_keys)[:16]}":
+        if label_key(labels.get(f"{name}-youtube.csv")) != self.csv_key(meta_keys)[:16]:
             publish = True
         pending = {}
         for r in renders:
@@ -2497,10 +2508,11 @@ class Pipeline:
         done = []
         # The MP4 goes last: its label is what marks the video done, so a stop
         # before it leaves the video pending, never a new MP4 with old sidecars.
-        for fname, label, mime in ((f"{stem}.json", f"key:{rk[:16]}", "application/json"),
-                                   (f"{stem}.netmeta.json", f"key:{rk[:16]}", "application/json"),
-                                   (f"{stem}.meta.json", f"key:{meta['meta_key'][:16]}", "application/json"),
-                                   (f"{stem}.mp4", f"key:{rk[:16]}", "video/mp4")):
+        for fname, key, mime in ((f"{stem}.json", rk, "application/json"),
+                                 (f"{stem}.netmeta.json", rk, "application/json"),
+                                 (f"{stem}.meta.json", meta["meta_key"], "application/json"),
+                                 (f"{stem}.mp4", rk, "video/mp4")):
+            label = asset_label(fname, key)
             release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname, label, mime)
             done.append(fname)
             say(f"uploaded {fname} ({label})")
@@ -2546,11 +2558,11 @@ class Pipeline:
         meta_keys = [m["meta_key"] for m in metas]
         for m in metas:
             fname = os.path.basename(m["file"]).replace(".mp4", ".meta.json")
-            release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname, f"key:{m['meta_key'][:16]}",
-                                "application/json")
+            release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname,
+                                asset_label(fname, m["meta_key"]), "application/json")
         csv_name = f"{name}-youtube.csv"
         release.swap_upload(gh, rel["id"], assets, os.path.join(out, csv_name), csv_name,
-                            f"key:{self.csv_key(meta_keys)[:16]}", "text/csv")
+                            asset_label(csv_name, self.csv_key(meta_keys)), "text/csv")
         rows, flags = [], set()
         for m in metas:
             stem = os.path.basename(m["file"])[:-4]
