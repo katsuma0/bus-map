@@ -22,9 +22,11 @@ env:
   PYTHONDONTWRITEBYTECODE: "1"
   PYTHONHASHSEED: "0"
 
+# Every job runs on ubuntu-24.04, never ubuntu-latest: the lock's tools are this image's apt ffmpeg
+# and Playwright's ubuntu24.04 build, and D-8 and D-9 compare its outputs with the sandbox's.
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions: {contents: write}
     outputs:
@@ -52,7 +54,7 @@ jobs:
   overture:
     needs: plan
     if: needs.plan.outputs.overture != '{"include":[]}'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions: {contents: write}
     strategy: {matrix: "${{ fromJSON(needs.plan.outputs.overture) }}"}
@@ -76,7 +78,7 @@ jobs:
   area:
     needs: plan
     if: needs.plan.outputs.areas != '{"include":[]}'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     strategy: {fail-fast: false, matrix: "${{ fromJSON(needs.plan.outputs.areas) }}"}
     steps:
@@ -103,7 +105,7 @@ jobs:
   build:
     needs: [plan, overture, area]
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.builds != '{"include":[]}' && needs.overture.result != 'failure' && needs.area.result != 'failure' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy: {fail-fast: false, matrix: "${{ fromJSON(needs.plan.outputs.builds) }}"}
     steps:
@@ -128,7 +130,7 @@ jobs:
     # build is skipped, not failed, when plan, area or overture fails; every leg would then set up
     # a runner only to find no build artifact. Renders need a successful build of this run.
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success' && needs.plan.outputs.renders != '{"include":[]}' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions: {contents: write}
     strategy: {fail-fast: false, max-parallel: 20, matrix: "${{ fromJSON(needs.plan.outputs.renders) }}"}
@@ -164,7 +166,7 @@ jobs:
   publish:
     needs: [plan, render]
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.publish == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions: {contents: write}
     steps:
