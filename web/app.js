@@ -3037,7 +3037,19 @@ function drawSparkShorts(T, a, text) {
       const w = textWidth(label, L.peakFont);
       const right = px + 11 + w <= L.rightX;
       const by = Math.min(1386, Math.max(1353, py + 9));
-      hudText('peak', label, right ? px + 11 : px - 11, by, L.peakFont, C.accent, 26, a, right ? 'left' : 'right');
+      const lx = right ? px + 11 : px - 11;
+      if (text && a > 0) {
+        // The label sits on the curve it names, in the same accent; an outline
+        // in the panel colour keeps the two apart.
+        ctx.globalAlpha = a;
+        ctx.font = L.peakFont;
+        ctx.textAlign = right ? 'left' : 'right';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = rgba(cssToRGB(C.panel, [8, 13, 21]), 1);
+        ctx.strokeText(label, lx, by);
+      }
+      hudText('peak', label, lx, by, L.peakFont, C.accent, 26, a, right ? 'left' : 'right');
     }
   }
 }
