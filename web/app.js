@@ -2331,7 +2331,10 @@ function buildWarpV4() {
     if (mode === 'linear') { w[i] = 1; continue; }
     const m = m0 + i;
     const peak = mode === 'activity-daily' ? dayPeak[Math.floor(mod(m - 270, histN) / 1440) % days] : peakAll;
-    w[i] = peak > 0 ? Math.max(floor, (s[mod(m, histN)] / peak) ** gamma) : 1;
+    // The running sum leaves about -1e-15 over a run of empty minutes (a
+    // trains-only night), and a fractional gamma turns that into NaN frames.
+    const a = Math.max(0, s[mod(m, histN)]);
+    w[i] = peak > 0 ? Math.max(floor, (a / peak) ** gamma) : 1;
   }
   const cum = new Float64Array(n + 1);
   for (let i = 0; i < n; i++) cum[i + 1] = cum[i] + w[i];

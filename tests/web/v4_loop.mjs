@@ -11,6 +11,8 @@
 //       (wrap); a_in 0 for xfade
 //  B-12 activity-daily (week): minutes per frame at frame N - 1 and at frame 0
 //       within 5%; the same for the day's activity warp
+//  warp with TIME_WARP_GAMMA 1.5 on a hist with fractional counts and empty
+//       hours (a trains-only night): every frame time is finite and in order
 //
 // The wrap checks also run on the Markham and Toronto day and week networks
 // (build/<id>/, else the stubs in build/stub_v4/) when they exist.
@@ -104,8 +106,39 @@ async function xfadeChecks(h) {
   await page.context().close();
 }
 
+// The smoothing's running sum leaves -1e-17 over empty minutes when the
+// counts are fractional; a fractional gamma once made those frames NaN.
+async function gammaChecks(h) {
+  const src = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests/fixtures/v4_tiny/network.json'), 'utf8'));
+  src.hist = src.hist.map((v) => (v ? v / 3 : 0));
+  const rel = 'build/test_web/v4_tiny_fractional.json';
+  fs.mkdirSync(path.dirname(path.join(ROOT, rel)), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, rel), JSON.stringify(src));
+  const render = encodeURIComponent(JSON.stringify({ TIME_WARP_GAMMA: 1.5 }));
+  const page = await h.open(`data=../${rel}&basemap=../tests/fixtures/v4_tiny/basemap.json&render=${render}`);
+  const r = await page.evaluate(() => {
+    const bm = window.busmap;
+    const N = bm.totalFrames;
+    let bad = 0, back = 0, prev = -Infinity;
+    for (let i = 0; i <= N; i++) {
+      const T = bm.timeAtProgress(i / N);
+      if (!Number.isFinite(T)) bad++;
+      else if (T < prev) back++;
+      if (Number.isFinite(T)) prev = T;
+    }
+    return { N, bad, back, gamma: bm.config.TIME_WARP_GAMMA };
+  });
+  ok(r.gamma === 1.5, `gamma: TIME_WARP_GAMMA is ${r.gamma}`);
+  ok(r.bad === 0, `gamma: ${r.bad} of ${r.N + 1} frame times are not finite`);
+  ok(r.back === 0, `gamma: ${r.back} frame times go backwards`);
+  console.log(`  gamma 1.5          ${r.bad} non-finite and ${r.back} backward frame times of ${r.N + 1}`);
+  if (page.errors.length) failures.push(`gamma: page errors ${page.errors.join('; ')}`);
+  await page.context().close();
+}
+
 const h = await openBrowser();
 try {
+  await gammaChecks(h);
   await wrapChecks(h, TINY, 'day');
   await wrapChecks(h, TINY_WEEK, 'week');
   await xfadeChecks(h);
