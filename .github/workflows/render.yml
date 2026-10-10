@@ -139,7 +139,10 @@ jobs:
     permissions: {contents: write}
     strategy: {fail-fast: false, max-parallel: 20, matrix: "${{ fromJSON(needs.plan.outputs.renders) }}"}
     steps:
+      # The upload uses gh with GH_TOKEN; nothing here runs git against origin, so the job's write
+      # token is not left in .git/config.
       - uses: actions/checkout@v4
+        with: {persist-credentials: false}
       # First, so a missing build fails in seconds rather than after the tool setup.
       - uses: actions/download-artifact@v4
         with: {name: "build-${{ matrix.city }}", path: "build/${{ matrix.city }}/"}
@@ -154,8 +157,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
           BATCH: ${{ needs.plan.outputs.batch }}
           CITY: ${{ matrix.city }}
           VARIANT: ${{ matrix.variant }}
@@ -163,7 +164,15 @@ jobs:
         run: |
           python3 scripts/make.py render "$CITY" --variant "$VARIANT" --tier final --no-upstream --review-dir review
           python3 scripts/make.py meta "$BATCH" --only "$CITY-$VARIANT" --no-upstream --review-dir review
-          python3 scripts/make.py release "$BATCH" --upload "$CITY-$VARIANT"
+      # The write token goes only to the upload: make.py hands its environment to every subprocess,
+      # which in the step above includes node and Chromium.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BATCH: ${{ needs.plan.outputs.batch }}
+          CITY: ${{ matrix.city }}
+          VARIANT: ${{ matrix.variant }}
+        run: python3 scripts/make.py release "$BATCH" --upload "$CITY-$VARIANT"
       - uses: actions/upload-artifact@v4
         with: {name: "review-${{ matrix.city }}-${{ matrix.variant }}", path: review/, retention-days: 7, overwrite: true, if-no-files-found: ignore}
 
