@@ -43,10 +43,14 @@ const KNOBS = [
   ['shoulder', 'TRAIL_SHOULDER_ALPHA', 0.3, STILL], ['trailalpha', 'TRAIL_ALPHA', 0.4, STILL], ['routealpha', 'ROUTE_ALPHA', 0.3, STILL],
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
-  // The camera (B18) mid loop, where the zoom and the drift both show.
-  ['camera', 'CAMERA', false, MID], ['campath', 'CAMERA_PATH', 'drift-orbit', MID], ['camzoom', 'CAMERA_ZOOM', 0.05, MID],
-  ['camdrift', 'CAMERA_DRIFT', 0.015, MID], ['camamp', 'CAMERA_AMP', 0.5, MID], ['camspeed', 'CAMERA_MAX_SPEED', 0.003, MID],
-  ['cambase', 'CAMERA_BASE', 'vector', MID],
+  // The camera (B18) mid loop, where the zoom and the drift both show, on a
+  // frame that leaves the city line room for the whole move: on the fixture's
+  // own frame the line's cap binds, and a smaller amplitude or speed below it
+  // changes nothing.
+  ['camera', 'CAMERA', false, MID, 'framed'], ['campath', 'CAMERA_PATH', 'drift-orbit', MID, 'framed'],
+  ['camzoom', 'CAMERA_ZOOM', 0.05, MID, 'framed'], ['camdrift', 'CAMERA_DRIFT', 0.015, MID, 'framed'],
+  ['camamp', 'CAMERA_AMP', 0.5, MID, 'framed'], ['camspeed', 'CAMERA_MAX_SPEED', 0.003, MID, 'framed'],
+  ['cambase', 'CAMERA_BASE', 'vector', MID, 'framed'],
 ];
 
 async function hashOf(h, query, where) {
@@ -83,6 +87,7 @@ delete fixture.meta.color_by;
 fs.writeFileSync(nobrandPath, JSON.stringify(fixture));
 const BASES = {
   tiny: TINY,
+  framed: `${TINY}&zoom=0.8`,
   nobrand: 'data=../build/test_web/tiny_nobrand.json&basemap=../tests/fixtures/v4_tiny/basemap.json&colorby=',
 };
 

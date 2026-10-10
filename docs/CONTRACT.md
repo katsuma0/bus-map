@@ -932,7 +932,7 @@ Every existing member stays. Added:
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
 | `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null | the chips fit (B9): parts shown, size, the width limit, groups folded into `other`, and every width tried in order |
-| `camera` | `{path, zoom, drift, scale, amp, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
+| `camera` | `{path, zoom, drift, scale, amp, bound, box, keep, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the city line's factor, the line's fitted bbox and keep rect (`[x0, y0, x1, y1]` px; `keep` null when the frame crops the line), the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
 | `cameraAt(u)` | fn | `{zoom, e, f}`: screen = zoom x base px + (e, f) at phase u; frame i of N is u = i / N; identity when off |
 | `setCamera(u)` | fn | pins the phase `renderAt` draws the camera at; `null` follows T again (`renderFrame` always uses i / N) |
 
@@ -1252,9 +1252,25 @@ day, rush and week.
 scaled by one factor s <= 1, found by bisection, until the fastest point of the frame (the step of
 the four corners between sampled phases; the step is affine in the point, so the corners bound it)
 moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a second over `N / 30` s; then both are
-multiplied by `CAMERA_AMP`. The 50 s day keeps s 0.94 to 0.95 (zoom 7.5 to 7.6%, drift 2.8%), the 60 s
+multiplied by `CAMERA_AMP` and by the city line's factor (below). The 50 s day keeps s 0.94 to 0.95 (zoom 7.5 to 7.6%, drift 2.8%), the 60 s
 week s 1 (8%, 3%), the 25 s rush s 0.47 (3.8%, 1.4%): the cap holds every variant to the same
 super slow speed, 0.22 px a frame at most. A zero amplitude after all that leaves the camera off.
+
+**City line.** The push-in about the pivot and the drift both carry the city line outward, and the
+speed cap does not know the city: one that fills the fit box width (D3.2, x 50..870) would reach
+x 19..901 at frame 0, off the frame with `FRAME_ZOOM` over 1 (Markham's west tip went to x -4.6,
+off screen for 11 s) or under the action buttons beyond x 880 (Toronto's east end, x 901). So when
+the fitted frame shows the whole line (the bbox of `meta.boundary.rings` inside the frame), both
+amplitudes are scaled by one more factor, found by bisection over the same sampled phases, until the
+line's bbox stays inside the keep rect at every phase: each side at the looser of the safe zone and
+the fitted bbox, plus 10 px, and never past the frame edge. The camera thus takes the line at most
+10 px past the safe zone, or past where the fitted frame already has it; the slack is the fit box's
+own (it reaches 10 px past the safe zone's left edge), and without it a city that fills the fit box
+width could not move at all. The factor is 1 when the whole move fits (Oshawa, Mississauga) and
+about 0.3 for the cities that fill the width (Toronto, Vaughan, Burlington, Markham: zoom 2 to 2.5%,
+drift 0.7 to 0.9%), and frame 0 is still the push-in. A frame that crops the line (the rush
+close-ups) has no keep rect, and only the speed cap applies. `busmap.camera` reports the factor
+(`bound`), the fitted bbox (`box`) and the rect (`keep`).
 
 **Sharpness.** The base map and the dormant network are drawn once into a cache that covers the
 union over the loop of the base rectangle on screen (plus 3 px), at `2 (1 + Z)` times the fitted
@@ -1281,8 +1297,10 @@ at the vehicle's own km position, which is the screen position mapped back throu
 the camera off, 283 ms with it on, about 43 ms of it the mipmapped base draw; the limit is 450.
 
 **Tests.** `tests/web/v4_camera.mjs`: the path from the id, the loop seam, the speed cap and its
-smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the HUD
-and the counts with and without the camera, all six paths and the sprite, scaled and bounded trail
-modes, and the cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
+smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the city
+line's keep rect at every frame (the fixture's frame on all six paths, a frame with room, the
+cropped rush, and Markham and Toronto when built), the HUD and the counts with and without the
+camera, all six paths, `CAMERA_ZOOM` 0 and the sprite, scaled and bounded trail modes, and the
+cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
 knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path` and the
 `camamp` knob.

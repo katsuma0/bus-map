@@ -11,8 +11,15 @@
 //           under 1%), its speed changes smoothly (no step between frames
 //           bigger than 2% of the peak) and is never constant; the zoom pushes
 //           in at frame 0 and is the fitted frame at mid loop
-//  amounts  day and week: zoom 6 to 10%, drift 2 to 4% of the frame; the
-//           25 s rush is held to the same speed by the cap
+//  amounts  day and week, on a frame with room for the whole move: zoom 6 to
+//           10%, drift 2 to 4% of the frame; the 25 s rush is held to the
+//           same speed by the cap
+//  line     at every frame the city line's bbox stays in its keep rect (the
+//           looser of the safe zone and the fitted bbox, plus 10 px, never
+//           off the frame), recomputed here from meta.boundary: on the
+//           fixture's frame, whose line fills the fit box width, the cap
+//           binds for all six paths and frame 0 still pushes in; a frame that
+//           crops the line (the rush) has no rect; so do Markham and Toronto
 //  core     frame 0 keeps the pivot (the fit box centre, below the card) within
 //           2% of the frame width of where the fitted frame has it
 //  headroom the cached base covers the visible rectangle at every phase
@@ -110,6 +117,7 @@ async function variantChecks(h, query, tag, kind) {
   ok(r.pivotShift <= 0.02, `${tag}: frame 0 moves the core ${(r.pivotShift * 100).toFixed(2)}% of the width`);
   ok(r.outside === 0, `${tag}: the cached base misses the frame at ${r.outside} phases`);
   if (kind === 'long') {
+    ok(r.cam.bound === 1, `${tag}: the city line's cap binds (${r.cam.bound}), so the amounts below are not the speed cap's`);
     ok(r.cam.zoom >= 0.06 && r.cam.zoom <= 0.1, `${tag}: zoom amplitude ${r.cam.zoom.toFixed(4)}, want 0.06 to 0.10`);
     ok(r.cam.drift / r.W >= 0.02 && r.cam.drift / r.W <= 0.04, `${tag}: drift ${(r.cam.drift / r.W).toFixed(4)} of the width, want 0.02 to 0.04`);
   } else {
@@ -121,6 +129,58 @@ async function variantChecks(h, query, tag, kind) {
   console.log(`  ${tag.padEnd(6)} ${r.cfg.path} zoom ${(r.cam.zoom * 100).toFixed(2)}% drift ${(r.cam.drift / r.W * 100).toFixed(2)}% `
     + `cap scale ${r.cam.scale.toFixed(3)}; fastest ${(r.peak * 100).toFixed(3)}%/s, slowest ${(r.slow * 100).toFixed(3)}%/s, `
     + `largest step ${(r.jump * 100).toFixed(2)}% of peak; core moves ${(r.pivotShift * 100).toFixed(2)}% at frame 0`);
+  if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join('; ')}`);
+  await page.context().close();
+}
+
+// The city line under the camera: at every frame its bbox stays in the keep
+// rect. want is 'binds' (the fitted line leaves less room than the move: the
+// cap brings some frame within 0.5 px of the rect, and frame 0 still pushes
+// in), 'free' (the whole move fits) or 'crop' (the frame crops the line, so
+// there is no rect and only the speed cap applies).
+async function lineChecks(h, query, tag, want) {
+  const page = await h.open(query);
+  const r = await page.evaluate(() => {
+    const bm = window.busmap, C = bm.config, N = bm.totalFrames, W = bm.canvas.width, H = bm.canvas.height;
+    const S = H / C.KM_VERTICAL, OX = W / 2 - C.CENTER_KM[0] * S, OY = H / 2 + C.CENTER_KM[1] * S;
+    let box = [Infinity, Infinity, -Infinity, -Infinity];
+    for (const ring of bm.meta.boundary.rings) {
+      for (let i = 0; i < ring.length; i += 2) {
+        const x = OX + ring[i] * S, y = OY - ring[i + 1] * S;
+        box = [Math.min(box[0], x), Math.min(box[1], y), Math.max(box[2], x), Math.max(box[3], y)];
+      }
+    }
+    const whole = box[0] >= 0 && box[1] >= 0 && box[2] <= W && box[3] <= H;
+    const keep = whole ? [Math.max(0, Math.min(60, box[0]) - 10), Math.max(0, Math.min(240, box[1]) - 10),
+      Math.min(W, Math.max(880, box[2]) + 10), Math.min(H, Math.max(1500, box[3]) + 10)] : null;
+    let out = 0, near = Infinity;
+    const ext = [Infinity, Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < N; i++) {
+      const m = bm.cameraAt(i / N);
+      const b = [m.zoom * box[0] + m.e, m.zoom * box[1] + m.f, m.zoom * box[2] + m.e, m.zoom * box[3] + m.f];
+      for (let k = 0; k < 4; k++) ext[k] = k < 2 ? Math.min(ext[k], b[k]) : Math.max(ext[k], b[k]);
+      if (!keep) continue;
+      const gap = Math.min(b[0] - keep[0], b[1] - keep[1], keep[2] - b[2], keep[3] - b[3]);
+      if (gap < -0.01) out++;
+      near = Math.min(near, gap);
+    }
+    return { cam: bm.camera, box, keep, out, near, ext, z0: bm.cameraAt(0).zoom, zmax: Math.max(...Array.from({ length: N }, (_, i) => bm.cameraAt(i / N).zoom)) };
+  });
+  const c = r.cam;
+  ok(c && c.box.every((v, k) => Math.abs(v - r.box[k]) < 1e-6), `${tag}: camera.box ${JSON.stringify(c && c.box)}, the rings give ${JSON.stringify(r.box)}`);
+  ok(JSON.stringify(c && c.keep) === JSON.stringify(r.keep), `${tag}: camera.keep ${JSON.stringify(c && c.keep)}, want ${JSON.stringify(r.keep)}`);
+  ok(r.out === 0, `${tag}: the city line leaves its keep rect at ${r.out} frames`);
+  if (want === 'binds') {
+    ok(c.bound < 1 && r.near < 0.5, `${tag}: the cap does not bind (factor ${c.bound}, closest ${r.near.toFixed(2)} px)`);
+    ok(r.z0 === r.zmax && r.z0 > 1, `${tag}: frame 0 is not the push-in under the cap (zoom ${r.z0} of max ${r.zmax})`);
+  } else if (want === 'free') {
+    ok(c.bound === 1 && r.near >= 0, `${tag}: the whole move should fit (factor ${c.bound})`);
+  } else {
+    ok(r.keep === null && c.bound === 1, `${tag}: a frame that crops the line has a keep rect or a cap (${c.bound})`);
+  }
+  console.log(`  line ${tag.padEnd(18)} ${c.path.padEnd(14)} factor ${c.bound.toFixed(3)} zoom ${(c.zoom * 100).toFixed(2)}% drift ${(c.drift / 1080 * 100).toFixed(2)}%; `
+    + `line x ${r.ext[0].toFixed(1)}..${r.ext[2].toFixed(1)}, y ${r.ext[1].toFixed(1)}..${r.ext[3].toFixed(1)}`
+    + (r.keep ? ` in [${r.keep.map((v) => v.toFixed(1)).join(', ')}], closest ${r.near.toFixed(2)} px` : ' (cropped)'));
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join('; ')}`);
   await page.context().close();
 }
@@ -299,9 +359,23 @@ async function sharpChecks(h, query, tag) {
 
 const h = await openBrowser();
 try {
-  await variantChecks(h, TINY, 'day', 'long');
-  await variantChecks(h, TINY_WEEK, 'week', 'long');
+  // zoom=0.8 leaves the fixture's line room for the whole move, so the
+  // amounts are the speed cap's; lineChecks covers the fixture's own frame.
+  await variantChecks(h, `${TINY}&zoom=0.8`, 'day', 'long');
+  await variantChecks(h, `${TINY_WEEK}&zoom=0.8`, 'week', 'long');
   await variantChecks(h, `${TINY}&variant=rush`, 'rush', 'short');
+  await lineChecks(h, TINY, 'tiny day', 'binds');
+  await lineChecks(h, TINY_WEEK, 'tiny week', 'binds');
+  for (const p of ['pull-out-east', 'pull-out-north', 'pull-out-south', 'drift-orbit', 'drift-sway']) await lineChecks(h, `${TINY}&campath=${p}`, `tiny ${p}`, 'binds');
+  await lineChecks(h, `${TINY}&zoom=0.8`, 'tiny zoom 0.8', 'free');
+  await lineChecks(h, `${TINY}&variant=rush`, 'tiny rush', 'crop');
+  // The two cities the judges measured: Markham's west tip left the frame and
+  // Toronto's east end went under the action buttons.
+  for (const [id, render] of NO_GTA ? [] : [['gta-markham', { FRAME_ZOOM: 1.05, CAMERA_PATH: 'drift-sway' }], ['gta-toronto', { CAMERA_PATH: 'pull-out-north' }]]) {
+    const net = `build/${id}/day/network.json.gz`, bm = `build/${id}/basemap.json.gz`;
+    if (!fs.existsSync(path.join(ROOT, net)) || !fs.existsSync(path.join(ROOT, bm))) continue;
+    await lineChecks(h, `data=../${net}&basemap=../${bm}&render=${encodeURIComponent(JSON.stringify(render))}`, `${id} day`, 'binds');
+  }
   await layerChecks(h);
   await everyPath(h);
   let sharp = [TINY, 'tiny'];

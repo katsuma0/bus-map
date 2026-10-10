@@ -1767,9 +1767,14 @@ const CAMERA_PIVOT = [460, 845];
 // The pull-outs bow sideways by this share of the drift, so the way out and
 // the way back are the two sides of a thin ellipse rather than one line.
 const CAMERA_BOW = 0.4;
-// Phases sampled for the speed cap and the base headroom: 1/720 of a 25 s
-// rush is about one frame.
+// Phases sampled for the speed cap, the city line's cap and the base
+// headroom: 1/720 of a 25 s rush is about one frame.
 const CAMERA_STEPS = 720;
+// How far past the looser of the safe zone and its fitted position the camera
+// may carry the city line, in px. D3.2's fit box itself reaches 10 px past the
+// safe zone's left edge, and with no slack a city that fills the fit box width
+// could not move at all: any push-in about the pivot widens it.
+const CAMERA_EDGE_SLACK = 10;
 // The cached base is drawn this many times finer than the push-in needs and
 // scaled down with mipmaps each frame. Against a fresh vector render per frame
 // (Toronto's base) that keeps about 91% of the edge energy while thin roads
@@ -1842,10 +1847,49 @@ function cameraNum(key, lo, hi) {
   return c;
 }
 
+// The city line's bbox in the fitted frame's px, or null without a boundary.
+function boundaryBoxPx() {
+  const b = meta.boundary;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const ring of (b && b.rings) || []) {
+    if (ring.length < 6) continue;
+    for (let i = 0; i < ring.length; i += 2) {
+      const x = OX + ring[i] * SCALE, y = OY - ring[i + 1] * SCALE;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return x0 <= x1 ? [x0, y0, x1, y1] : null;
+}
+
+// Where the camera may take the city line's bbox: each side at the looser of
+// the safe zone and the fitted bbox, plus the slack, and never off the frame.
+// Null when the fitted frame already crops the line (a rush close-up), since
+// then there is no whole outline to keep in view.
+function cameraKeepRect(box) {
+  if (!box || box[0] < 0 || box[1] < 0 || box[2] > W || box[3] > H) return null;
+  const t = CAMERA_EDGE_SLACK;
+  return [Math.max(0, Math.min(SAFE.x0, box[0]) - t), Math.max(0, Math.min(SAFE.y0, box[1]) - t),
+    Math.min(W, Math.max(SAFE.x1, box[2]) + t), Math.min(H, Math.max(SAFE.y1, box[3]) + t)];
+}
+
+// Whether the bbox stays inside the keep rect at every sampled phase. The
+// camera is a scale and a shift, so the bbox's own edges are the line's.
+function cameraKeeps(path, Z, R, box, keep) {
+  for (let k = 0; k < CAMERA_STEPS; k++) {
+    const m = cameraMatrix(path, Z, R, k / CAMERA_STEPS);
+    if (m.z * box[0] + m.e < keep[0] || m.z * box[1] + m.f < keep[1]
+      || m.z * box[2] + m.e > keep[2] || m.z * box[3] + m.f > keep[3]) return false;
+  }
+  return true;
+}
+
 // Resolves the path and the amplitudes, then the base headroom: the union over
 // the loop of the base rectangle that is on screen, so the cached base map can
 // be drawn once at the push-in scale and only ever scaled down. Needs the frame
-// (finishFrame) and totalFrames.
+// (finishFrame), meta.boundary and totalFrames.
 function buildCameraV4() {
   cam = null;
   if (!CONFIG.CAMERA) return;
@@ -1866,7 +1910,24 @@ function buildCameraV4() {
     }
     s = lo;
   }
-  const Z = Z0 * s * amp, R = R0 * s * amp;
+  let Z = Z0 * s * amp, R = R0 * s * amp;
+  // The push-in about the pivot and the drift both carry the line outward, and
+  // the speed cap knows nothing of the city: one that fills the fit box width
+  // (D3.2, x 50..870) would reach x 19..901 at frame 0, past the frame edge
+  // with FRAME_ZOOM over 1 and under the action buttons beyond x 880. One more
+  // factor scales both down until the line's bbox stays in the keep rect.
+  const box = boundaryBoxPx(), keep = cameraKeepRect(box);
+  let bound = 1;
+  if (keep && !cameraKeeps(path, Z, R, box, keep)) {
+    let lo = 0, hi = 1;
+    for (let it = 0; it < 40; it++) {
+      const mid = (lo + hi) / 2;
+      if (cameraKeeps(path, Z * mid, R * mid, box, keep)) lo = mid; else hi = mid;
+    }
+    bound = lo;
+  }
+  Z *= bound;
+  R *= bound;
   if (!(Z > 0) && !(R > 0)) return;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (let k = 0; k < CAMERA_STEPS; k++) {
@@ -1887,7 +1948,7 @@ function buildCameraV4() {
   const tx0 = Math.floor(k * (x0 - pad) + m0.e), ty0 = Math.floor(k * (y0 - pad) + m0.f);
   const ax = (tx0 - m0.e) / k, ay = (ty0 - m0.f) / k;
   cam = {
-    path, Z, R, scale: s, amp, k, q, ax, ay, tx0, ty0,
+    path, Z, R, scale: s, amp, bound, box, keep, k, q, ax, ay, tx0, ty0,
     w: Math.ceil((x1 + pad - ax) * k * q), h: Math.ceil((y1 + pad - ay) * k * q),
     peak: cameraPeak(path, Z, R) * CONFIG.FPS / totalFrames / W,
     outside: null, rings: null, dim: null, source: null,
@@ -3828,10 +3889,12 @@ const busmap = {
       tried: c.tried.map((t) => ({ ...t })) } : null;
   },
   // The camera (B18), or null when it is off: path, zoom amplitude, drift in
-  // px, the speed cap's factor, the fastest on-screen motion in frame widths
-  // a second, the pivot and the cached base (size and scale).
+  // px, the speed cap's factor, the city line's factor with the line's fitted
+  // bbox and its keep rect (null when the frame crops the line), the fastest
+  // on-screen motion in frame widths a second, the pivot and the cached base.
   get camera() {
-    return cam ? { path: cam.path, zoom: cam.Z, drift: cam.R, scale: cam.scale, amp: cam.amp, peak_speed: cam.peak,
+    return cam ? { path: cam.path, zoom: cam.Z, drift: cam.R, scale: cam.scale, amp: cam.amp, bound: cam.bound,
+      box: cam.box && cam.box.slice(), keep: cam.keep && cam.keep.slice(), peak_speed: cam.peak,
       pivot: CAMERA_PIVOT.slice(), base: { w: cam.w, h: cam.h, k: cam.k * cam.q, x0: cam.ax, y0: cam.ay } } : null;
   },
   // screen = zoom * base + (e, f) at phase u (frame i of N is u = i / N).
