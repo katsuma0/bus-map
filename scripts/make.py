@@ -75,8 +75,8 @@ KY = 110.574
 FPS = 30
 WIDTH, HEIGHT = 1080, 1920
 
-# Code whose bytes decide outputs (F1). Missing files hash as "missing", so keys
-# can be computed before every part has landed.
+# Code whose bytes decide outputs (F1). Every file must exist: one hashed as
+# "missing" would keep its key steady while a renamed copy changed.
 A_FILES = ["scripts/build_area.py", "scripts/composite.py", "scripts/area_store.py", "scripts/trim_network.py",
            "scripts/fetch_boundary.py", "scripts/basemap_v4.py"]
 LEGACY_CODE = ["scripts/build_network.py", "scripts/build_basemap.py", "scripts/fetch_overture.py"]
@@ -745,7 +745,7 @@ class Pipeline:
         p = self.cfile("holidays.json", required=False)
         if p is None:
             if required:
-                raise MakeError("cities/holidays.json is missing (part A writes it)")
+                raise MakeError("cities/holidays.json is missing")
             return None
         return self.load(p)
 
@@ -776,6 +776,9 @@ class Pipeline:
         return self.memo.sha(p)
 
     def code_shas(self, files):
+        gone = [f for f in files if not os.path.isfile(self.path(f))]
+        if gone:
+            raise MakeError(f"code in the step keys is missing: {', '.join(gone)}")
         return {f: self.sha(f) for f in files}
 
     def glob_files(self, patterns):
@@ -1137,8 +1140,7 @@ class Pipeline:
     def tool_path(self, script):
         p = self.path("scripts", script)
         if not os.path.exists(p):
-            owner = "A" if f"scripts/{script}" in A_FILES else ("C" if script.endswith(".mjs") else "?")
-            raise MakeError(f"scripts/{script} is missing (part {owner} has not landed in this tree)")
+            raise MakeError(f"scripts/{script} is missing")
         return p
 
     def show_cmd(self, cmd):

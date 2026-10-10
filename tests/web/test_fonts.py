@@ -2,8 +2,8 @@
 """B-9: every HUD and card string of the GTA batch is covered by the X fonts (fontTools cmap).
 
 The strings: every place and title of the recipes, brand, rule and group labels of brands.json,
-the batch's mode words, the variant labels, the card templates (the labels and card lines of
-cities/templates/shorts_en.json when part D has written it, else the fixture's), the credit line and its fallback, the weekday
+the batch's mode words, the variant labels, the labels and card lines of
+cities/templates/shorts_en.json, the credit line and its fallback, the weekday
 names, the axis words and the digits. Both MontserratX and InterX must map every character
 (the panel uses one, the credit and card lines the other).
 
@@ -47,18 +47,11 @@ def strings():
         out += [f"An average {month} weekday", f"Morning rush, an average {month} weekday", f"An average {month} week"]
     out += ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY", "M T W T F S S",
             "midnight", "12:00 am", "8:04 pm", "8 am", "peak 3,951", "0123456789", "vehicle", "vehicles"]
-    templates = os.path.join(ROOT, "cities", "templates", "shorts_en.json")
-    if os.path.exists(templates):
-        with open(templates, encoding="utf-8") as fh:
-            tpl = json.load(fh)
-        # Only labels and card lines reach the screen; titles and descriptions are metadata.
-        out += [s for s in walk([tpl["labels"], tpl["card"]]) if isinstance(s, str)]
-        src = "cities/templates/shorts_en.json"
-    else:
-        with open(os.path.join(ROOT, "tests", "fixtures", "v4_tiny", "network.json"), encoding="utf-8") as fh:
-            tpl = json.load(fh)["meta"]["card"]["templates"]
-        out += [s for s in walk(tpl) if isinstance(s, str)]
-        src = "the v4_tiny fixture (cities/templates/shorts_en.json not written yet)"
+    with open(os.path.join(ROOT, "cities", "templates", "shorts_en.json"), encoding="utf-8") as fh:
+        tpl = json.load(fh)
+    # Only labels and card lines reach the screen; titles and descriptions are metadata.
+    out += [s for s in walk([tpl["labels"], tpl["card"]]) if isinstance(s, str)]
+    src = "cities/templates/shorts_en.json"
     # Placeholders are filled with the strings above; their braces never reach the screen.
     return [s.replace("{", "").replace("}", "") for s in out], src
 

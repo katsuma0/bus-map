@@ -429,6 +429,7 @@ class FakeRepo:
             self.write(f"scripts/{name}", f"# stub {name}\n")
         self.write("web/app.js", "// stub page\n")
         self.write("web/index.html", "<!doctype html>\n")
+        self.write("web/fonts/InterX.woff2", "stub font\n")
         from importlib import metadata
         self.write("requirements.txt", f"numpy=={metadata.version('numpy')} \\\n    --hash=sha256:{'0' * 64}\n")
         self.write("package-lock.json", "{}\n")
