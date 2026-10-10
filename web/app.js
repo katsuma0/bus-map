@@ -2390,12 +2390,20 @@ function joinWords(list) {
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 }
 
-// Modes with vehicles inside the boundary at the variant's peak; the count
-// line and the card name these (B9, B10).
-function modesAtPeak() {
+// Modes with at least MODE_PRESENT_MIN vehicles inside in some minute of the
+// variant's window, which the count line and the card name (B9, B10). The
+// peak minute alone missed GO trains inside for most of Whitby's rush, whose
+// count then read as buses. make.py's modes_present uses the same rule.
+const MODE_PRESENT_MIN = 0.5;
+function modesInWindow() {
   const byMode = meta.hist_by_mode || {};
-  const m = variantV.peak ? variantV.peak.time / 60 : 0;
-  const list = modes.filter((md) => Array.isArray(byMode[md.id]) && interpCircular(byMode[md.id], m) > 0);
+  const m0 = Math.ceil(variantV.start / 60), m1 = Math.ceil(variantV.end / 60);
+  const list = modes.filter((md) => {
+    const a = byMode[md.id];
+    if (!Array.isArray(a) || !a.length) return false;
+    for (let m = m0; m < m1; m++) if ((a[mod(m, a.length)] || 0) >= MODE_PRESENT_MIN) return true;
+    return false;
+  });
   return list.length ? list : modes;
 }
 
@@ -2419,9 +2427,9 @@ function buildShortsLayout() {
   while (ss > 32 && textWidth(subtitle, `400 ${ss}px ${F.mont}`) > 796) ss--;
   L.subtitle = { text: subtitle, size: ss, font: `400 ${ss}px ${F.mont}` };
 
-  // The count noun: a mode's own word when only one mode is inside at the peak.
-  const atPeak = modesAtPeak();
-  L.nounMode = atPeak.length === 1 ? atPeak[0] : null;
+  // The count noun: a mode's own word when only one mode is inside in the window.
+  const present = modesInWindow();
+  L.nounMode = present.length === 1 ? present[0] : null;
   L.peakCount = variantV.peak ? variantV.peak.count : 0;
   const peakText = `${withCommas(L.peakCount)} ${countNoun(L, L.peakCount)} in ${meta.place || ''}`;
   let cs = 40;
@@ -2719,7 +2727,7 @@ function insideKm(x, y) {
 
 // The card text (B10), placeholders filled from meta and the variant.
 function fillCardTemplate(tpl) {
-  const plural = modesAtPeak();
+  const plural = modesInWindow();
   const values = {
     place: meta.place || '',
     modes_singular: joinWords(plural.map((m) => m.singular)),

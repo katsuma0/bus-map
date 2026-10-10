@@ -664,6 +664,22 @@ def recipe_variants(recipe, batch):
     return [v for v in VARIANTS if v in recipe.get("variants", batch.get("variants_default", list(VARIANTS)))]
 
 
+# The page's MODE_PRESENT_MIN (B9): a mode is named when at least half a
+# vehicle of it is inside in some minute of the window V.peak is taken over.
+MODE_PRESENT_MIN = 0.5
+
+
+def modes_in_window(modes, by_mode, start, end):
+    """Ids of the modes the page names for a variant window [start, end) in seconds."""
+    m0, m1 = -(-start // 60), -(-end // 60)
+    out = []
+    for m in modes:
+        a = by_mode.get(m["id"]) or []
+        if a and any((a[t % len(a)] or 0) >= MODE_PRESENT_MIN for t in range(int(m0), int(m1))):
+            out.append(m["id"])
+    return out
+
+
 def strip_why(recipe):
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
@@ -1970,11 +1986,7 @@ class Pipeline:
         _rj, _bh, _r, frames = self.effective_render(recipe, variant, meta)
         seconds = frames / FPS
         seconds = int(seconds) if seconds == int(seconds) else round(seconds, 1)
-        hist_period = meta.get("hist_period") or len(meta.get("hist", [])) or 1440
-        peak_min = int(V["peak"]["time"] // 60) % hist_period
-        by_mode = meta.get("hist_by_mode", {})
-        modes_present = [m["id"] for m in batch["modes"]
-                         if by_mode.get(m["id"]) and len(by_mode[m["id"]]) > peak_min and by_mode[m["id"]][peak_min] > 0]
+        modes_present = modes_in_window(batch["modes"], meta.get("hist_by_mode", {}), V["start"], V["end"])
         keys = ("id", "name", "publisher", "licence_id", "licence_text", "dates", "rule", "median_date", "excluded",
                 "inside_share", "inside_vehicle_minutes", "major", "month_used")
         feeds = [{k: f.get(k) for k in keys if k in f} for f in meta.get("feeds", [])]

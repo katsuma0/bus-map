@@ -591,6 +591,24 @@ E2 = {  # id: (subtype, expected area, km_vertical, center_km)
 }
 
 
+class Modes(unittest.TestCase):
+    MODES = [{"id": "bus"}, {"id": "rail"}]
+
+    def test_modes_over_the_window(self):
+        """B9: a mode is named when half a vehicle of it is inside in some minute of [start, end)."""
+        rail = [0.0] * 1440
+        by = {"bus": [5.0] * 1440, "rail": rail}
+        rail[400] = 1.0  # 6:40 am: inside the rush window, far from its peak
+        self.assertEqual(make.modes_in_window(self.MODES, by, 23400, 34200), ["bus", "rail"])
+        self.assertEqual(make.modes_in_window(self.MODES, by, 24060, 34200), ["bus"])
+        self.assertEqual(make.modes_in_window(self.MODES, by, 20000, 24000), ["bus"])  # the end minute is out
+        rail[400] = 0.49
+        self.assertEqual(make.modes_in_window(self.MODES, by, 23400, 34200), ["bus"])
+        rail[30] = 0.5  # 0:30 am, reached by a day window that wraps past midnight
+        self.assertEqual(make.modes_in_window(self.MODES, by, 26520, 112920), ["bus", "rail"])
+        self.assertEqual(make.modes_in_window(self.MODES, {"bus": []}, 0, 86400), [])
+
+
 class Frames(unittest.TestCase):
     DIV = os.path.join(REPO, "data/gta/basemap/divisions.geojson")
 

@@ -949,7 +949,8 @@ Sidecar `<stem>.json` next to every MP4 (C): `{"name", "variant", "tier", "frame
 Network metadata `<stem>.netmeta.json` (D, from the network meta, before rendering):
 `{"id", "variant", "place", "title", "label", "month_label", "peak", "am_peak", "pm_peak", "feeds"
 (id, name, publisher, licence_id, licence_text, dates, rule, excluded, inside_share, major),
-"modes_present", "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
+"modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
+window), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
 batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
@@ -1091,7 +1092,8 @@ sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260
 * **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1140 for day
   and rush, 1110 for the week (weekday cap top 1138), 44 px higher again when the count splits.
 * **Count line**: `${withCommas(n)} ${noun} in ${meta.place}` with `n = round(histRaw(T / 60))`;
-  noun = the mode label (singular when n is 1) when one mode has inside vehicles at `V.peak`, else
+  noun = the mode label (singular when n is 1) when only one mode has at least 0.5 inside
+  vehicles in some minute of `[start, end)` (the minutes `V.peak` is taken over), else
   `vehicles` / `vehicle`. Fit once on the text at `V.peak.count`: 40 px, down to 36; if it still
   exceeds 504 px, split before ` in `: `count` (`12,345 vehicles`) and `count2` (`in Richmond
   Hill`) 44 px apart, and the rows above move up 44 px. The count never exceeds the peak label,
@@ -1124,10 +1126,10 @@ sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260
 ### B10. Card and loop frame mapping
 
 Card text from `meta.card.templates[VARIANT][CARD_LINES]`, a pair `[line0, line1]`, formatted with
-`{place}`, `{modes_singular}` (`bus and train`, `bus, streetcar and train`: modes with inside
-vehicles at `V.peak`), `{modes_plural}`, `{peak_time}` (`clockText(V.peak.time)`), `{peak_count}`
-(`V.peak.count` with commas), `{trips}`, `{month}` (`meta.timeline.month_label`). An unknown
-placeholder is a `console.error`.
+`{place}`, `{modes_singular}` (`bus and train`, `bus, streetcar and train`: modes with at least
+0.5 inside vehicles in some minute of `[start, end)`, the count noun's rule), `{modes_plural}`,
+`{peak_time}` (`clockText(V.peak.time)`), `{peak_count}` (`V.peak.count` with commas), `{trips}`,
+`{month}` (`meta.timeline.month_label`). An unknown placeholder is a `console.error`.
 
 Layout per variant at init, left-aligned at x 72, width limit 796, block centred on `CARD_CENTER_Y`
 (620: above the city centre, which D3.2 puts at y 845, so the busiest part of the map stays visible

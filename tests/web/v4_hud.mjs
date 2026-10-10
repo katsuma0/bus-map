@@ -8,7 +8,8 @@
 //  B-5  every hudBoxes() box inside x 60..880, y 240..1500 and at or above its
 //       minimum size, on every stillTimes() still and on frames 0 and 15
 //       (card), and no console.error from the page's own layout asserts
-//  B-6  at V.peak.time the count line equals V.peak.count; over every 5th
+//  B-6  at V.peak.time the count line equals V.peak.count (and B9: its noun
+//       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
 //  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart
@@ -77,6 +78,17 @@ function inPage() {
   out.atPeak = bm.countAt(pt);
   out.countText = (bm.hudBoxes().find((b) => b.name === 'count') || {}).text;
   out.count2 = bm.hudBoxes().some((b) => b.name === 'count2');
+  // B9: one mode's own noun only when no other mode has half a vehicle
+  // inside in any minute of [start, end), not just at the peak.
+  const present = (meta.modes || []).filter((md) => {
+    const a = (meta.hist_by_mode || {})[md.id] || [];
+    for (let m = Math.ceil(V.start / 60); m < Math.ceil(V.end / 60) && a.length; m++) {
+      if ((a[((m % a.length) + a.length) % a.length] || 0) >= 0.5) return true;
+    }
+    return false;
+  });
+  const one = V.peak.count === 1;
+  out.wantNoun = present.length === 1 ? (one ? present[0].singular : present[0].label) : (one ? 'vehicle' : 'vehicles');
   out.maxCount = 0;
   out.badSum = [];
   for (let i = 0; i < bm.totalFrames; i += 5) {
@@ -165,6 +177,7 @@ async function run(h, name, query, variant) {
   for (const [i, boxes] of Object.entries(r.frames)) checkBoxes(tag, `frame ${i}`, boxes);
   ok(r.atPeak.total === r.peakCount, `${tag} B-6: count ${r.atPeak.total} at the peak ${r.peakT}, V.peak.count ${r.peakCount}`);
   ok(r.countText && r.countText.replace(/,/g, '').startsWith(String(r.peakCount)), `${tag} B-6: count line "${r.countText}" at the peak`);
+  ok(r.countText && r.countText.split(' ')[1] === r.wantNoun, `${tag} B-9: count line "${r.countText}", want the noun "${r.wantNoun}"`);
   ok(r.maxCount <= r.peakCount, `${tag} B-6: count reaches ${r.maxCount} > peak ${r.peakCount}`);
   ok(!r.badSum.length, `${tag} B-6: chips do not add up at frames ${JSON.stringify(r.badSum.slice(0, 3))}`);
   ok(!r.flagMismatch.length, `${tag} B-6: lastVehicles flags differ from the polygon away from the edge: ${JSON.stringify(r.flagMismatch)}`);
