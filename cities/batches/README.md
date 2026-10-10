@@ -136,6 +136,9 @@ the CSV's `licence_flags`.
   and area.
 * `dates` and `rules` are written by the first area build and are part of every
   render key of the area; `files` is written by the first `make.py fetch`.
+* `data_tag` is `overture/<area>-<release>` until a lock moves the extract `bbox`
+  within the release: that lock adds 8 hex of the new bbox, so the tag pushed for
+  the old extract keeps its bytes.
 * `boundaries.<id>.week_eligible: false` and `week_why` are written when the week
   trim finds the city not eligible; `plan` then skips that week.
 * `--frozen` (Actions) fails on changed feed bytes, changed dates, a changed frame
@@ -191,8 +194,11 @@ Each division is matched as a single boundary is, and `fetch_boundary.py union`
 joins them; the outline, the dimming and the counts use the union, the lock
 records its `parts`, and the description lists the divisions where a city's says
 "the Toronto city limits". `place` is written as a sentence reads it ("412 trains
-in the GTA"). A region needs a far larger frame than a city (the GTA's is 325.5 km
-tall), and its trim box and clip must fit the area's `area_box` and Overture extract.
+in the GTA"). Fitted, a region's frame is far larger than a city's (the GTA's would
+be 325.5 km tall), so a region video can pin a closer `frame` that shows only part
+of it. The trim box then grows to hold the whole boundary, so every vehicle inside
+is still drawn and counted, while the clip follows the frame. The grown trim box
+must fit the area's `area_box`; `make.py show <batch>` suggests one that does.
 
 ## Making a batch
 

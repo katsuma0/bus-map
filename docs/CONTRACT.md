@@ -606,6 +606,12 @@ installed package version that differs from `requirements.txt`. `tools` is infor
 different Python patch, Chromium or ffmpeg build prints a warning only (networks and basemaps
 depend on the pinned packages, not on those; D-8 compares the outputs themselves).
 
+`overture.data_tag` is the tag that holds the extract and the divisions file, normally
+`overture/<area>-<release>`. A lock that moves the extract `bbox` within the same release names a
+new tag, `overture/<area>-<release>-<8 hex of sha256(canonical bbox)>`, since the old tag on origin
+still holds the old bytes (restoring from it fails on their sha256, and pushing over it would break
+the lock that pins them); a lock whose bbox and release stay keeps its tag.
+
 A union boundary (2.15) has `"id": "union:<16 hex>"`, `"division_id": null`, `"subtype": "union"`,
 `name` the divisions' names joined with ` + `, `area_km2` of the union, and `parts`: one
 `{"id", "division_id", "name", "subtype", "area_km2"}` per division in recipe order (plus `file` and
@@ -727,7 +733,7 @@ only by the untouched legacy scripts).
 | `title` | str | `"MARKHAM"` | uppercase place |
 | `origin` | [lon, lat] | area origin | |
 | `frame` | obj | `{"km_vertical": 49.0, "center_km": [15.7, 6.0]}` | the day frame (also the week frame) |
-| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km |
+| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km; grown to the boundary bbox plus 1 km when a pinned frame shows only part of the boundary (2.15) |
 | `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | `name` joins a union's divisions with ` + ` |
 | `modes` | [str] | `["bus"]` | the recipe's modes in batch order (every batch mode by default); the trim keeps only their trips |
 | `brands` | str | `"cities/brands.json"` | |
@@ -1060,14 +1066,20 @@ batch without them builds exactly as before:
   the parts' ids), `division_id` null, `name` (the parts' names joined with ` + `), `subtype`
   `union`, `area_km2`, `parts` (each part's `id`, `division_id`, `name`, `subtype`, `area_km2`,
   `release`, `source`), `release` and `source` (`Overture <release> division_area <id> + <id> ...`).
-  The frame fits the union's bbox (D3.2), and the outline, the dimming mask and every count use the
-  union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
+  The frame fits the union's bbox (D3.2) unless the recipe pins one, and the outline, the dimming
+  mask and every count use the union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
   title `THE GTA`, hashtag `#thegta`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
   instead of "the <place> city limits", and `{the_city}` reads "the region".
   A union is usually far larger than one city: the GTA (Toronto and the Peel, York, Durham and
-  Halton regions, 139 x 136 km) fits a 325.5 km frame, whose trim box and clip
-  (`[-80.59, 41.85, -77.66, 45.6]`) must lie inside the area's `area_box` and Overture extract like
-  any other city's (`make.py build` stops otherwise).
+  Halton regions, 139 x 136 km) fits a 325.5 km frame, where its trains are specks, so its recipe
+  pins a 150 km frame on the west end of the lake and lets the region run off the frame's sides.
+* **Pinned frame smaller than the boundary**: a trim box that does not hold the boundary bbox grows
+  to that bbox plus 1 km on the sides it misses (A8.3 no longer exits there), so every vehicle
+  inside is still drawn and counted; the trim logs `trim box grown to [...]`. The clip stays the
+  frame's trim box plus 2 km, since only the frame is drawn. `make.py build` checks the grown box
+  against `area_box`, and `make.py show` suggests an area box that holds it (the GTA's grown box
+  needs `[-80.18, 42.65, -78.41, 44.53]`). A fitted frame always holds its boundary, so no other
+  city's trim box changes.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 
