@@ -10,11 +10,11 @@
   "frame": {
     "km_vertical": 36,
     "center_km": [
-      5.88,
-      0.0
+      5.0,
+      -2.0
     ],
     "hud_side": "right",
-    "hud_top": 1200
+    "hud_top": 1300
   },
   "clip": [
     139.3,
@@ -150,8 +150,8 @@
     }
   ],
   "attribution": [
-    "Toei Bus, Sakura Tram: GTFS, Tokyo Metropolitan Government (CC BY 4.0)",
-    "Ward community buses: GTFS from 9 city offices · Setagaya Line",
+    "Toei Bus, Sakura Tram: GTFS, Tokyo Metropolitan Government",
+    "(CC BY 4.0) · 9 ward community buses: GTFS · Setagaya Line",
     "modelled from train counts, gtfs-gis.jp · Map: Overture, © OSM",
     "Made by Katsuma Onishi"
   ],
@@ -189,5 +189,21 @@
   ],
   "theme": {
     "accent": "#ff8fbf"
+  },
+  "render": {
+    "TRAIL_BLEND": "bounded",
+    "ROUTE_BLEND": "bounded",
+    "TRAIL_MINUTES": 15,
+    "TRAIL_ALPHA": 0.6,
+    "TRAIL_CORE_W": 4,
+    "TRAIL_SHOULDER_W": 14,
+    "TRAIL_SHOULDER_ALPHA": 0.4,
+    "TRAIL_SHOULDER_BANDS": 6,
+    "TRAIL_LAYER_ALPHA": 0.9,
+    "ROUTE_ALPHA": 0.22,
+    "BUS_HALO_ALPHA": 0.18,
+    "BUS_HALO_R": 9,
+    "BUS_CORE_R": 2.5,
+    "TITLE_SCRIM": 0.6
   }
 }

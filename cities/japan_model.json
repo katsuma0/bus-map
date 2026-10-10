@@ -65,7 +65,9 @@
       },
       "bus": {
         "source": "data/japan-src/n07/n07_11_26.zip",
-        "exclude_operators": []
+        "exclude_operators": [],
+        "highway_route_pattern": "エクスプレス|ハイウェイ|リムジン|昼特急|ドリーム|ライナー|高速|空港|夜行|⇔|>>>|＞＞＞|エディ号|キャメル号|パイレーツ号|ルプラン号",
+        "highway_operator_pattern": "高速バス|空港交通|JR四国バス|JR東海バス|中国JRバス|JRバス関東|両備|伊予鉄道|北陸鉄道|東北急行|京浜急行バス|本四海峡|岐阜バス観光|（株）中国バス|日本交通（株）|四国高速|ウィラー|WILLER"
       }
     },
     "osaka": {
@@ -87,7 +89,9 @@
       },
       "bus": {
         "source": "data/japan-src/n07/n07_11_27.zip",
-        "exclude_operators": []
+        "exclude_operators": [],
+        "highway_route_pattern": "エクスプレス|ハイウェイ|リムジン|昼特急|ドリーム|ライナー|高速|空港|夜行|⇔|>>>|＞＞＞|エディ号|キャメル号|パイレーツ号|ルプラン号",
+        "highway_operator_pattern": "高速バス|空港交通|JR四国バス|JR東海バス|中国JRバス|JRバス関東|両備|伊予鉄道|北陸鉄道|東北急行|京浜急行バス|本四海峡|岐阜バス観光|（株）中国バス|日本交通（株）|四国高速|ウィラー|WILLER"
       }
     }
   },

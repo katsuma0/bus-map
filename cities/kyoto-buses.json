@@ -10,11 +10,11 @@
   "frame": {
     "km_vertical": 28,
     "center_km": [
-      0.0,
+      -0.3,
       1.66
     ],
-    "hud_side": "left",
-    "hud_top": 1200
+    "hud_side": "right",
+    "hud_top": 1300
   },
   "clip": [
     135.55,
@@ -91,9 +91,9 @@
     }
   ],
   "attribution": [
-    "Buses modelled from 国土数値情報 バスルート (MLIT, 2010 survey,",
-    "non-commercial) · Randen modelled from train counts, gtfs-gis.jp",
-    "Map: Overture Maps · © OpenStreetMap contributors",
+    "Buses modelled from 国土数値情報 バスルート (MLIT, 2010,",
+    "non-commercial) · Randen modelled from train counts,",
+    "gtfs-gis.jp (CC BY 4.0) · Map: Overture, © OpenStreetMap",
     "Made by Katsuma Onishi"
   ],
   "basemap": {
@@ -129,6 +129,23 @@
     3
   ],
   "theme": {
-    "accent": "#c9a4ff"
+    "accent": "#c9a4ff",
+    "panel": "rgba(8,9,13,0.84)"
+  },
+  "render": {
+    "TRAIL_BLEND": "bounded",
+    "ROUTE_BLEND": "bounded",
+    "TRAIL_MINUTES": 15,
+    "TRAIL_ALPHA": 0.6,
+    "TRAIL_CORE_W": 4,
+    "TRAIL_SHOULDER_W": 14,
+    "TRAIL_SHOULDER_ALPHA": 0.4,
+    "TRAIL_SHOULDER_BANDS": 6,
+    "TRAIL_LAYER_ALPHA": 0.9,
+    "ROUTE_ALPHA": 0.22,
+    "BUS_HALO_ALPHA": 0.18,
+    "BUS_HALO_R": 9,
+    "BUS_CORE_R": 2.5,
+    "TITLE_SCRIM": 0.75
   }
 }

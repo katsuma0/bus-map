@@ -10,11 +10,11 @@
   "frame": {
     "km_vertical": 46,
     "center_km": [
-      0.0,
+      -2.0,
       0.55
     ],
     "hud_side": "left",
-    "hud_top": 1200
+    "hud_top": 1300
   },
   "clip": [
     135.25,
@@ -65,7 +65,7 @@
     }
   ],
   "attribution": [
-    "Trains modelled from 2026 weekday train counts per line section,",
+    "Trains modelled from 2026 weekday train counts per section,",
     "gtfs-gis.jp (CC BY 4.0)",
     "Map: Overture Maps · © OpenStreetMap contributors",
     "Made by Katsuma Onishi"
@@ -130,5 +130,14 @@
   },
   "theme": {
     "accent": "#ff5a5a"
+  },
+  "render": {
+    "TRAIL_MINUTES": 10,
+    "TRAIL_CORE_W": 4,
+    "TRAIL_SHOULDER_W": 14,
+    "TRAIL_SHOULDER_BANDS": 5,
+    "TRAIL_LAYER_ALPHA": 0.85,
+    "ROUTE_ALPHA": 0.25,
+    "TITLE_SCRIM": 0.55
   }
 }

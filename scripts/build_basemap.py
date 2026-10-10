@@ -6,10 +6,13 @@ Roads are split into major/minor/rail, water into polygons and lines. The
 optional city outline and the optional OSM bus-route layer only exist for
 cities whose config asks for them.
 
-    python3 scripts/build_basemap.py [--city tsukuba|gta]
+    python3 scripts/build_basemap.py [--city <id>]
 
 Everything city-specific (origin, clip box, directories, tolerances, which
 water classes count) lives in cities/<id>.json so one script serves every city.
+A config with `basemap_city` is one video of an area (tokyo-trains and
+tokyo-buses share Tokyo): the area's single base map goes to
+data/<basemap_city>/built/, and any of its videos builds the same file.
 """
 import argparse
 import gzip
@@ -35,6 +38,29 @@ RAIL = {"standard_gauge", "unknown"}
 def load_city(city_id):
     with open(os.path.join(ROOT, "cities", f"{city_id}.json"), encoding="utf-8") as fh:
         return json.load(fh)
+
+
+# Everything the base map is computed from. The videos of one area must agree
+# on all of it, otherwise the shared file would depend on which one ran last.
+AREA_KEYS = ("origin", "clip", "basemap_dir", "basemap", "gzip", "boundary", "osm_routes")
+
+
+def area_videos(city):
+    """Every config in cities/ with the same basemap_city as `city`, in file order."""
+    area = city["basemap_city"]
+    videos = []
+    for name in sorted(os.listdir(os.path.join(ROOT, "cities"))):
+        if not name.endswith(".json"):
+            continue
+        with open(os.path.join(ROOT, "cities", name), encoding="utf-8") as fh:
+            cfg = json.load(fh)
+        if isinstance(cfg, dict) and cfg.get("basemap_city") == area:
+            videos.append(cfg)
+    for v in videos:
+        diff = [k for k in AREA_KEYS if v.get(k) != city.get(k)]
+        if diff:
+            raise SystemExit(f"{v['id']} and {city['id']} share basemap_city {area!r} but differ in {diff}")
+    return videos
 
 
 class Proj:
@@ -184,7 +210,12 @@ def build(city):
     t0 = time.time()
     cfg = city["basemap"]
     raw = os.path.join(ROOT, city["basemap_dir"])
-    out_dir = os.path.join(ROOT, city["built_dir"])
+    if city.get("basemap_city"):
+        videos = area_videos(city)
+        out_dir = os.path.join(ROOT, "data", city["basemap_city"], "built")
+        print(f"area {city['basemap_city']}: shared by {', '.join(v['id'] for v in videos)}", flush=True)
+    else:
+        out_dir = os.path.join(ROOT, city["built_dir"])
     proj = Proj(city["origin"])
     clip = box(*city["clip"])
 

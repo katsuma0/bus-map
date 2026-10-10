@@ -10,11 +10,11 @@
   "frame": {
     "km_vertical": 64,
     "center_km": [
-      0.0,
-      0.0
+      2.0,
+      1.1
     ],
     "hud_side": "right",
-    "hud_top": 1200
+    "hud_top": 1300
   },
   "clip": [
     139.3,
@@ -71,9 +71,9 @@
     }
   ],
   "attribution": [
-    "Toei: GTFS timetables, Tokyo Metropolitan Government (CC BY 4.0)",
+    "Toei: GTFS, Tokyo Metropolitan Government (CC BY 4.0)",
     "Other lines modelled from 2026 weekday train counts,",
-    "gtfs-gis.jp (CC BY 4.0) · Map: Overture Maps, © OpenStreetMap",
+    "gtfs-gis.jp (CC BY 4.0) · Map: Overture, © OpenStreetMap",
     "Made by Katsuma Onishi"
   ],
   "basemap": {
@@ -143,5 +143,8 @@
   },
   "theme": {
     "accent": "#9ad04a"
+  },
+  "render": {
+    "TITLE_SCRIM": 0.55
   }
 }

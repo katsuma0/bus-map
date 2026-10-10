@@ -1,4 +1,4 @@
-/* Transit day renderer. See docs/CONTRACT.md, "Visual spec" and "v2".
+/* Transit day renderer. See docs/CONTRACT.md, "Visual spec", "v2" and "v3".
  *
  * render(T) is a pure function of simulated time T (seconds since midnight,
  * may exceed 86400). The only state kept between frames is the cached static
@@ -6,17 +6,26 @@
  * built once in init(). Playwright drives renderFrame(i) in any order through
  * window.busmap.
  *
- * Everything city specific (frame, modes, title, attribution) travels in
- * network.json meta; the page only needs to know where each city's files are.
+ * Everything city specific (frame, modes, groups, colours, title, attribution,
+ * render tuning) travels in network.json meta; the page only needs to know
+ * where each city's files are.
  */
 (() => {
 'use strict';
 
 // Built data per city, relative to web/index.html. gz: the builders wrote
-// network.json.gz and basemap.json.gz instead of plain JSON.
+// network.json.gz and basemap.json.gz instead of plain JSON. basemapDir: where
+// the basemap is when it is not next to the network; the trains and buses
+// videos of a Japanese area share one area basemap (and one origin).
 const CITIES = {
   tsukuba: { dir: '../data/built', gz: false },
   gta: { dir: '../data/gta/built', gz: true },
+  'tokyo-trains': { dir: '../data/tokyo-trains/built', basemapDir: '../data/tokyo/built', gz: true },
+  'tokyo-buses': { dir: '../data/tokyo-buses/built', basemapDir: '../data/tokyo/built', gz: true },
+  'kyoto-trains': { dir: '../data/kyoto-trains/built', basemapDir: '../data/kyoto/built', gz: true },
+  'kyoto-buses': { dir: '../data/kyoto-buses/built', basemapDir: '../data/kyoto/built', gz: true },
+  'osaka-trains': { dir: '../data/osaka-trains/built', basemapDir: '../data/osaka/built', gz: true },
+  'osaka-buses': { dir: '../data/osaka-buses/built', basemapDir: '../data/osaka/built', gz: true },
 };
 
 const CONFIG = {
@@ -122,6 +131,9 @@ const CONFIG = {
   TRAIL_BLEND: 'add',
   ROUTE_BLEND: 'add',
   TRAIL_LAYER_ALPHA: 1,
+  // Darkening at the top of the frame behind the title, 0 to 1. Off for the
+  // sparse maps; a dense bus map needs it or the subtitle drowns.
+  TITLE_SCRIM: 0,
   COLORS: {
     bg: '#07080c',
     water: '#1c1f27',
@@ -165,7 +177,7 @@ if (params.has('city')) {
     startupError = new Error(`unknown city "${params.get('city')}"; known: ${Object.keys(CITIES).join(', ')}`);
   } else {
     const ext = city.gz ? '.json.gz' : '.json';
-    CONFIG.BASEMAP_URL = `${city.dir}/basemap${ext}`;
+    CONFIG.BASEMAP_URL = `${city.basemapDir || city.dir}/basemap${ext}`;
     CONFIG.NETWORK_URL = `${city.dir}/network${ext}`;
     CONFIG.GZIP = city.gz;
   }
@@ -173,10 +185,19 @@ if (params.has('city')) {
 if (params.has('data')) CONFIG.NETWORK_URL = params.get('data');
 if (params.has('basemap')) CONFIG.BASEMAP_URL = params.get('basemap');
 if (params.has('gz')) CONFIG.GZIP = params.get('gz') !== '0';
-if (params.has('osm')) CONFIG.OSM_ROUTES = params.get('osm') !== '0';
-if (params.has('trailmode')) CONFIG.TRAIL_MODE = params.get('trailmode');
+// A knob given in the query is pinned: neither LARGE_FRAME nor meta.render
+// may change it afterwards.
+const pinned = new Set();
+if (params.has('osm')) {
+  CONFIG.OSM_ROUTES = params.get('osm') !== '0';
+  pinned.add('OSM_ROUTES');
+}
+if (params.has('trailmode')) {
+  CONFIG.TRAIL_MODE = params.get('trailmode');
+  pinned.add('TRAIL_MODE');
+}
 // Numeric trail knobs for experiments: query name, CONFIG key, value when the
-// query is not a number. A knob given here is pinned against LARGE_FRAME.
+// query is not a number.
 const KNOBS = [
   ['trailscale', 'TRAIL_SCALE', 1],
   ['trailstep', 'TRAIL_STEP_S', 15],
@@ -190,7 +211,6 @@ const KNOBS = [
   ['corew', 'TRAIL_CORE_W', 5],
   ['shoulderw', 'TRAIL_SHOULDER_W', 13],
 ];
-const pinned = new Set();
 for (const [param, key, fallback] of KNOBS) {
   if (!params.has(param)) continue;
   const v = Number(params.get(param));
@@ -244,6 +264,20 @@ let sampleD = null;
 // Per shape: simplified screen-space polyline {x, y, cum} for ribbon trails.
 let ribbonShapes = null;
 let bandPaths = null;      // [mode][band] Path2D, rebuilt each frame
+let routeModes = null;     // mode index per route
+// color_by "route": lines, trails and halos take the route's own colour. The
+// layer passes run per distinct colour, not per route, so a city whose five
+// hundred routes share sixty line colours costs sixty strokes per band.
+let byRoute = false;
+let colors = null;         // [{css, rgb, trips}] distinct route colours, in draw order
+let tripColor = null;      // Uint16Array, colour index per trip
+let colorShapes = null;    // [colour] shape indices for the dormant network
+let colorPaths = null;     // [colour * TRAIL_BANDS + band] Path2D or null, rebuilt each frame
+let colorLayer = null;     // 2D context the route-coloured trails compose in
+// meta.groups: the HUD breakdown counts these (operators) instead of modes.
+let groups = null;         // [{id, label, shown}]
+let tripGroup = null;      // Uint8Array, group index per trip
+let runningByGroup = null; // Int32Array, refilled each frame
 
 // ---------------------------------------------------------------- helpers
 
@@ -262,6 +296,18 @@ function fetchJSON(url) {
 
 function rgba(rgb, a) {
   return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`;
+}
+
+// Any CSS colour as [r, g, b]: a 2D context normalises what it is given to
+// #rrggbb (or rgba() when translucent), which is easy to read back.
+const colorProbe = document.createElement('canvas').getContext('2d');
+function cssToRGB(css, fallback) {
+  if (typeof css !== 'string' || !CSS.supports('color', css)) return fallback;
+  colorProbe.fillStyle = css;
+  const v = colorProbe.fillStyle;
+  if (/^#[0-9a-f]{6}$/i.test(v)) return [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16));
+  const m = /^rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(v);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : fallback;
 }
 
 function withCommas(n) {
@@ -402,6 +448,39 @@ function setFrame(frame) {
   }
 }
 
+// meta.render tunes a city on top of the LARGE_FRAME profile; a query knob
+// still wins. The frame, the canvas size and the data sources are settled
+// elsewhere by then, so those keys are refused rather than half applied.
+const RENDER_FIXED = new Set(['WIDTH', 'HEIGHT', 'KM_VERTICAL', 'CENTER_KM', 'HUD_SIDE',
+  'BASEMAP_URL', 'NETWORK_URL', 'GZIP', 'LARGE_FRAME_KM']);
+function applyRender(render) {
+  if (!render || typeof render !== 'object') return;
+  for (const [key, value] of Object.entries(render)) {
+    const cur = CONFIG[key];
+    const ok = !RENDER_FIXED.has(key) && Object.hasOwn(CONFIG, key) && (typeof cur === 'number'
+      ? typeof value === 'number' && Number.isFinite(value)
+      : (typeof cur === 'string' || typeof cur === 'boolean') && typeof value === typeof cur);
+    if (!ok) {
+      console.warn(`meta.render.${key} = ${JSON.stringify(value)} ignored`);
+      continue;
+    }
+    if (!pinned.has(key)) CONFIG[key] = value;
+  }
+}
+
+// meta.theme overrides HUD colours by COLORS name ("accent" for the count line
+// and the sparkline).
+function applyTheme(theme) {
+  if (!theme || typeof theme !== 'object') return;
+  for (const [key, value] of Object.entries(theme)) {
+    if (typeof CONFIG.COLORS[key] === 'string' && typeof value === 'string' && CSS.supports('color', value)) {
+      CONFIG.COLORS[key] = value;
+    } else {
+      console.warn(`meta.theme.${key} = ${JSON.stringify(value)} ignored`);
+    }
+  }
+}
+
 function buildModes(network) {
   const C = CONFIG.COLORS;
   const list = Array.isArray(meta.modes) && meta.modes.length ? meta.modes : null;
@@ -418,6 +497,7 @@ function buildModes(network) {
   const index = new Map(modes.map((m, i) => [m.id, i]));
   // A route whose mode is unknown (or absent, as in pre-v2 files) is the first mode.
   const routeMode = network.routes.map((r) => index.get(r.mode) || 0);
+  routeModes = routeMode;
   tripMode = new Uint8Array(trips.length);
   shapeMode = new Uint8Array(shapes.length);
   tripT0 = new Float64Array(trips.length);
@@ -433,6 +513,91 @@ function buildModes(network) {
     tripT1[n] = trip.t[trip.t.length - 1];
     if (n > 0 && tripT0[n] < tripT0[n - 1]) tripsSorted = false;
   }
+}
+
+// color_by "route": one colour class per distinct routes[].color. A route
+// without a usable colour takes its mode's line colour, and a shape no trip
+// uses is drawn in the first mode's, as it would be without color_by.
+function buildColors(network) {
+  byRoute = meta.color_by === 'route';
+  if (!byRoute) return;
+  const toHex = (rgb) => rgb.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
+  const index = new Map();
+  const found = [];
+  const classOf = (hex) => {
+    if (!index.has(hex)) {
+      index.set(hex, found.length);
+      found.push({ hex, trips: 0, order: found.length });
+    }
+    return index.get(hex);
+  };
+  const routeClass = network.routes.map((r, i) => {
+    let hex = typeof r.color === 'string' ? r.color.trim().replace(/^#/, '').toLowerCase() : '';
+    if (/^[0-9a-f]{3}$/.test(hex)) hex = hex.replace(/./g, '$&$&');
+    if (!/^[0-9a-f]{6}$/.test(hex)) hex = toHex(modes[routeModes[i] || 0].color);
+    return classOf(hex);
+  });
+  const tripClass = new Uint16Array(trips.length);
+  const used = new Uint8Array(shapes.length);
+  for (let n = 0; n < trips.length; n++) {
+    const k = routeClass[trips[n].r] || 0;
+    tripClass[n] = k;
+    found[k].trips++;
+    used[trips[n].s] = 1;
+  }
+  let fallback = -1;
+  for (let i = 0; i < shapes.length; i++) {
+    if (!used[i]) { fallback = classOf(toHex(modes[0].color)); break; }
+  }
+  if (!found.length) classOf(toHex(modes[0].color));
+  // Busiest colour last, so where lines share track the corridor shows the
+  // line that runs most of its trains; ties keep file order.
+  const order = found.slice().sort((a, b) => a.trips - b.trips || a.order - b.order);
+  const rank = new Uint16Array(found.length);
+  order.forEach((c, i) => { rank[c.order] = i; });
+  colors = order.map((c) => {
+    const rgb = [0, 2, 4].map((j) => parseInt(c.hex.slice(j, j + 2), 16));
+    return { hex: c.hex, css: `#${c.hex}`, rgb, trips: c.trips };
+  });
+  tripColor = new Uint16Array(trips.length);
+  for (let n = 0; n < trips.length; n++) tripColor[n] = rank[tripClass[n]];
+  // A shape can carry routes of several colours; it is drawn once in each.
+  const seen = new Set();
+  colorShapes = colors.map(() => []);
+  for (let n = 0; n < trips.length; n++) {
+    const key = trips[n].s * colors.length + tripColor[n];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    colorShapes[tripColor[n]].push(trips[n].s);
+  }
+  if (fallback >= 0) {
+    for (let i = 0; i < shapes.length; i++) if (!used[i]) colorShapes[rank[fallback]].push(i);
+  }
+  for (const list of colorShapes) list.sort((a, b) => a - b);
+  if (CONFIG.TRAIL_MODE === 'sprite') {
+    console.warn('color_by route draws ribbon trails; trailmode=sprite ignored');
+    CONFIG.TRAIL_MODE = 'ribbon';
+  }
+}
+
+// meta.groups (operators, in config order with the default last) replace the
+// modes in the HUD breakdown. A route whose group is unknown counts in the
+// default group; a group no trip belongs to is left off the line.
+function buildGroups(network) {
+  const list = Array.isArray(meta.groups) && meta.groups.length ? meta.groups : null;
+  if (!list) return;
+  groups = list.map((g) => ({ id: g.id, label: g.label || g.id, shown: false }));
+  const index = new Map(groups.map((g, i) => [g.id, i]));
+  const fallback = groups.length - 1;
+  const routeGroup = network.routes.map((r) => (index.has(r.group) ? index.get(r.group) : fallback));
+  tripGroup = new Uint8Array(trips.length);
+  for (let n = 0; n < trips.length; n++) {
+    const g = routeGroup[trips[n].r];
+    tripGroup[n] = g === undefined ? fallback : g;
+    groups[tripGroup[n]].shown = true;
+  }
+  if (!groups.some((g) => g.shown)) for (const g of groups) g.shown = true;
+  runningByGroup = new Int32Array(groups.length);
 }
 
 function buildBase(basemap, network) {
@@ -502,6 +667,30 @@ function buildBase(basemap, network) {
     }
     g.lineWidth = CONFIG.ROUTE_WIDTH;
   }
+  if (byRoute) {
+    // Each line in its own colour: every colour's shapes are unioned at full
+    // alpha into one layer, busiest colour on top, and the layer lands once at
+    // ROUTE_ALPHA. Where lines share track the top colour shows as it is
+    // instead of the stack brightening, and twenty shapes are as dim as one.
+    g.globalCompositeOperation = 'source-over';
+    const ml = document.createElement('canvas');
+    ml.width = W;
+    ml.height = H;
+    const lg = ml.getContext('2d');
+    lg.lineCap = 'round';
+    lg.lineJoin = 'round';
+    lg.lineWidth = CONFIG.ROUTE_WIDTH;
+    for (let k = 0; k < colors.length; k++) {
+      lg.strokeStyle = colors[k].css;
+      lg.beginPath();
+      for (const i of colorShapes[k]) tracePolyline(lg, network.shapes[i].xy);
+      lg.stroke();
+    }
+    g.globalAlpha = CONFIG.ROUTE_ALPHA;
+    g.drawImage(ml, 0, 0);
+    g.globalAlpha = 1;
+    return c;
+  }
   if (CONFIG.ROUTE_BLEND === 'bounded') {
     // Each mode's shapes are unioned at full alpha in their own layer, then
     // the layer lands once at ROUTE_ALPHA: thirty overlapping Bloor shapes
@@ -567,9 +756,9 @@ function buildSprites() {
 
   // The halo is white when there is one mode (the look the contract measures)
   // and takes the mode's trail colour when there are several, so a station
-  // with trains and streetcars reads as two kinds of vehicle.
-  busSprites = modes.map((mode) => {
-    const halo = modes.length > 1 ? mode.trail : [255, 255, 255];
+  // with trains and streetcars reads as two kinds of vehicle. With color_by
+  // route it is the line's colour, one sprite per colour class.
+  const busSprite = (halo) => {
     const sprite = makeRadialSprite(CONFIG.BUS_HALO_R, [
       [0, rgba(halo, CONFIG.BUS_HALO_ALPHA)],
       [0.35, rgba(halo, CONFIG.BUS_HALO_ALPHA * 0.45)],
@@ -582,10 +771,21 @@ function buildSprites() {
     g.arc(sprite.width / 2, sprite.width / 2, CONFIG.BUS_CORE_R, 0, Math.PI * 2);
     g.fill();
     return sprite;
-  });
+  };
+  busSprites = byRoute
+    ? colors.map((c) => busSprite(c.rgb))
+    : modes.map((mode) => busSprite(modes.length > 1 ? mode.trail : [255, 255, 255]));
   busHalf = busSprites[0].width / 2;
 
-  if (ts !== 1) {
+  if (byRoute) {
+    // Route-coloured trails compose with each other in this layer before it
+    // reaches the frame, at TRAIL_SCALE resolution.
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * ts);
+    c.height = Math.round(H * ts);
+    colorLayer = c.getContext('2d');
+    colorPaths = new Array(colors.length * CONFIG.TRAIL_BANDS).fill(null);
+  } else if (ts !== 1) {
     trailCanvas = document.createElement('canvas');
     trailCanvas.width = Math.round(W * ts);
     trailCanvas.height = Math.round(H * ts);
@@ -663,8 +863,11 @@ function buildRibbons() {
 // case; everything else is an offset from them.
 function buildHudLayout() {
   const dx = CONFIG.HUD_SIDE === 'right' ? 400 : 0;
-  const multi = modes.length > 1;
-  // The mode breakdown line sits under the count and pushes the chart down.
+  // The breakdown line counts groups when the city has them, else modes when
+  // there are several; groups win because a trains video is one mode.
+  const breakdown = groups ? 'group' : modes.length > 1 ? 'mode' : null;
+  const multi = breakdown !== null;
+  // The breakdown line sits under the count and pushes the chart down.
   const shift = multi ? 30 : 0;
   const lines = Array.isArray(meta.attribution) && meta.attribution.length ? meta.attribution : CONFIG.ATTRIBUTION;
   // A city can push the whole block down (meta.frame.hud_top) so it sits on
@@ -676,6 +879,7 @@ function buildHudLayout() {
   hud = {
     dx,
     multi,
+    breakdown,
     lines,
     panelX: 40 + dx,
     panelY: top,
@@ -700,13 +904,24 @@ function buildHudLayout() {
   const maxTextW = 540;
   if (multi) {
     // Size the breakdown once for the widest line the day can produce (each
-    // mode at its own peak), so the text never jitters between frames.
-    const byMode = meta.hist_by_mode || {};
-    const widest = modes.map((m) => {
-      const h = byMode[m.id];
-      const peak = Array.isArray(h) && h.length ? Math.max(...h) : (meta.peak && meta.peak.count) || 0;
-      return `${withCommas(peak)} ${peak === 1 ? m.singular : m.label}`;
-    }).join(' · ');
+    // mode or group at its own peak), so the text never jitters between frames.
+    const peakOf = (h) => {
+      if (!Array.isArray(h) || !h.length) return (meta.peak && meta.peak.count) || 0;
+      let p = 0;
+      for (const v of h) if (v > p) p = v;
+      return p;
+    };
+    let widest;
+    if (breakdown === 'group') {
+      const byGroup = meta.hist_by_group || {};
+      widest = groups.filter((g) => g.shown).map((g) => `${withCommas(peakOf(byGroup[g.id]))} ${g.label}`).join(' · ');
+    } else {
+      const byMode = meta.hist_by_mode || {};
+      widest = modes.map((m) => {
+        const peak = peakOf(byMode[m.id]);
+        return `${withCommas(peak)} ${peak === 1 ? m.singular : m.label}`;
+      }).join(' · ');
+    }
     for (let size = 24; size >= 14; size--) {
       hud.breakdownFont = `500 ${size}px MontserratTnum`;
       ctx.font = hud.breakdownFont;
@@ -719,6 +934,15 @@ function buildHudLayout() {
     const w = ctx.measureText(line).width;
     if (w > maxTextW) console.warn(`attribution line "${line}" is ${Math.round(w)} px, wider than the ${maxTextW} px panel text width`);
   }
+  // The subtitle keeps 38 px unless it would run off the frame.
+  hud.subtitleFont = '400 38px Montserrat';
+  const subtitle = meta.subtitle || '';
+  for (let size = 38; size >= 24; size--) {
+    hud.subtitleFont = `400 ${size}px Montserrat`;
+    ctx.font = hud.subtitleFont;
+    if (ctx.measureText(subtitle).width <= W - 80) break;
+  }
+  if (hud.subtitleFont !== '400 38px Montserrat') console.warn(`subtitle "${subtitle}" needs ${hud.subtitleFont} to fit ${W - 80} px`);
 }
 
 function buildSparkline() {
@@ -772,10 +996,14 @@ async function init() {
   shapes = network.shapes;
   trips = network.trips;
   hist = network.hist;
-  totalFrames = CONFIG.HOLD_START + CONFIG.DURATION_FRAMES + CONFIG.HOLD_END;
   setFrame(meta.frame);
+  applyRender(meta.render);
+  applyTheme(meta.theme);
+  totalFrames = CONFIG.HOLD_START + CONFIG.DURATION_FRAMES + CONFIG.HOLD_END;
   buildWarp();
   buildModes(network);
+  buildColors(network);
+  buildGroups(network);
 
   // Canvas text only triggers a font load on first use, so request every
   // face explicitly before waiting on document.fonts.ready.
@@ -885,6 +1113,21 @@ function addRibbon(trip, paths, first, last) {
   }
 }
 
+// color_by route: the same, into the shared path for that (colour, band),
+// made on first use because most colours are idle in most bands.
+function addRibbonColor(trip, k, first, last) {
+  const rs = ribbonShapes[trip.s];
+  if (rs.cum.length < 2) return;
+  const base = k * CONFIG.TRAIL_BANDS;
+  for (let b = first; b < last; b++) {
+    const dA = sampleD[b + 1], dB = sampleD[b];
+    if (dB - dA < 1e-4) continue;
+    let path = colorPaths[base + b];
+    if (!path) path = colorPaths[base + b] = new Path2D();
+    appendStretch(path, rs, dA, dB);
+  }
+}
+
 // Offscreen canvas per mode for bounded trail blending, made on first use.
 const modeLayers = [];
 function modeLayer(m) {
@@ -926,6 +1169,42 @@ function strokeRibbons(layer, ts, onlyMode) {
   layer.globalAlpha = 1;
 }
 
+// Route-coloured trails with normal alpha: the oldest band goes down first so
+// the freshest stretch of any line lies on top, and within a band every
+// shoulder goes down before any core so a neighbour's soft edge never tints a
+// line's own colour. Same-colour strokes still build up toward that colour,
+// never past it, so line colours stay true where lines share track.
+function strokeColorRibbons(layer, ts) {
+  const bands = CONFIG.TRAIL_BANDS;
+  const nc = colors.length;
+  layer.lineCap = 'butt';
+  layer.lineJoin = 'round';
+  if (ts !== 1) layer.setTransform(ts, 0, 0, ts, 0, 0);
+  for (let b = bands - 1; b >= 0; b--) {
+    const a = CONFIG.TRAIL_ALPHA * (1 - (b + 0.5) / bands);
+    if (CONFIG.TRAIL_SHOULDER_ALPHA > 0 && b < CONFIG.TRAIL_SHOULDER_BANDS) {
+      layer.globalAlpha = a * CONFIG.TRAIL_SHOULDER_ALPHA;
+      layer.lineWidth = CONFIG.TRAIL_SHOULDER_W;
+      for (let k = 0; k < nc; k++) {
+        const path = colorPaths[k * bands + b];
+        if (!path) continue;
+        layer.strokeStyle = colors[k].css;
+        layer.stroke(path);
+      }
+    }
+    layer.globalAlpha = a;
+    layer.lineWidth = CONFIG.TRAIL_CORE_W;
+    for (let k = 0; k < nc; k++) {
+      const path = colorPaths[k * bands + b];
+      if (!path) continue;
+      layer.strokeStyle = colors[k].css;
+      layer.stroke(path);
+    }
+  }
+  if (ts !== 1) layer.setTransform(1, 0, 0, 1, 0, 0);
+  layer.globalAlpha = 1;
+}
+
 // Sprite mode: integer positions, because a fractional drawImage goes through
 // bilinear resampling and costs twice as much in software raster.
 function stampTrailSprites(layer, sprites, first, last) {
@@ -943,6 +1222,7 @@ function drawHUD(T, running) {
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.textBaseline = 'alphabetic';
+  if (titleScrim) ctx.drawImage(titleScrim, 0, 0);
 
   // Title with tracking. Chromium adds the spacing after every glyph
   // including the last, so nudge by half a space to keep it optically centred.
@@ -967,7 +1247,7 @@ function drawHUD(T, running) {
   }
   ctx.textAlign = 'center';
   ctx.fillStyle = C.subtitle;
-  ctx.font = '400 38px Montserrat';
+  ctx.font = hud.subtitleFont;
   ctx.fillText(meta.subtitle || '', W / 2, 210);
 
   // Panel, feathered like the reference so routes passing under its edge
@@ -983,13 +1263,22 @@ function drawHUD(T, running) {
   ctx.fillStyle = C.accent;
   ctx.font = hud.countFont;
   if (hud.multi) {
-    ctx.fillText(`${withCommas(running)} ${running === 1 ? 'vehicle' : 'vehicles'} running`, tx, hud.countY);
+    // One mode split by operator still counts in that mode's own word.
+    const one = modes.length === 1 ? modes[0] : null;
+    const noun = one ? (running === 1 ? one.singular : one.label) : (running === 1 ? 'vehicle' : 'vehicles');
+    ctx.fillText(`${withCommas(running)} ${noun} running`, tx, hud.countY);
     ctx.fillStyle = C.breakdown;
     ctx.font = hud.breakdownFont;
     const parts = [];
-    for (let m = 0; m < modes.length; m++) {
-      const n = runningByMode[m];
-      parts.push(`${withCommas(n)} ${n === 1 ? modes[m].singular : modes[m].label}`);
+    if (hud.breakdown === 'group') {
+      for (let k = 0; k < groups.length; k++) {
+        if (groups[k].shown) parts.push(`${withCommas(runningByGroup[k])} ${groups[k].label}`);
+      }
+    } else {
+      for (let m = 0; m < modes.length; m++) {
+        const n = runningByMode[m];
+        parts.push(`${withCommas(n)} ${n === 1 ? modes[m].singular : modes[m].label}`);
+      }
     }
     ctx.fillText(parts.join(' · '), tx, hud.breakdownY);
   } else {
@@ -1048,8 +1337,21 @@ function drawHUD(T, running) {
 // The panel backdrop and the sparkline gradient are static, so build them
 // once; a Gaussian blur per frame would cost more than the whole map.
 let panelSprite = null;
+let titleScrim = null;
 let sparkFill = null;
 function buildHudStatics() {
+  if (CONFIG.TITLE_SCRIM > 0) {
+    titleScrim = document.createElement('canvas');
+    titleScrim.width = W;
+    titleScrim.height = 320;
+    const sg = titleScrim.getContext('2d');
+    const grad = sg.createLinearGradient(0, 0, 0, 320);
+    grad.addColorStop(0, `rgba(7,8,12,${CONFIG.TITLE_SCRIM})`);
+    grad.addColorStop(0.62, `rgba(7,8,12,${CONFIG.TITLE_SCRIM * 0.85})`);
+    grad.addColorStop(1, 'rgba(7,8,12,0)');
+    sg.fillStyle = grad;
+    sg.fillRect(0, 0, W, 320);
+  }
   panelSprite = document.createElement('canvas');
   panelSprite.width = W;
   panelSprite.height = H;
@@ -1060,9 +1362,10 @@ function buildHudStatics() {
   g.roundRect(hud.panelX, hud.panelY, hud.panelW, hud.panelH, 24);
   g.fill();
   g.filter = 'none';
+  const accent = cssToRGB(CONFIG.COLORS.accent, [255, 224, 102]);
   const grad = ctx.createLinearGradient(0, spark.y0, 0, spark.y1);
-  grad.addColorStop(0, rgba([255, 224, 102], 0.5));
-  grad.addColorStop(1, rgba([255, 224, 102], 0.03));
+  grad.addColorStop(0, rgba(accent, 0.5));
+  grad.addColorStop(1, rgba(accent, 0.03));
   sparkFill = grad;
 }
 
@@ -1072,10 +1375,10 @@ function renderAt(T) {
   ctx.globalAlpha = 1;
   ctx.drawImage(baseCanvas, 0, 0);
 
-  const bounded = CONFIG.TRAIL_BLEND === 'bounded' && CONFIG.TRAIL_MODE !== 'sprite';
+  const bounded = !byRoute && CONFIG.TRAIL_BLEND === 'bounded' && CONFIG.TRAIL_MODE !== 'sprite';
   const ts = bounded ? 1 : CONFIG.TRAIL_SCALE;
-  const layer = ts === 1 ? ctx : trailCtx;
-  if (ts !== 1) {
+  const layer = ts === 1 || byRoute ? ctx : trailCtx;
+  if (ts !== 1 && !byRoute) {
     layer.globalCompositeOperation = 'source-over';
     layer.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
   }
@@ -1086,12 +1389,15 @@ function renderAt(T) {
   const sprite = CONFIG.TRAIL_MODE === 'sprite';
   const step = sprite ? CONFIG.TRAIL_STEP_S : trailWindow / CONFIG.TRAIL_BANDS;
   const count = sprite ? trailSteps + 1 : CONFIG.TRAIL_BANDS + 1;
-  if (!sprite) {
+  if (byRoute) {
+    colorPaths.fill(null);
+  } else if (!sprite) {
     for (let m = 0; m < modes.length; m++) {
       for (let b = 0; b < CONFIG.TRAIL_BANDS; b++) bandPaths[m][b] = new Path2D();
     }
   }
   runningByMode.fill(0);
+  if (runningByGroup) runningByGroup.fill(0);
   let running = 0;
   for (let n = 0; n < trips.length; n++) {
     // Trips are sorted by departure, so nothing after the first future trip
@@ -1110,12 +1416,25 @@ function renderAt(T) {
     if (first === 0 && T <= tripT1[n]) {
       running++;
       runningByMode[m]++;
-      buses.push(sampleX[0] / ts, sampleY[0] / ts, m);
+      if (runningByGroup) runningByGroup[tripGroup[n]]++;
+      buses.push(sampleX[0] / ts, sampleY[0] / ts, byRoute ? tripColor[n] : m);
     }
-    if (sprite) stampTrailSprites(layer, trailSprites[m], first, last);
+    if (byRoute) addRibbonColor(trip, tripColor[n], first, last);
+    else if (sprite) stampTrailSprites(layer, trailSprites[m], first, last);
     else addRibbon(trip, bandPaths[m], first, last);
   }
-  if (!sprite && CONFIG.TRAIL_BLEND === 'bounded') {
+  if (byRoute) {
+    // All lines compose in one layer, which lands with normal alpha too, so
+    // no corridor turns white however many lines share it.
+    colorLayer.globalCompositeOperation = 'source-over';
+    colorLayer.globalAlpha = 1;
+    colorLayer.clearRect(0, 0, colorLayer.canvas.width, colorLayer.canvas.height);
+    strokeColorRibbons(colorLayer, ts);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
+    ctx.drawImage(colorLayer.canvas, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+  } else if (!sprite && CONFIG.TRAIL_BLEND === 'bounded') {
     // Each mode composes with itself under normal alpha in its own layer;
     // the layers then add onto the frame.
     for (let m = 0; m < modes.length; m++) {
@@ -1180,6 +1499,9 @@ const busmap = {
   get hist() { return hist; },
   get modes() { return modes; },
   get runningByMode() { return runningByMode; },
+  get runningByGroup() { return runningByGroup; },
+  get groups() { return groups; },
+  get colors() { return colors; },
   get hud() { return hud; },
   clockText,
   frameTime: (i) => frameTime(i),
@@ -1215,6 +1537,12 @@ if (RECORD) {
     const playBtn = document.getElementById('play');
     const timeEl = document.getElementById('time');
     const playSeconds = CONFIG.DURATION_FRAMES / CONFIG.FPS;
+    // The controls follow the city's accent; the tab is named after it.
+    if (meta.theme && meta.theme.accent) {
+      scrub.style.accentColor = CONFIG.COLORS.accent;
+      timeEl.style.color = CONFIG.COLORS.accent;
+    }
+    if (meta.title) document.title = meta.title.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
     let T = meta.day_start;
     const t0 = parseTime(params.get('t'));
     if (t0 != null) T = Math.min(meta.day_end, Math.max(meta.day_start, t0));
