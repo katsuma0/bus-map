@@ -43,10 +43,6 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
-// Playwright 1.56 wants its own Chromium 1194 build; this box has it preinstalled.
-const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium';
-const FFMPEG = '/usr/bin/ffmpeg';
-const FFPROBE = '/usr/bin/ffprobe';
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const PROGRESS_EVERY = 60;
@@ -148,6 +144,48 @@ function parseArgs(argv) {
   if (opts.pngDir === null) opts.pngDir = path.join(path.dirname(opts.out), 'frames');
   if (opts.end !== null && opts.end <= opts.start) throw new UsageError(`--end (${opts.end}) must be greater than --start (${opts.start})`);
   return opts;
+}
+
+// ----------------------------------------------------------------- tools
+
+// Spec C2: each tool is resolved once at start, first existing path wins, and
+// a miss fails with every path tried. On this machine the first choice is the
+// old fixed path; on Actions, after playwright install and apt-get install
+// ffmpeg, Playwright's own Chromium and /usr/bin/ffmpeg apply with no
+// environment variables. A value may be a function so Playwright is only
+// asked for its Chromium when the first two choices miss.
+function resolveTools({ env = process.env, exists = fs.existsSync, pwPath = null, need = ['chromium', 'ffmpeg', 'ffprobe'] } = {}) {
+  const onPath = (name) => (env.PATH || '').split(path.delimiter).filter(Boolean).map((d) => ['PATH', path.join(d, name)]);
+  const chains = {
+    chromium: [['$PLAYWRIGHT_CHROMIUM', env.PLAYWRIGHT_CHROMIUM], ['default', '/opt/pw-browsers/chromium'], ['playwright', pwPath]],
+    ffmpeg: [['$FFMPEG', env.FFMPEG], ['default', '/usr/bin/ffmpeg'], ...onPath('ffmpeg')],
+    ffprobe: [['$FFPROBE', env.FFPROBE], ['default', '/usr/bin/ffprobe'], ...onPath('ffprobe')],
+  };
+  const out = {};
+  const missing = [];
+  for (const name of need) {
+    const tried = [];
+    for (const [how, v] of chains[name]) {
+      let p = v;
+      if (typeof v === 'function') {
+        try {
+          p = v();
+        } catch (e) {
+          tried.push(`${how} (${e.message.split('\n')[0]})`);
+          continue;
+        }
+      }
+      if (!p) continue;
+      tried.push(p);
+      if (exists(p)) {
+        out[name] = { path: p, how };
+        break;
+      }
+    }
+    if (!out[name]) missing.push(`${name} not found; tried ${tried.length ? tried.join(', ') : 'nothing'}`);
+  }
+  if (missing.length) throw new Error(missing.join('\n'));
+  return out;
 }
 
 // --------------------------------------------------------- static server
@@ -277,10 +315,9 @@ function withTimeout(promise, ms, what) {
 
 // The browser is launched separately from the page so the caller holds its
 // handle before anything that can fail; an open Chromium keeps Node alive.
-async function launchBrowser(pw) {
-  if (!fs.existsSync(CHROMIUM)) throw new Error(`chromium not found at ${CHROMIUM}`);
+async function launchBrowser(pw, chromium) {
   return pw.chromium.launch({
-    executablePath: CHROMIUM,
+    executablePath: chromium,
     headless: true,
     // /dev/shm is tiny in containers and a 1080x1920 page fills it quickly.
     args: ['--disable-dev-shm-usage'],
@@ -364,7 +401,7 @@ function pngSize(buf) {
 
 // ---------------------------------------------------------------- ffmpeg
 
-function startFfmpeg(opts) {
+function startFfmpeg(opts, ffmpeg) {
   const args = [
     '-hide_banner', '-loglevel', 'error', '-y',
     '-f', 'image2pipe', '-vcodec', 'png', '-framerate', String(opts.fps), '-i', '-',
@@ -378,13 +415,13 @@ function startFfmpeg(opts) {
     '-movflags', '+faststart',
     opts.out,
   ];
-  const proc = spawn(FFMPEG, args, { stdio: ['pipe', 'inherit', 'pipe'] });
+  const proc = spawn(ffmpeg, args, { stdio: ['pipe', 'inherit', 'pipe'] });
   const ff = { proc, args, stderr: '', exited: null, stdinError: null };
   proc.stderr.on('data', (d) => { ff.stderr += d; });
   proc.stdin.on('error', (e) => { ff.stdinError = e; });
   ff.done = new Promise((resolve) => {
     proc.on('error', (e) => {
-      ff.stderr += `could not start ${FFMPEG}: ${e.message}\n`;
+      ff.stderr += `could not start ${ffmpeg}: ${e.message}\n`;
       ff.exited = { code: -1, signal: null };
       resolve(ff.exited);
     });
@@ -411,9 +448,9 @@ async function feedFfmpeg(ff, png) {
   }
 }
 
-function probe(file) {
+function probe(file, ffprobe) {
   try {
-    const out = execFileSync(FFPROBE, [
+    const out = execFileSync(ffprobe, [
       '-v', 'error', '-select_streams', 'v:0',
       '-show_entries', 'stream=width,height,r_frame_rate,nb_frames,pix_fmt,color_space:format=duration,size',
       '-of', 'default=noprint_wrappers=1', file,
@@ -495,7 +532,7 @@ async function bench(page, opts, start, end, pageErrors) {
   console.log(`  first frames of each mode saved as ${path.join(opts.pngDir, 'bench_<mode>.png')}`);
 }
 
-async function render(opts, pw) {
+async function render(opts, pw, tools) {
   const pageErrors = [];
   const { server, port } = await startServer(opts.root);
   let browser = null;
@@ -504,7 +541,7 @@ async function render(opts, pw) {
     const url = pageUrl(port, opts, true);
     console.log(`serving ${opts.root} on http://127.0.0.1:${port}`);
     console.log(`opening ${url}`);
-    browser = await launchBrowser(pw);
+    browser = await launchBrowser(pw, tools.chromium.path);
     const { page, totalFrames } = await openPage(browser, url, pageErrors);
 
     const start = opts.start;
@@ -524,7 +561,7 @@ async function render(opts, pw) {
 
     await fsp.mkdir(path.dirname(opts.out), { recursive: true });
     if (opts.pngEvery > 0) await fsp.mkdir(opts.pngDir, { recursive: true });
-    ff = startFfmpeg(opts);
+    ff = startFfmpeg(opts, tools.ffmpeg.path);
     console.log(`capture ${opts.capture}, ffmpeg libx264 ${opts.preset} crf ${opts.crf} -> ${opts.out}`);
     if (opts.pngEvery > 0) console.log(`PNG every ${opts.pngEvery} frames -> ${opts.pngDir}`);
 
@@ -572,7 +609,7 @@ async function render(opts, pw) {
     const elapsed = now() - t0;
     console.log(`done: ${count} frames in ${fmtDuration(elapsed)}, ${(elapsed / count).toFixed(0)} ms/frame, ` +
       `${(stats.bytes / count / 1024).toFixed(0)} KB/frame PNG, last clock ${fmtClock(lastT)}`);
-    const info = probe(opts.out);
+    const info = probe(opts.out, tools.ffprobe.path);
     if (info) {
       console.log(`wrote ${opts.out}: ${info.width}x${info.height} ${info.r_frame_rate} fps, ` +
         `${info.nb_frames} frames, ${Number(info.duration).toFixed(2)} s, ${info.pix_fmt} ${info.color_space || ''}, ` +
@@ -616,7 +653,9 @@ async function main() {
   }
   if (opts.serve) return serveOnly(opts);
   const pw = loadPlaywright();
-  await render(opts, pw);
+  const tools = resolveTools({ pwPath: () => pw.chromium.executablePath() });
+  console.log(`tools: ${Object.entries(tools).map(([k, v]) => `${k} ${v.path} (${v.how})`).join(', ')}`);
+  await render(opts, pw, tools);
 }
 
 main().catch((err) => {
