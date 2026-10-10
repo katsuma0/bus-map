@@ -1,0 +1,11 @@
+{
+ "id": "gta-markham",
+ "batch": "gta",
+ "place": "Markham",
+ "boundary": {"name": "Markham", "subtypes": ["locality"], "area_km2": 210.93},
+ "center": [-79.299, 43.880],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.05},
+ "override": {"render": {"OUTSIDE_DIM": 0.8, "CARD_CENTER_Y": 540}, "variant_render": {}, "brand_colors": {}, "_why": {"OUTSIDE_DIM": "outside vehicles outnumber the city's 10.7 to 1 at the am peak", "CARD_CENTER_Y": "at 620 the frame-0 card hid 45% of the inside vehicles in the rush video, at 540 36%"}}
+}
