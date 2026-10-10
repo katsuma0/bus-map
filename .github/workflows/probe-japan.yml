@@ -1,0 +1,56 @@
+# One-off catalogue dump for the Tokyo, Kyoto and Osaka videos. The sandbox
+# that builds this repo cannot reach ODPT or the GTFS Data Repository, so the
+# runner fetches both catalogues and pushes the raw replies to a data branch.
+name: probe-japan
+on:
+  workflow_dispatch:
+  push:
+    branches: ["feat/japan-cities"]
+    paths: [".github/workflows/probe-japan.yml"]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dump catalogues
+        run: |
+          set -ux
+          mkdir -p /tmp/cat
+          UA="bus-map-probe/1.0 (github.com/katsuma0/bus-map)"
+          g() { curl -sS -L --max-time 120 -A "$UA" -o "/tmp/cat/$1" -w "%{http_code} %{size_download} $2\n" "$2" >> /tmp/cat/_status.txt || echo "ERR $2" >> /tmp/cat/_status.txt; }
+          # ODPT CKAN: every dataset, with resources and licences
+          g ckan_all.json "https://ckan.odpt.org/api/3/action/package_search?rows=1000&start=0"
+          g ckan_all2.json "https://ckan.odpt.org/api/3/action/package_search?rows=1000&start=1000"
+          g ckan_orgs.json "https://ckan.odpt.org/api/3/action/organization_list?all_fields=true&limit=1000"
+          # GTFS Data Repository, a few parameter spellings since the docs are not reachable here
+          for p in 11 12 13 14 25 26 27 28 29; do
+            g "gtfsdata_pref_$p.json" "https://api.gtfs-data.jp/v2/files?pref=$p"
+          done
+          g gtfsdata_all.json "https://api.gtfs-data.jp/v2/files"
+          g gtfsdata_orgs.json "https://api.gtfs-data.jp/v2/organizations"
+          g gtfsdata_feeds.json "https://api.gtfs-data.jp/v2/feeds"
+          # Nishizawa's research GTFS and railway frequency pages
+          g gtfsgis_research.html "https://gtfs-gis.jp/gtfs4research/"
+          g gtfsgis_honsu.html "https://gtfs-gis.jp/railway_honsu/"
+          g gtfsgis_map.html "https://gtfs-gis.jp/gtfs/map.html"
+          # ODPT public (no key) file host: Toei train and bus as a known-good check
+          g toei_train_head.txt "https://api-public.odpt.org/api/v4/files/Toei/data/Toei-Train-GTFS.zip"
+          g challenge2026.html "https://challenge2026.odpt.org/ja/opendata.html"
+          g bustime_osaka.html "https://bustime.jp/GtfsAgency/gtfs_list/?p1=27"
+          g bustime_kyoto.html "https://bustime.jp/GtfsAgency/gtfs_list/?p1=26"
+          g bustime_tokyo.html "https://bustime.jp/GtfsAgency/gtfs_list/?p1=13"
+          cat /tmp/cat/_status.txt
+          rm -f /tmp/cat/toei_train_head.txt
+      - name: Push to an orphan data branch
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan data/japan-catalog
+          git rm -rfq --cached . && git clean -fdxq
+          cp -r /tmp/cat catalog
+          git add catalog
+          git commit -qm "chore: japan transit catalogue dump"
+          git push -f origin data/japan-catalog

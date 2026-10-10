@@ -5,12 +5,13 @@ The renderer only needs, for one service day, every trip as a list of
 resolves the calendar, snaps stops onto shapes, fills blank times and
 writes the compact structure described in docs/CONTRACT.md.
 
-    python3 scripts/build_network.py [--city tsukuba|gta] [--date 20261009]
+    python3 scripts/build_network.py [--city <id>] [--date 20261009]
                                      [--feeds default|all|a,b] [--no-smooth]
                                      [--inspect TRIP_ID] [--out PATH] [--gtfs-dir DIR]
 
 Everything city-specific (origin, clip box, feeds, modes, output directory,
-gzip) comes from cities/<id>.json; the command line only overrides it.
+gzip, route-type filter, agency groups) comes from cities/<id>.json; the
+command line only overrides it.
 """
 import argparse
 import csv
@@ -64,6 +65,57 @@ def to_km(lon, lat):
 def load_city(city_id):
     with open(os.path.join(ROOT, "cities", f"{city_id}.json"), encoding="utf-8") as fh:
         return json.load(fh)
+
+
+# The config keys the v3 contract added. A config using none of them gets
+# exactly the v2 output, so the committed Tsukuba and GTA files stay byte
+# identical; one using any of them also gets routes[].agency/modelled and
+# meta.feeds[].modelled.
+V3_KEYS = ("basemap_city", "subtitle", "include_route_types", "color_by", "group_by", "theme", "render")
+
+
+def uses_v3(city):
+    feeds = city.get("feeds", []) + city.get("optional_feeds", [])
+    return any(k in city for k in V3_KEYS) or any("modelled" in f for f in feeds)
+
+
+class Grouper:
+    """Assigns routes to the config's group_by groups.
+
+    Only the agency field exists so far: the match is the exact agency_name of
+    the route's agency, because the modelled feeds name their agencies after
+    the 事業者名 of the counts file and the real ones after the operator.
+    """
+
+    def __init__(self, spec):
+        self.spec = spec
+        if spec is None:
+            return
+        if spec.get("field") != "agency":
+            sys.exit(f"group_by field {spec.get('field')!r} is not implemented; only 'agency' is")
+        self.groups = [{"id": g["id"], "label": g["label"]} for g in spec["groups"]] + \
+                      [{"id": spec["default"]["id"], "label": spec["default"]["label"]}]
+        ids = [g["id"] for g in self.groups]
+        if len(set(ids)) != len(ids):
+            sys.exit(f"group_by ids must be unique, got {ids}")
+        self.by_agency = {}
+        for g in spec["groups"]:
+            for name in g["match"]:
+                if name in self.by_agency and self.by_agency[name] != g["id"]:
+                    sys.exit(f"agency {name!r} matches both {self.by_agency[name]!r} and {g['id']!r}")
+                self.by_agency[name] = g["id"]
+        self.default = spec["default"]["id"]
+        self.unmatched = defaultdict(int)
+
+    def __bool__(self):
+        return self.spec is not None
+
+    def __call__(self, agency_name):
+        gid = self.by_agency.get(agency_name)
+        if gid is None:
+            self.unmatched[agency_name] += 1
+            return self.default
+        return gid
 
 
 # ---------------------------------------------------------------- reading
@@ -386,11 +438,16 @@ def expand_frequencies(feed, trips_by_id, first_time):
     return extra
 
 
-def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=True):
+def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=True,
+               grouper=None, modelled=False):
     """Append this feed's routes/shapes/trips to the shared lists; return stats."""
     stats = {"id": feed.id, "trips_in_file": 0, "trips_on_date": 0, "skipped_short": 0, "dropped_clip": 0,
              "forced_monotone": 0, "time_fixes": 0, "shape_from_stops": 0, "blank_filled": 0,
-             "spread": 0, "first": None, "last": None, "trips": [], "no_service": None}
+             "spread": 0, "first": None, "last": None, "trips": [], "no_service": None,
+             "dropped_type": defaultdict(int)}
+    v3 = uses_v3(city)
+    include = city.get("include_route_types")
+    include = None if include is None else {int(x) for x in include}
     # Trips are kept when they touch the frame itself, not the wider basemap
     # clip: a DRT route in Oshawa is 12 km off the right edge and would only
     # add to the running count. Without a frame the clip box is the test.
@@ -406,6 +463,10 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
 
     agency = feed.table("agency")
     info = feed.table("feed_info")
+    # A route whose agency_id is blank (allowed when the feed has one agency)
+    # or missing from agency.txt is taken to belong to the feed's first agency.
+    agency_name = {a.get("agency_id", ""): a.get("agency_name", "") for a in agency}
+    first_agency = agency[0].get("agency_name", "") if agency else ""
     stats["name"] = agency[0].get("agency_name", feed.id) if agency else feed.id
     stats["version"] = info[0].get("feed_version", "") if info else ""
     stats["publisher_in_feed"] = info[0].get("feed_publisher_name", "") if info else ""
@@ -419,6 +480,12 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
         stops[r["stop_id"]] = (lon, lat, r.get("stop_name", ""))
         stop_xy[r["stop_id"]] = to_km(lon, lat)
 
+    route_rows = {r["route_id"]: r for r in feed.table("routes")}
+
+    def route_type(route_id):
+        rt = route_rows.get(route_id, {}).get("route_type", "").strip()
+        return int(rt) if rt.isdigit() else None
+
     active = active_services(feed, date)
     trips = feed.table("trips")
     stats["trips_in_file"] = len(trips)
@@ -427,6 +494,17 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
     if not active_ids:
         stats["no_service"] = service_span(feed)
         return stats
+    if include is not None:
+        # The type filter runs before anything else touches the trips: Toei's
+        # train feed carries the subway and the tram, and each belongs in a
+        # different video, so the other one must not even reach the counts.
+        for tid in list(active_ids):
+            rt = route_type(trips_by_id[tid].get("route_id", ""))
+            if rt not in include:
+                stats["dropped_type"]["blank" if rt is None else rt] += 1
+                active_ids.discard(tid)
+        if not active_ids:
+            return stats
 
     # Only the active trips' stop rows are kept, which for TTC cuts 5 million
     # rows to the one weekday's worth before any string work happens.
@@ -476,7 +554,6 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
             bbox = (float(lonlat[:, 0].min()), float(lonlat[:, 1].min()), float(lonlat[:, 0].max()), float(lonlat[:, 1].max()))
             shape_km[sid] = (xy, cum, bbox)
 
-    route_rows = {r["route_id"]: r for r in feed.table("routes")}
     pattern_cache = {}
 
     for trip_id, template_id, offset in schedule:
@@ -557,7 +634,13 @@ def build_feed(feed, date, city, routes, route_index, shapes, shape_index, unkno
                 unknown_types[(feed.id, rt)].append(route_id)
                 mode = first_mode
             route_index[rkey] = len(routes)
-            routes.append({"id": rkey, "short": short, "long": long, "color": color, "feed": feed.id, "mode": mode})
+            route = {"id": rkey, "short": short, "long": long, "color": color, "feed": feed.id, "mode": mode}
+            if v3:
+                route["agency"] = agency_name.get(rr.get("agency_id", ""), first_agency) or first_agency
+                route["modelled"] = bool(modelled)
+            if grouper:
+                route["group"] = grouper(route["agency"])
+            routes.append(route)
 
         stats["trips"].append({
             "r": route_index[rkey], "s": s_idx,
@@ -665,10 +748,13 @@ def main():
     routes, route_index, shapes, shape_index = [], {}, [], {}
     unknown_types = defaultdict(list)
     feed_stats = []
+    grouper = Grouper(city.get("group_by"))
+    v3 = uses_v3(city)
     for fid in wanted:
         t0 = time.time()
         feed = Feed(fid, os.path.join(gtfs_dir, fid + ".zip"))
-        st = build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=not args.no_smooth)
+        st = build_feed(feed, date, city, routes, route_index, shapes, shape_index, unknown_types, smooth=not args.no_smooth,
+                        grouper=grouper, modelled=configured.get(fid, {}).get("modelled", False))
         feed_stats.append(st)
         print(f"  {fid}: {st['trips_on_date']} trips in {time.time() - t0:.0f}s", file=sys.stderr, flush=True)
 
@@ -678,6 +764,8 @@ def main():
     peak_min = int(np.argmax(hist)) if len(trips) else 0
     mode_ids = [m["id"] for m in city["modes"]]
     hist_by_mode = {m: histogram([t for t in trips if routes[t["r"]]["mode"] == m]) for m in mode_ids}
+    group_ids = [g["id"] for g in grouper.groups] if grouper else []
+    hist_by_group = {g: histogram([t for t in trips if routes[t["r"]]["group"] == g]) for g in group_ids}
 
     for want in (args.inspect.split(",") if args.inspect else []):
         found = [t for t in trips if t["_id"] == want]
@@ -702,7 +790,7 @@ def main():
     meta = {
         "service_date": date.isoformat(),
         "title": city["title"],
-        "subtitle": f"{date.strftime('%A')} {ordinal(date.day)} {date.strftime('%B')}",
+        "subtitle": city.get("subtitle") or f"{date.strftime('%A')} {ordinal(date.day)} {date.strftime('%B')}",
         "origin": list(ORIGIN),
         "day_start": DAY_START,
         "day_end": DAY_END,
@@ -717,6 +805,7 @@ def main():
                 "license": configured.get(st["id"], {}).get("license", ""),
                 "version": st["version"],
                 "trips_on_date": st["trips_on_date"],
+                **({"modelled": bool(configured.get(st["id"], {}).get("modelled", False))} if v3 else {}),
             }
             for st in feed_stats
         ],
@@ -724,6 +813,14 @@ def main():
         "peak": {"count": int(hist[peak_min]), "time": peak_min * 60},
         "hist_by_mode": {m: h.tolist() for m, h in hist_by_mode.items()},
     }
+    # Pure passthroughs for the page; absent keys stay absent so older cities
+    # keep their exact files.
+    for key in ("color_by", "theme", "render"):
+        if key in city:
+            meta[key] = city[key]
+    if grouper:
+        meta["groups"] = grouper.groups
+        meta["hist_by_group"] = {g: h.tolist() for g, h in hist_by_group.items()}
     out = {"meta": meta, "routes": routes, "shapes": shapes, "trips": public_trips, "hist": hist.tolist()}
 
     if args.out:
@@ -737,13 +834,20 @@ def main():
         fh.write(gzip.compress(raw, compresslevel=6, mtime=0) if out_path.endswith(".gz") else raw)
 
     print(f"\n{city['title']}  service date {meta['service_date']} ({meta['subtitle']})   feeds: {', '.join(wanted)}")
-    print(f"{'feed':<11s}{'name':<36s}{'in file':>8s}{'on date':>8s}{'first':>7s}{'last':>7s}{'peak':>6s}{'at':>7s}  notes")
+    # Ward feed ids like chiyoda_kazaguruma outgrow the old 11 columns.
+    fw = max([11] + [len(st["id"]) + 1 for st in feed_stats])
+    print(f"{'feed':<{fw}s}{'name':<36s}{'in file':>8s}{'on date':>8s}{'first':>7s}{'last':>7s}{'peak':>6s}{'at':>7s}  notes")
     for st in feed_stats:
         fh_ = histogram(st["trips"]) if st["trips"] else np.zeros(1, dtype=int)
         pk = int(np.argmax(fh_))
         notes = []
         if st["no_service"]:
             notes.append(f"NO SERVICE on {date.isoformat()}: the feed covers {st['no_service']}")
+        if st["dropped_type"]:
+            by_type = ", ".join(f"{n} of type {rt}" for rt, n in sorted(st["dropped_type"].items(), key=lambda kv: str(kv[0])))
+            notes.append(f"{sum(st['dropped_type'].values())} trips on date left out by include_route_types ({by_type})")
+        if configured.get(st["id"], {}).get("modelled"):
+            notes.append("modelled")
         if st["dropped_clip"]:
             notes.append(f"{st['dropped_clip']} trips dropped (shape outside clip box)")
         if st["skipped_short"]:
@@ -758,11 +862,11 @@ def main():
             notes.append(f"{st['forced_monotone']} stops clamped monotone")
         if st["time_fixes"]:
             notes.append(f"{st['time_fixes']} times clamped")
-        print(f"{st['id']:<11s}{st['name'][:34]:<36s}{st['trips_in_file']:>8d}{st['trips_on_date']:>8d}"
+        print(f"{st['id']:<{fw}s}{st['name'][:34]:<36s}{st['trips_in_file']:>8d}{st['trips_on_date']:>8d}"
               f"{fmt_time(st['first']):>7s}{fmt_time(st['last']):>7s}{int(fh_[pk]):>6d}{fmt_time(pk * 60):>7s}  {'; '.join(notes)}")
     firsts = [st["first"] for st in feed_stats if st["first"] is not None]
     lasts = [st["last"] for st in feed_stats if st["last"] is not None]
-    print(f"{'total':<11s}{'':<36s}{sum(s['trips_in_file'] for s in feed_stats):>8d}{len(public_trips):>8d}"
+    print(f"{'total':<{fw}s}{'':<36s}{sum(s['trips_in_file'] for s in feed_stats):>8d}{len(public_trips):>8d}"
           f"{fmt_time(min(firsts) if firsts else None):>7s}{fmt_time(max(lasts) if lasts else None):>7s}"
           f"{meta['peak']['count']:>6d}{fmt_time(meta['peak']['time']):>7s}")
     if len(mode_ids) > 1:
@@ -773,6 +877,19 @@ def main():
             n_routes = sum(1 for r in routes if r["mode"] == m)
             n_trips = sum(1 for t in trips if routes[t["r"]]["mode"] == m)
             print(f"{m:<11s}{n_routes:>7d}{n_trips:>8d}{int(h[pk]):>6d}{fmt_time(pk * 60):>7s}")
+    if grouper:
+        # Peaks per group need not coincide, so the row at the overall peak is
+        # what the HUD breakdown shows at its busiest moment.
+        print(f"\n{'group':<11s}{'label':<12s}{'routes':>7s}{'trips':>8s}{'peak':>6s}{'at':>7s}{'at overall peak':>17s}")
+        for g in grouper.groups:
+            h = hist_by_group[g["id"]]
+            pk = int(np.argmax(h))
+            n_routes = sum(1 for r in routes if r["group"] == g["id"])
+            n_trips = sum(1 for t in trips if routes[t["r"]]["group"] == g["id"])
+            print(f"{g['id']:<11s}{g['label'][:11]:<12s}{n_routes:>7d}{n_trips:>8d}{int(h[pk]):>6d}{fmt_time(pk * 60):>7s}{int(h[peak_min]):>17d}")
+        if grouper.unmatched:
+            names = ", ".join(f"{a or '(no agency)'} ({n})" for a, n in sorted(grouper.unmatched.items(), key=lambda kv: (-kv[1], kv[0])))
+            print(f"agencies in the default group '{grouper.default}' (routes): {names}")
     if unknown_types:
         for (fid, rt), rids in sorted(unknown_types.items()):
             print(f"route_type {rt or '(blank)'} in {fid} is in no mode's list; {len(rids)} routes ({', '.join(rids[:6])}{'...' if len(rids) > 6 else ''}) fell into '{mode_ids[0]}'")

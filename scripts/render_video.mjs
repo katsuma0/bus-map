@@ -10,8 +10,9 @@
 //
 //   --root DIR        directory served as /, default: the repo root
 //   --page PATH       page under root, default web/index.html
-//   --city ID         city config id (tsukuba, gta): adds city=ID to the page query, which
-//                     selects that city's built data, and defaults --out to out/ID.mp4
+//   --city ID         city config id (tsukuba, gta, tokyo-trains, tokyo-buses, kyoto-trains,
+//                     kyoto-buses, osaka-trains, osaka-buses): adds city=ID to the page query,
+//                     which selects that city's built data, and defaults --out to out/ID.mp4
 //   --query STR       extra query appended after record=1, e.g. "data=../data/built/network.stub.json"
 //   --out FILE        default out/tsukuba-buses.mp4 in the repo (out/<city>.mp4 with --city)
 //   --fps N           default 30
@@ -121,7 +122,7 @@ function parseArgs(argv) {
       case 'root': opts.root = path.resolve(val); break;
       case 'page': opts.page = val.replace(/^\/+/, ''); break;
       case 'city':
-        if (!/^[a-z0-9_-]+$/i.test(val)) throw new UsageError(`--city wants a config id like gta, got ${val}`);
+        if (!/^[a-z0-9_-]+$/i.test(val)) throw new UsageError(`--city wants a config id like gta or tokyo-trains, got ${val}`);
         opts.city = val;
         break;
       case 'query': opts.query = val.replace(/^[?&]+/, ''); break;
