@@ -381,6 +381,13 @@ class Units(unittest.TestCase):
                                         {"vm": "Valley Metro", "other": "Other Transit"})
         self.assertEqual(units, ["entry:vm", "entry:vm", "feed:other"])
         self.assertEqual(labels, {"entry:vm": "Valley Metro", "feed:other": "Other Transit"})
+        # A chip word as the label, the agency in the credit.
+        entries[0].update(label="Bus", credit="Valley Metro Bus")
+        brand, defs = tn.assign_brands(routes, entries, U.MODES)
+        units, labels = tn.credit_units([r["feed"] for r in routes], brand, defs, entries,
+                                        {"vm": "Valley Metro", "other": "Other Transit"})
+        self.assertEqual(defs["vm"]["label"], "Bus")
+        self.assertEqual(labels, {"entry:vm": "Valley Metro Bus", "feed:other": "Other Transit"})
 
     def test_auto_rush_frame(self):
         rng = np.random.default_rng(7)

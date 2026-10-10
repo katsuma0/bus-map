@@ -627,6 +627,7 @@ depend on the pinned packages, not on those; D-8 compares the outputs themselves
 | `verified` | bool | true only when the hex is the dominant informative `route_color` of the agency in its own GTFS (A10 warns otherwise); false = from the livery, checked by a person before the batch PR merges |
 | `lines` | `none` / `rail` / `all` | which routes keep their own informative `color_raw` as a line brand (rail = any mode other than `bus`) |
 | `alt` | `#rrggbb` or null | second candidate of the distinctness ladder (B6) |
+| `credit` | str or absent | the agency's name in the on-screen credit when `label` (the chip word) is not one, e.g. label `Bus`, credit `MTA Bus`; absent = `label` |
 | `rules[]` | list | `short` (regex on `route_short_name`) or `route_ids` ([str]) to a sub-brand |
 
 #### 2.5 Holidays: `cities/holidays.json` (A owns)

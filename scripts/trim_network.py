@@ -429,17 +429,23 @@ def credit_units(feeds, brands, bdefs, entries, feed_name):
     names the feed's publisher: Valley Metro's feed also carries the PHX Sky
     Train and MTS's an airport shuttle, and crediting them as their feed would
     print the same publisher twice ("Valley Metro, Valley Metro"). A feed that
-    no entry lists counts as itself.
+    no entry lists counts as itself. An entry's optional `credit` names the
+    agency where its chip `label` is a plain word: New York's chips read Bus and
+    Subway, because "MTA Bus" with four-digit counts pushes Subway off the chips
+    line and its lines would lose their colours, while the credit still says
+    MTA Bus and NYC Subway.
     """
-    feed_entry = {}
+    feed_entry, credit = {}, {}
     for e in entries:
         for fid in e.get("feeds", []):
             feed_entry.setdefault(fid, e["id"])
+        if e.get("credit"):
+            credit.setdefault(e["id"], e["credit"])
     units, labels = [], {}
     for fid, b in zip(feeds, brands):
         e = bdefs[b]["entry"] or feed_entry.get(fid)
         u = "entry:" + e if e else "feed:" + fid
-        labels[u] = bdefs[e]["label"] if e else feed_name[fid]
+        labels[u] = (credit.get(e) or bdefs[e]["label"]) if e else feed_name[fid]
         units.append(u)
     return units, labels
 
