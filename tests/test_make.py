@@ -1295,7 +1295,10 @@ class ModeSplit(Scratch):
     def test_pinned_frame_shows_part_of_a_union(self):
         """The trim box, the area box check and show's suggestion hold the whole union; the clip follows the frame."""
         r = self.repo.read_json("cities/recipes/test-both.json")
-        r["frame"] = dict(self.lock["boundaries"]["test-centre"]["frame"])
+        # Half the centre city's fitted height, so the pinned frame is sure to miss part of the union
+        # whatever the safe zone makes of the fitted frames.
+        fr0 = self.lock["boundaries"]["test-centre"]["frame"]
+        r["frame"] = dict(fr0, km_vertical=round(fr0["km_vertical"] / 2, 1))
         self.repo.write_json("cities/recipes/test-both.json", r)
         self.repo.run("lock", "test")
         pl = make.Pipeline(self.repo.root)
@@ -1304,7 +1307,7 @@ class ModeSplit(Scratch):
         area = batch["areas"][0]
         be = lock["boundaries"]["test-both"]
         self.assertEqual(be["frame"], r["frame"])
-        self.assertEqual(be["clip"], lock["boundaries"]["test-centre"]["clip"])
+        self.assertEqual(be["clip"], pl.clip_of(area, be["frame"]))
         feat = self.repo.read_json("build/test-both/boundary.geojson")
         bb = pl.boundary_bbox_km(area, feat)
         self.assertFalse(make.box_inside(bb, make.trim_box(be["frame"], 1.25)))
