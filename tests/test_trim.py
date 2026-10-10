@@ -237,7 +237,7 @@ class Fixtures(unittest.TestCase):
                 for v, V in m["variants"].items():
                     mins = range(-(-V["start"] // 60), -(-V["end"] // 60))
                     best = max(h[x % P] for x in mins)
-                    self.assertEqual(V["peak"]["count"], math.floor(best + 0.5))
+                    self.assertEqual(V["peak"]["count"], round(best))
                     self.assertEqual(h[(V["peak"]["time"] // 60) % P], best)
                     self.assertTrue(V["start"] <= V["peak"]["time"] < V["end"])
                 am = m["am_peak"]
@@ -518,7 +518,7 @@ class GTA(unittest.TestCase):
                 for V in m["variants"].values():
                     mins = range(-(-V["start"] // 60), -(-V["end"] // 60))
                     best = max(h[x % P] for x in mins)
-                    self.assertEqual(V["peak"]["count"], math.floor(best + 0.5), cid)
+                    self.assertEqual(V["peak"]["count"], round(best), cid)
                     self.assertGreater(V["peak"]["count"], 0, cid)
                 self.assertTrue(all(abs(sum(x) - y) < 0.05 * len(m["hist_by_mode"]) + 1e-9
                                     for x, y in zip(zip(*m["hist_by_mode"].values()), h)), cid)

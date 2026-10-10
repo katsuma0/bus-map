@@ -332,17 +332,17 @@ class Folder:
         return h
 
 
-def round_half_up(v):
-    return int(math.floor(v + 0.5))
-
-
 def first_argmax(h2, minutes):
-    """First maximum of the rounded hist over `minutes` (absolute minute numbers, wrapped)."""
+    """First maximum of the rounded hist over `minutes` (absolute minute numbers, wrapped).
+
+    The count is Python's round() of the 2-decimal value in the file, which is
+    what the page's count line reads (an exact half goes to the even number).
+    """
     P = len(h2)
     vals = h2[np.asarray(minutes) % P]
     j = int(np.argmax(vals))
     m = int(minutes[j])
-    return {"count": round_half_up(float(h2[m % P])), "time": m * 60}
+    return {"count": int(round(float(h2[m % P]))), "time": m * 60}
 
 
 # ---------------------------------------------------------------- brands
