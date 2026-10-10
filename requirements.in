@@ -13,3 +13,8 @@ requests==2.34.2
 fonttools==4.66.1
 brotli==1.2.0
 Pillow==12.3.0
+# Transitive, pinned to the versions the sandbox's isolated Python (`python3 -I`,
+# which runs every builder) has, so `make.py build --frozen` passes there as on Actions.
+charset-normalizer==3.5.1
+idna==3.19
+urllib3==2.7.0
