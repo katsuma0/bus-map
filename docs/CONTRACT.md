@@ -464,6 +464,11 @@ Additions made while implementing (they extend, never change, the formats below)
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
   render key; `--upload` sends the MP4 last.
+* a slow camera over the map layers (B18 below): the CONFIG keys `CAMERA*`, the recipe key
+  `variety.camera`, the busmap members `camera`, `cameraAt(u)` and `setCamera(u)`, and a 24th
+  tuning knob `camamp` (`CAMERA_AMP`, right after the frame knobs in every pass, arms v x 0.75 and
+  v x 1.25 capped at 1.5, with a clip, `motion.jpg` and `camera.jpg` of frames 0, N/4, N/2 and
+  3N/4; auto pick b unless an arm strobes less by more than 0.0005).
 
 ### 2. Shared interfaces
 
@@ -512,6 +517,7 @@ does today).
 | `variety.panel_side` | `left` / `right` | no | `left` | preference; the side is chosen by A8.7 and this breaks ties within 10% |
 | `variety.card_line` | int 0..2 | no | 0 | index into the card templates; a `cardline` tuning pick writes here |
 | `variety.zoom` | float | no | 1.0 | multiplies FRAME_ZOOM (D3.8) |
+| `variety.camera` | one of the six B18 paths, or `off` | no | `camera_path(id)` | the camera move, the same in every variant; D3.8 passes it as `CAMERA_PATH` (`off`: `CAMERA: false`) |
 | `override.render` | obj of CONFIG keys | no | {} | for every variant; never a key that any `defaults.variants.*.render` block sets (validation error) |
 | `override.variant_render` | obj variant -> obj | no | {} | per variant, merged after `override.render` |
 | `override.brand_colors` | obj brand id -> hex | no | {} | passed as `brandhex=` |
@@ -880,6 +886,13 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `FRAME_DX_KM` / `FRAME_DY_KM` | float | 0 / 0 | | `cx` / `cy` |
 | `BASE_ROADS_GAIN` / `BASE_WATER_GAIN` | float | 1 / 1 | | `roads` / `water` |
 | `WEEKEND_BAND` | bool | false | | |
+| `CAMERA` | bool | false | true | `camera` (0/1) |
+| `CAMERA_PATH` | `'auto'` or a B18 path | `'auto'` (FNV-1a of `meta.id`) | from `variety.camera` (D3.8) | `campath` |
+| `CAMERA_ZOOM` | float 0..0.5 | 0.08 | | `camzoom` |
+| `CAMERA_DRIFT` | float 0..0.2, share of the frame width | 0.03 | | `camdrift` |
+| `CAMERA_AMP` | float 0..3 | 1 | | `camamp` |
+| `CAMERA_MAX_SPEED` | float, frame widths a second | 0.006 | | `camspeed` |
+| `CAMERA_BASE` | `'cache'`, `'vector'` | `'cache'` | | `cambase` |
 
 New query names for existing keys: `dotcore` -> `BUS_CORE_R` (0 allowed: halo only), `halor` ->
 `BUS_HALO_R`, `haloalpha` -> `BUS_HALO_ALPHA`, `layeralpha` -> `TRAIL_LAYER_ALPHA`, `smooth` ->
@@ -919,6 +932,9 @@ Every existing member stays. Added:
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
 | `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null | the chips fit (B9): parts shown, size, the width limit, groups folded into `other`, and every width tried in order |
+| `camera` | `{path, zoom, drift, scale, amp, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
+| `cameraAt(u)` | fn | `{zoom, e, f}`: screen = zoom x base px + (e, f) at phase u; frame i of N is u = i / N; identity when off |
+| `setCamera(u)` | fn | pins the phase `renderAt` draws the camera at; `null` follows T again (`renderFrame` always uses i / N) |
 
 #### 2.12 render_video.mjs additions (C implements; D calls)
 
@@ -1191,3 +1207,82 @@ Frame to time:
 
 `renderAtV4(T)` stays pure and draws the HUD at full alpha with no card (stills); only
 `renderFrameV4(i)` applies the card and the snapshot.
+
+### B18. Camera
+
+A slow drone move over the map layers: the base map, the dormant network, the trails, the dots,
+the outside dimming and the city line. The title scrim, the HUD panel and everything in it, the
+card and the `?safe=1` overlay are drawn after it at identity and stay put in the safe zone. It is
+off by default (`CAMERA` false), so legacy files and any v4 load without the shorts preset draw
+exactly what they did; the shorts preset turns it on.
+
+**Phase.** The camera is a function of the loop phase only: `u = i / N` for frame i
+(`N = totalFrames`), reduced modulo 1, so the virtual frame N is frame 0 and the day and week loops
+stay exact; the rush's cross-fade snapshot is frame 0 at u = 0, and the live frames before it run
+up to u = 1, so both images in the fade have nearly the same camera. A still at T (`renderAt`) uses
+`u = progressAt(T)`, the phase the video shows T at, unless `setCamera(u)` pins one.
+
+**Path.** With pivot `c = (460, 845)` (the fit box centre: D3.2 puts the boundary bbox centre and
+A8.6 the rush vehicles there, below the card), zoom amplitude Z and drift R px, at
+`th = 2 pi u`:
+
+```
+z(u)    = 1 + Z (1 + cos th) / 2              push-in at frame 0, the fitted frame at u = 1/2
+screen  = c + z (base - c - R D(u))           base: the fitted frame's px
+```
+
+| path | D(u), x east, y south |
+|---|---|
+| `pull-out-east` | `((1 - cos th) / 2, 0.4 sin th / 2)` |
+| `pull-out-north` | `(0.4 sin th / 2, -(1 - cos th) / 2)` |
+| `pull-out-west` | `(-(1 - cos th) / 2, -0.4 sin th / 2)` |
+| `pull-out-south` | `(-0.4 sin th / 2, (1 - cos th) / 2)` |
+| `drift-orbit` | `(sin th / 2, -0.4 cos th)`, an ellipse round the core, clockwise |
+| `drift-sway` | `(sin th / 2, sin 2th / 4)`, a figure of eight across the core |
+
+Every path but the orbit starts on the pivot, so frame 0 is the fitted frame pushed in about the
+city core (the orbit's core sits 0.4 R z, about 1% of the width, off it). The zoom eases in and out
+(zero zoom speed at u = 0 and 1/2) while the sideways part keeps moving, so the motion never stops,
+never runs at constant speed and is smooth to every derivative. `CAMERA_PATH 'auto'` picks
+`CAMERA_NAMES[fnv1a(meta.id) % 6]` in the order of the table; `make.py camera_path()` is the same
+function, and D3.8 passes the recipe's `variety.camera` or that pick as `CAMERA_PATH`, the same for
+day, rush and week.
+
+**Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width). Both are
+scaled by one factor s <= 1, found by bisection, until the fastest point of the frame (the step of
+the four corners between sampled phases; the step is affine in the point, so the corners bound it)
+moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a second over `N / 30` s; then both are
+multiplied by `CAMERA_AMP`. The 50 s day keeps s 0.94 to 0.95 (zoom 7.5 to 7.6%, drift 2.8%), the 60 s
+week s 1 (8%, 3%), the 25 s rush s 0.47 (3.8%, 1.4%): the cap holds every variant to the same
+super slow speed, 0.22 px a frame at most. A zero amplitude after all that leaves the camera off.
+
+**Sharpness.** The base map and the dormant network are drawn once into a cache that covers the
+union over the loop of the base rectangle on screen (plus 3 px), at `2 (1 + Z)` times the fitted
+scale with widths and dashes scaled along (so zoom 1 shows today's base), its origin placed so that
+at frame 0 its pixel grid lands on the frame's. Each frame draws it scaled down by `z / (2 (1 + Z))`
+with `imageSmoothingQuality 'medium'` (mipmapped), never up. Against the base drawn afresh as
+vectors under the same camera (`CAMERA_BASE 'vector'`, the reference only) on Toronto's base this
+keeps about 91% of the edge energy and flickers a third as much frame to frame at the fastest phase
+(vector anti-aliasing of 1 px roads at a fresh subpixel offset each frame is the larger shimmer);
+a 1x cache with bilinear filtering kept 83 to 90% and flickered more. On whole frames (trails, dots
+and outline included) the test measures 98% of the vector render's edge energy, about 30% less
+flicker and 50 dB. Trails, dots, the outside dimming
+and the city line are drawn each frame under the camera: ribbons are stroked through the layer
+transform with widths divided by z, dots are drawn at the camera's image of their position at their
+own size, and the dimming is the cache rectangle with the rings cut out (even-odd) plus the rings
+stroked at `CITY_LINE_W / z`, so every line keeps its width in screen px.
+
+**Counting.** Trips are sampled in base px as before; only drawing goes through the camera.
+`lastVehicles` reports screen positions (where the dots are), and each inside flag reads the mask
+at the vehicle's own km position, which is the screen position mapped back through the camera.
+`hist`, the count line, the chips, the peak and the card numbers do not change.
+
+**Cost.** Toronto day from the am peak (B17's frame, `tests/web/v4_perf.mjs`): 240 ms a frame with
+the camera off, 283 ms with it on, about 43 ms of it the mipmapped base draw; the limit is 450.
+
+**Tests.** `tests/web/v4_camera.mjs`: the path from the id, the loop seam, the speed cap and its
+smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the HUD
+and the counts with and without the camera, all six paths and the sprite, scaled and bounded trail
+modes, and the cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
+knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path` and the
+`camamp` knob.
