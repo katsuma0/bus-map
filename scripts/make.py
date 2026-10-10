@@ -1659,8 +1659,14 @@ class Pipeline:
                 ov["files"] = got
                 self.save_lock(batch, lock)
                 say(f"  recorded the Overture file sha256s in {self.rel(self.lock_path(batch['batch']))}")
-        if push and self.fetched_from_overture:
-            self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values()) | {self.rel(dpath)}))
+        if push:
+            # Pushed by whoever fetched from Overture's bucket, or by anyone holding the locked bytes while origin
+            # lacks the tag: then a runner that cannot reproduce the extract byte for byte still gets it.
+            on_origin = self.git("ls-remote", "--tags", "origin", f"refs/tags/{ov['data_tag']}", check=False).stdout.strip()
+            if self.fetched_from_overture or not on_origin:
+                self.push_data_tag(area["id"], rel, sorted(set(self.rel(p) for p in paths.values()) | {self.rel(dpath)}))
+            else:
+                say(f"  data tag {ov['data_tag']} is already on origin")
 
     def areas_selected(self, batch, area=None):
         out = [a for a in batch["areas"] if area in (None, a["id"])]

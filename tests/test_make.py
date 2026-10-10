@@ -1060,6 +1060,15 @@ class Actions(Scratch):
         self.repo.run("fetch", "test", "--feeds-only", "--frozen")
 
     def test_data_tag_round_trip(self):
+        # fetch --push-data-tag pushes the cached, locked extract when origin lacks the tag, and not again.
+        res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        self.assertIn("pushed overture/tsukuba-2026-09-23.1", res.stdout)
+        res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
+        self.assertIn("is already on origin", res.stdout)
+        tree = git(self.repo.origin, "ls-tree", "-r", "--name-only", "overture/tsukuba-2026-09-23.1").stdout.split()
+        self.assertEqual(sorted(tree), ["2026-09-23.1/divisions/JP-08-tsukuba.geojson.gz.000",
+                                        "2026-09-23.1/tsukuba/segments.geojson.gz.000",
+                                        "2026-09-23.1/tsukuba/water.geojson.gz.000", "MANIFEST.json", "README.md"])
         pl = make.Pipeline(self.repo.root)
         rels = ["cache/overture/2026-09-23.1/tsukuba/segments.geojson", "cache/overture/2026-09-23.1/tsukuba/water.geojson"]
         want = {r: pl.sha(r) for r in rels}
