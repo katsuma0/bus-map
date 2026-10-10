@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +29,7 @@ sys.path.insert(0, os.path.join(REPO, "scripts"))
 
 import make  # noqa: E402
 import area_store  # noqa: E402
+import release  # noqa: E402
 
 D_FILES = ["scripts/make.py", "scripts/shorts_meta.py", "scripts/tune.py", "scripts/release.py",
            "cities/defaults.json", "cities/licences.json", "cities/templates/shorts_en.json",
@@ -323,6 +325,9 @@ os.makedirs(store, exist_ok=True)
 log = os.environ.get("FAKE_GH_LOG")
 if log:
     open(log, "a").write(f"{method} {p} {json.dumps(fields, sort_keys=True)}\n")
+if st.get("limited", 0) < int(os.environ.get("FAKE_GH_LIMIT", "0")):
+    st["limited"] = st.get("limited", 0) + 1; save()
+    sys.stderr.write("gh: API rate limit exceeded for installation ID 1. (HTTP 403)"); sys.exit(1)
 if m := re.fullmatch(r"repos/[^/]+/[^/]+/releases", p):
     if method == "GET":
         out(st["releases"])
@@ -625,6 +630,23 @@ class StoreDates(unittest.TestCase):
         self.assertEqual(rules["go"]["sat"], "median-date 2026-10-24")
         self.assertEqual(rules["go"]["mon"], "half")
         self.assertNotIn("stale", dates)  # timeline.feeds is not where the lock reads from
+
+
+class RateLimit(Scratch):
+    def test_rate_limited_calls_are_repeated(self):
+        """A rate-limited gh call is tried again up to three times, then fails with gh's message."""
+        repo = FakeRepo(self.tmp)
+        env = repo.env()
+        gh = release.GitHub("owner/repo", gh=os.path.join(repo.bin, "gh"), waits=(0, 0, 0))
+        with unittest.mock.patch.dict(os.environ, dict(env, FAKE_GH_LIMIT="2")):
+            self.assertEqual(gh.releases(), [])
+        self.assertEqual(load(env["FAKE_GH_STATE"])["limited"], 2)
+        os.remove(env["FAKE_GH_STATE"])
+        with unittest.mock.patch.dict(os.environ, dict(env, FAKE_GH_LIMIT="9")):
+            with self.assertRaises(release.GitHubError) as cm:
+                gh.releases()
+        self.assertIn("rate limit", str(cm.exception))
+        self.assertEqual(load(env["FAKE_GH_STATE"])["limited"], 4)
 
 
 class Labels(unittest.TestCase):

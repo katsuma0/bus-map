@@ -13,7 +13,19 @@ import json
 import os
 import subprocess
 import tempfile
+import time
 import urllib.parse
+
+# GITHUB_TOKEN gets 1,000 REST calls an hour per repo, and a refused call in
+# the middle of an asset swap stops the job; waiting out the limit is cheaper
+# than rendering the video again. A rate-limited call was not carried out, so
+# repeating it is safe even for an upload.
+RATE_LIMIT_WAITS = (30, 60, 120)
+
+
+def rate_limited(stderr):
+    s = stderr.lower()
+    return "rate limit" in s or "http 429" in s
 
 
 class GitHubError(Exception):
@@ -34,10 +46,11 @@ def parse_stream(text):
 
 
 class GitHub:
-    def __init__(self, repo, gh="gh", cwd=None):
+    def __init__(self, repo, gh="gh", cwd=None, waits=RATE_LIMIT_WAITS):
         self.repo = repo
         self.gh = gh
         self.cwd = cwd
+        self.waits = tuple(waits)
 
     @classmethod
     def from_env(cls, cwd=None):
@@ -62,7 +75,11 @@ class GitHub:
         if paginate:
             cmd.append("--paginate")
         cmd.append(path)
-        res = subprocess.run(cmd, capture_output=True, cwd=self.cwd)
+        for wait in self.waits + (None,):
+            res = subprocess.run(cmd, capture_output=True, cwd=self.cwd)
+            if res.returncode == 0 or wait is None or not rate_limited(res.stderr.decode(errors="replace")):
+                break
+            time.sleep(wait)
         if res.returncode != 0:
             raise GitHubError(f"gh api {method or 'GET'} {path.split('?')[0]}: "
                               f"{res.stderr.decode(errors='replace').strip() or res.stdout.decode(errors='replace')[:300]}")
