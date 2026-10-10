@@ -2,8 +2,8 @@
 """B-9: every HUD and card string of the GTA batch is covered by the X fonts (fontTools cmap).
 
 The strings: every place and title of the recipes, brand, rule and group labels of brands.json,
-the batch's mode words, the variant labels, the card templates (cities/templates/shorts_en.json
-when part D has written it, else the fixture's), the credit line and its fallback, the weekday
+the batch's mode words, the variant labels, the card templates (the labels and card lines of
+cities/templates/shorts_en.json when part D has written it, else the fixture's), the credit line and its fallback, the weekday
 names, the axis words and the digits. Both MontserratX and InterX must map every character
 (the panel uses one, the credit and card lines the other).
 
@@ -50,7 +50,9 @@ def strings():
     templates = os.path.join(ROOT, "cities", "templates", "shorts_en.json")
     if os.path.exists(templates):
         with open(templates, encoding="utf-8") as fh:
-            out += [s for s in walk(json.load(fh)) if isinstance(s, str)]
+            tpl = json.load(fh)
+        # Only labels and card lines reach the screen; titles and descriptions are metadata.
+        out += [s for s in walk([tpl["labels"], tpl["card"]]) if isinstance(s, str)]
         src = "cities/templates/shorts_en.json"
     else:
         with open(os.path.join(ROOT, "tests", "fixtures", "v4_tiny", "network.json"), encoding="utf-8") as fh:
