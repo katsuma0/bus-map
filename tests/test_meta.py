@@ -120,6 +120,10 @@ class GTA(unittest.TestCase):
                          "Morning rush in Richmond Hill: every bus and train, 6:30 to 9:30 am")
         self.assertIn("#richmondhill", self.metas["gta-richmond-hill-day"]["hashtags"])
         self.assertIn("Ontario", self.metas["gta-markham-day"]["tags"])
+        # Feed names, busiest inside first, not the chip labels.
+        tags = self.metas["gta-markham-day"]["tags"]
+        self.assertEqual(tags[:5], ["Markham", "York Region Transit", "TTC", "GO Transit", "Brampton Transit"])
+        self.assertNotIn("GO", tags)
 
     def test_numbers_are_the_peak(self):
         d = self.metas["gta-toronto-day"]["description"]

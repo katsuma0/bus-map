@@ -214,9 +214,10 @@ def tag_list(netmeta, batch, recipe, templates):
     area_id = recipe.get("area") or batch["areas"][0]["id"]
     area = next(a for a in batch["areas"] if a["id"] == area_id)
     region = templates.get("regions", {}).get(area.get("region"))
-    labels = [clean(g.get("label")) for g in netmeta.get("groups", []) if g.get("id") != "other" and g.get("label")]
+    # Feed names rather than the chip labels: a bare "GO" or "UP" matches nothing a viewer searches for.
+    names = [clean(f.get("name")) for f in inside_feeds(netmeta) if f.get("name")]
     out, seen, total = [], set(), 0
-    for t in [clean(recipe["place"])] + labels + list(templates.get("tags", [])) + ([region] if region else []):
+    for t in [clean(recipe["place"])] + names + list(templates.get("tags", [])) + ([region] if region else []):
         if not t or t.lower() in seen:
             continue
         cost = len(t) + (1 if out else 0)
