@@ -1,0 +1,61 @@
+{
+ "id": "gta-toronto-buses",
+ "batch": "gta",
+ "place": "Toronto",
+ "boundary": {
+  "name": "Toronto",
+  "subtypes": [
+   "county",
+   "locality"
+  ],
+  "area_km2": 631.1
+ },
+ "modes": [
+  "bus",
+  "streetcar"
+ ],
+ "center": [
+  -79.376,
+  43.718
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 2,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_CORE_W": 4.0,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18
+   },
+   "week": {
+    "BUS_HALO_ALPHA": 0.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min draws Finch, Sheppard and Eglinton as continuous lines instead of dotted rows; whiteout stays 0.012",
+   "TRAIL_CORE_W": "4 px cores keep the Toronto street grid as pink lines after the VP9 round trip; downtown stays separated, whiteout 0.013",
+   "TRAIL_LAYER_ALPHA": "0.8 makes the pink grid read under the white dots in the RT crop and cuts strobe 0.020 to 0.017; gaps stay dark",
+   "TIME_WARP_GAMMA": "1.5 slows the pm rush (3:42 to 5:25 per eighth) and cuts midnight to 5 am to 3.3 s without a faster peak rate",
+   "CARD_LINES": "line 2 is two short lines that read at a glance; the trains video after it opens on line 1",
+   "OUTSIDE_DIM": "0.75 drops Mississauga and York Region to a faint hint, so Toronto reads 4.2x brighter than its neighbours (b: 2.9x)",
+   "week.BUS_HALO_ALPHA": "0.15 lets soft glows travel along the dotless week grid: RT motion 0.31 to 0.40, strobe stays 0.0003"
+  }
+ }
+}

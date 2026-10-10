@@ -1,0 +1,46 @@
+{
+ "id": "gta-oshawa",
+ "batch": "gta",
+ "place": "Oshawa",
+ "boundary": {
+  "name": "Oshawa",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 145.64
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -78.874,
+  43.939
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 2,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.85
+  },
+  "variant_render": {},
+  "brand_colors": {
+   "drt": "#cc6600"
+  },
+  "_why": {
+   "brand_colors.drt": "DRT's own PULSE orange from drt.zip; its green reads as one colour with GO green at phone size",
+   "OUTSIDE_DIM": "0.85 dims the neighbouring DRT grid, the same orange, so Oshawa's buses stand out; at 0.55 Whitby's read as Oshawa's"
+  }
+ }
+}

@@ -1,0 +1,59 @@
+{
+ "id": "gta-markham",
+ "batch": "gta",
+ "place": "Markham",
+ "boundary": {
+  "name": "Markham",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 210.93
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -79.299,
+  43.88
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.95,
+   "TRAIL_SHOULDER_W": 15
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 38
+   },
+   "week": {
+    "TRAIL_MINUTES": 68
+   },
+   "rush": {
+    "TRAIL_MINUTES": 21
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "OUTSIDE_DIM": "0.95 makes the Markham grid stand out; at 0.8 the TTC grid south of Steeles is as loud as Markham's own red lines",
+   "day.TRAIL_MINUTES": "38 min keeps Hwy 7 and the YRT grid continuous and is the only arm under the strobe limit (0.0038)",
+   "TRAIL_SHOULDER_W": "15 px keeps dark gaps between the parallel YRT lines by the green GO corridor; 29 fuses the grid into a blue haze",
+   "rush.TRAIL_MINUTES": "21 min brings rush strobe under the limit (0.0038 vs 0.0043 at 14); Hwy 7 and the YRT grid stay corridors with dots",
+   "CARD_LINES": "line 1 reads in one line and the rush card hides 33% of vehicles, not 40%; it also differs from Richmond Hill's 0",
+   "week.TRAIL_MINUTES": "68 min is the only week arm under the strobe limit (0.0028 vs 0.0076); the YRT grid stays legible, no whiteout"
+  }
+ }
+}

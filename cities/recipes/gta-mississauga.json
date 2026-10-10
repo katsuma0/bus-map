@@ -1,0 +1,50 @@
+{
+ "id": "gta-mississauga",
+ "batch": "gta",
+ "place": "Mississauga",
+ "boundary": {
+  "name": "Mississauga",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 292.74
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -79.674,
+  43.608
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.9,
+   "TRAIL_CORE_W": 4.0
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads",
+   "day.TRAIL_MINUTES": "18 min draws the MiWay grid as unbroken lines at phone size, 12 leaves gaps; whiteout stays 0.002",
+   "TRAIL_CORE_W": "4 px cores make the MiWay grid read as lines at 270 px and lift the city over the grey neighbours; whiteout 0.0023"
+  }
+ }
+}

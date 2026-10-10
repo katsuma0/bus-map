@@ -1,0 +1,27 @@
+{
+ "version": 1,
+ "agencies": [
+  {"id": "ttc", "feeds": ["ttc"], "label": "TTC", "color": "#ed1c24", "verified": true, "lines": "rail", "alt": null,
+   "source": "ttc.zip routes.txt: ED1C24 on 146 bus and 11 streetcar routes; subway lines keep D5C82B, 008000, B300B3, Line 5 FF8000", "rules": []},
+  {"id": "go", "feeds": ["go"], "label": "GO", "color": "#00853e", "verified": true, "lines": "none", "alt": null,
+   "source": "go.zip routes.txt: 00853E on the Kitchener line and 8 bus routes (GO green); line colours not used", "rules": []},
+  {"id": "up", "feeds": ["upx"], "label": "UP", "color": "#0075d2", "verified": true, "lines": "none", "alt": null,
+   "source": "upx.zip routes.txt route_color 0075D2", "rules": []},
+  {"id": "yrt", "feeds": ["yrt"], "label": "YRT", "color": "#0058a9", "verified": false, "lines": "none", "alt": null,
+   "source": "YRT and Viva share one blue (decision 5); 0058A9 is the blue in yrt.zip (4 routes); check against yrt.ca", "rules": []},
+  {"id": "miway", "feeds": ["miway"], "label": "MiWay", "color": "#d33517", "verified": true, "lines": "none", "alt": "#026bcd",
+   "source": "miway.zip route_color D33517 on 59 of 67 routes; alt 026BCD is MiWay Express", "rules": []},
+  {"id": "brampton", "feeds": ["brampton"], "label": "Brampton", "color": "#0067b1", "verified": false, "lines": "none", "alt": null,
+   "source": "brampton.zip has no route_color; Brampton Transit blue from the livery, approximate",
+   "rules": [{"id": "zum", "label": "Züm", "short": "^5\\d\\d$", "color": "#e31837", "verified": false,
+              "source": "Züm routes 501, 502, 505, 511, 561; red from the livery, approximate"}]},
+  {"id": "drt", "feeds": ["drt"], "label": "DRT", "color": "#006633", "verified": true, "lines": "none", "alt": "#cc6600",
+   "source": "drt.zip route_color 006633 on 32 of 38 routes; alt CC6600 is PULSE", "rules": []},
+  {"id": "oakville", "feeds": ["oakville"], "label": "Oakville", "color": "#004b8c", "verified": true, "lines": "none", "alt": null,
+   "source": "oakville.zip route_color 004B8C on 32 of 35 routes", "rules": []},
+  {"id": "burlington", "feeds": ["burlington"], "label": "Burlington", "color": "#00447c", "verified": false, "lines": "none", "alt": "#890a07",
+   "source": "burlington.zip: 00447C and 890A07 on 6 routes each; blue taken as the brand, check", "rules": []},
+  {"id": "milton", "feeds": ["milton"], "label": "Milton", "color": "#0071bc", "verified": false, "lines": "none", "alt": null,
+   "source": "milton.zip is mostly 000000; 0071BC is on one route, approximate", "rules": []}
+ ]
+}

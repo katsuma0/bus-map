@@ -1,0 +1,70 @@
+{
+ "id": "gta-toronto-trains",
+ "batch": "gta",
+ "place": "Toronto",
+ "boundary": {
+  "name": "Toronto",
+  "subtypes": [
+   "county",
+   "locality"
+  ],
+  "area_km2": 631.1
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -79.376,
+  43.718
+ ],
+ "frame": {
+  "km_vertical": 80.0,
+  "center_km": [
+   6.5,
+   -16.4
+  ]
+ },
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TIME_WARP_GAMMA": 1.5,
+   "ROUTE_ALPHA": 0.5,
+   "ROUTE_WIDTH": 2.4,
+   "TRAIL_ALPHA": 0.7,
+   "TRAIL_CORE_W": 5,
+   "TRAIL_SHOULDER_W": 16,
+   "TRAIL_LAYER_ALPHA": 1
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 25
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TIME_WARP_GAMMA": "1.5 slows the pm rush (3:42 to 5:25 per eighth) and cuts midnight to 5 am to 3.3 s without a faster peak rate",
+   "CARD_LINES": "line 1 opens unlike the buses video before it (line 2) and the GTA trains after it (line 0)",
+   "ROUTE_ALPHA": "0.5 draws the GO lines as green lines between their few trains; at the large-frame 0.2 they vanish and GO reads as loose dots",
+   "ROUTE_WIDTH": "2.4 px keeps the dormant GO and subway lines visible at phone size next to the trails",
+   "TRAIL_ALPHA": "0.7, the small-frame value: about 170 trains never fuse, and the large-frame 0.35 left the subway as dotted rows",
+   "TRAIL_CORE_W": "5 px cores make each subway line one solid stroke in its own colour (Line 1 gold, Line 2 green, Line 5 orange)",
+   "TRAIL_SHOULDER_W": "16 px glow sets the subway lines apart from the dark street grid without merging Lines 1 and 2 downtown",
+   "TRAIL_LAYER_ALPHA": "1 keeps the line colours at full strength; 0.65 was for the 2,900-vehicle all-modes map",
+   "day.TRAIL_MINUTES": "25 min trails join GO trains on 15 to 30 minute headways into lines; at 12 they are single dots",
+   "frame": "80 km: the subway and LRT lines fill the band and GO runs off the edges; the fitted 119.5 km left them a third"
+  }
+ }
+}
