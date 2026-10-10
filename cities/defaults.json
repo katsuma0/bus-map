@@ -1,0 +1,29 @@
+{
+ "author": "Katsuma Onishi",
+ "preset": "shorts",
+ "trim_scale": 1.25,
+ "major_share": 0.05,
+ "fit_box": [50, 390, 870, 1300],
+ "boundary": {"simplify_km": 0.02, "mask_km": 0.025},
+ "group_by": {"field": "agency-auto", "min_share": 0.03, "max_groups": 3},
+ "credit_template": "Data: {agencies} · Map: Overture, OSM",
+ "credit_fallback": "Data: {n} transit agencies · Map: Overture, OSM",
+ "timeline": {"drop_pct": 8, "min_week_dates": 2, "fallback_days": 28,
+              "guard": {"low": 0.90, "high": 1.03, "min_dates": 3}},
+ "rush": {"auto": true, "zoom": [1.4, 2.2], "share": 0.6},
+ "panel": {"tie": 0.10, "rect": [60, 1140, 620, 1500]},
+ "variants": {
+  "day":  {"frames": 1500, "start": "am_peak", "render": {"LOOP": "wrap", "TIME_WARP_MODE": "activity", "SPARK_SMOOTH_MIN": 35}},
+  "rush": {"frames": 750, "start": 23400, "end": 34200,
+           "render": {"LOOP": "xfade", "TIME_WARP_MODE": "linear", "SPARK_SMOOTH_MIN": 15, "TRAIL_MINUTES": 8}},
+  "week": {"frames": 1800, "start": "am_peak",
+           "render": {"LOOP": "wrap", "TIME_WARP_MODE": "activity-daily", "TIME_WARP_FLOOR": 0.3, "SPARK_SMOOTH_MIN": 60,
+                      "TRAIL_MINUTES": 30, "BUS_HALO_ALPHA": 0.1, "BUS_CORE_R": 0, "WEEKEND_BAND": true, "CLOCK_ROUND": 60}}
+ },
+ "render": {"capture": "canvas", "jobs": 1, "crf_ladder": [18, 16, 14, 12, 10], "min_kbps": 8000, "preset": "slow",
+            "keep_frames": [0, 300, "last"]},
+ "basemap_rule": {"major": 0.2, "minor": 0.33, "rail": 0.25, "water": 0.25, "water_line": 0.33,
+                  "min_road_px": 1.2, "min_water_px2": 14, "min_stream_px": 17,
+                  "water_polys": ["water", "lake", "pond", "reservoir", "river", "ocean", "sea", "bay", "lagoon", "harbour"],
+                  "water_lines": ["river", "canal"]}
+}
