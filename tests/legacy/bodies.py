@@ -12,7 +12,10 @@ whitelist:
      and new members may be appended after the last legacy member;
   3. the page glue: its calls to renderAt / renderFrame may go through
      busmap.renderAt / busmap.renderFrame;
-  4. new top-level declarations anywhere outside legacy bodies.
+  4. new top-level declarations anywhere outside legacy bodies, and new
+     `KEY: value,` lines (with their comments) inside the CONFIG literal; every
+     legacy top-level line before the page glue (CONFIG and its defaults,
+     COLORS, params, HUD_OVERRIDE, ...) stays as it is.
 
 An unchanged file passes. Usage:
   python3 tests/legacy/bodies.py [--base 302d811] [--file web/app.js]
@@ -35,6 +38,9 @@ DISPATCH = {
     "renderAt,": "renderAt: (T) => (isV4 ? renderAtV4(T) : renderAt(T)),",
 }
 GLUE_MARK = re.compile(r"^// -+ page glue\s*$")
+CONFIG_OPEN = "const CONFIG = {"
+# One new top-level CONFIG key on its own line; nested objects stay as they were.
+CONFIG_KEY_LINE = re.compile(r"^  [A-Z][A-Z0-9_]*: [^{}\[\]]*,$")
 BUSMAP_OPEN = "const busmap = {"
 MEMBER_RE = re.compile(r"^  (?:get )?([A-Za-z_$][\w$]*)\s*(?:[,:(]|$)")
 # Rerouting a glue call is the only edit allowed inside a glue statement.
@@ -142,6 +148,29 @@ def glue_lines(lines, funcs, bm):
     return out
 
 
+def prelude_lines(lines, funcs, bm):
+    """Everything before the page glue, with the top-level functions and the
+    busmap object folded to one placeholder line each."""
+    marks = [k for k, l in enumerate(lines) if GLUE_MARK.match(l)]
+    if len(marks) != 1:
+        raise ValueError(f"expected one '// --- page glue' marker, found {len(marks)}")
+    end = marks[0]
+    fold = {s: (e, f"@@function {n}@@") for n, s, e in funcs if s < end}
+    if bm[0] < end:
+        fold[bm[0]] = (bm[1], "@@busmap@@")
+    out = []
+    k = 0
+    while k < end:
+        if k in fold:
+            e, label = fold[k]
+            out.append(label)
+            k = e + 1
+        else:
+            out.append(lines[k])
+            k += 1
+    return out
+
+
 def top_level_gap(old, i):
     """True when an insertion before old[i] falls between two top-level statements."""
     before = old[i - 1] if i > 0 else ""
@@ -165,6 +194,35 @@ def check_glue(old, new):
             if not first or (not first[:1].isspace() and not first.startswith("}")):
                 continue
         problems.append(f"page glue: {op} at legacy glue line {i1 + 1}\n"
+                        + "".join(f"  - {l}\n" for l in old[i1:i2])
+                        + "".join(f"  + {l}\n" for l in added))
+    return problems
+
+
+def check_prelude(old, new):
+    """Legacy top-level lines before the glue are unchanged: a new default for a
+    legacy knob would otherwise pass, and F2 renders too few frames to catch it."""
+    starts = [k for k, l in enumerate(old) if l.rstrip() == CONFIG_OPEN]
+    if len(starts) != 1:
+        return [f"expected one '{CONFIG_OPEN}' line in the legacy file, found {len(starts)}"]
+    c0 = starts[0]
+    c1 = next((k for k in range(c0 + 1, len(old)) if old[k].startswith("};")), None)
+    if c1 is None:
+        return ["the legacy CONFIG literal has no closing '};' at column 0"]
+    problems = []
+    sm = difflib.SequenceMatcher(a=old, b=new, autojunk=False)
+    for op, i1, i2, j1, j2 in sm.get_opcodes():
+        if op == "equal":
+            continue
+        added = new[j1:j2]
+        if op == "insert" and top_level_gap(old, i1):
+            first = next((l for l in added if l.strip()), "")
+            if not first or (not first[:1].isspace() and not first.startswith("}")):
+                continue
+        if op == "insert" and c0 < i1 <= c1 and old[i1 - 1].startswith("  ") and not old[i1 - 1].startswith("   ") \
+                and all(l.strip() == "" or l.strip().startswith("//") or CONFIG_KEY_LINE.match(l) for l in added):
+            continue
+        problems.append(f"top level: {op} at legacy line {i1 + 1} (before the page glue, functions folded)\n"
                         + "".join(f"  - {l}\n" for l in old[i1:i2])
                         + "".join(f"  + {l}\n" for l in added))
     return problems
@@ -203,6 +261,7 @@ def check(old_text, new_text):
     obm, nbm = busmap_block(old), busmap_block(new)
     problems += check_busmap(old[obm[0]:obm[1] + 1], new[nbm[0]:nbm[1] + 1])
     problems += check_glue(glue_lines(old, old_funcs, obm), glue_lines(new, new_funcs, nbm))
+    problems += check_prelude(prelude_lines(old, old_funcs, obm), prelude_lines(new, new_funcs, nbm))
     return problems
 
 
