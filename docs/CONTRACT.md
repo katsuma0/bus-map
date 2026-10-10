@@ -1024,8 +1024,10 @@ Every subprocess is `sys.executable -I scripts/<tool>.py ...` or `node scripts/r
 #### 2.15 Videos split by mode, and boundaries of several divisions
 
 One video with every mode of a big city is cluttered, so a batch can make one video per group of
-modes from one boundary and one area build. Three additions, each inert by default, so a recipe or
-batch without them builds exactly as before:
+modes from one boundary and one area build. Three additions, each inert by default: a recipe or
+batch without them builds the same area store arrays and networks as before (the area store's
+meta.json only gains an empty `by_rule` in each feed's build stats). Its copy changes on purpose,
+see **Copy without `modes`** below. The additions:
 
 ```json
 "modes": [
@@ -1080,6 +1082,15 @@ batch without them builds exactly as before:
   against `area_box`, and `make.py show` suggests an area box that holds it (the GTA's grown box
   needs `[-80.18, 42.65, -78.41, 44.53]`). A fitted frame always holds its boundary, so no other
   city's trim box changes.
+* **Copy without `modes`** (an intended change for every video, split or not): the count noun and
+  the mode tags follow the modes in the window (B9), so the card and the description say what the
+  count line already said. A window with one mode reads `Busiest at 4:20 pm with 50 buses` on the
+  card and `Busiest moment: 50 buses at 4:20 pm.` in the description, where both read `50
+  vehicles`; a window with several modes still reads `vehicles`. The tags carry one `<mode> map`
+  per mode in the window where they carried a fixed `bus map` (Toronto: `bus map`, `streetcar
+  map`, `train map`; Markham: `bus map`, `train map`). Titles, the other description lines and
+  the hashtags are as before. The page code and the templates are in the render and meta keys, so
+  a published video takes the new copy at its next render and `make.py meta`.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 

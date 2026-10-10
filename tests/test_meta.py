@@ -287,6 +287,24 @@ class Split(unittest.TestCase):
         self.assertEqual(m["tags"][-4:], ["transit map", "bus map", "GTFS", "Ontario"])
         self.assertIn("Busiest moment of the morning: 3,951 buses at 8:01 am.", m["description"])
 
+    def test_without_modes(self):
+        # 2.15 changes this copy on purpose: a recipe without `modes` names the modes of its window too.
+        recipe = self.pl.recipe("gta-toronto", self.batch)
+        self.assertNotIn("modes", recipe)
+        nm = netmeta(self.batch, recipe, "day")
+
+        def meta(**keys):
+            return sm.build_meta(batch=self.batch, recipe=recipe, netmeta=dict(nm, **keys),
+                                 templates=self.pl.templates(), licences=self.pl.licences(),
+                                 defaults=self.pl.defaults(), publish_order=1, meta_key="0" * 64)
+
+        m = meta()
+        self.assertEqual(m["tags"][-6:], ["transit map", "bus map", "streetcar map", "train map", "GTFS", "Ontario"])
+        self.assertIn("Busiest moment: 3,951 vehicles at 8:01 am.", m["description"])
+        m = meta(modes_present=["bus"])
+        self.assertIn("Busiest moment: 3,951 buses at 8:01 am.", m["description"])
+        self.assertEqual(m["tags"][-4:], ["transit map", "bus map", "GTFS", "Ontario"])
+
     def test_region_of_several_divisions(self):
         m = self.meta("gta-toronto", "day", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
         self.assertEqual(m["title"], "Every train in the GTA in 24 hours")
