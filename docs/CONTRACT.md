@@ -910,6 +910,7 @@ Every existing member stays. Added:
 | `stillTimes()` | fn | `{am, noon, pm, late, night}` absolute seconds inside the window (B15) |
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
+| `chips` | `{ids, size, width, merged, tried: [{n, size, w}]}` or null | the chips fit (B9): parts shown, size, the width limit, groups folded into `other`, and every width tried in order |
 
 #### 2.12 render_video.mjs additions (C implements; D calls)
 
@@ -1103,9 +1104,11 @@ sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260
 * **Chips** (`MODE_CHIPS`): groups from `meta.groups` in order (else modes). Each part is a dot r 9
   centred at `(x + 9, baseline - 9)` in the group's colour (B6), then the text `412 YRT` from
   `x + 26`; 20 px between parts. The numbers are the group means at T, rounded by largest
-  remainder so they add up to the count line's n. Fit once at each group's maximum over the window:
-  all groups at 26 px; else the smallest shown group joins `other` (2 groups plus other), then 1
-  plus other; then 24 px. Never below 24.
+  remainder so they add up to the count line's n. Fit once at each group's maximum over the window,
+  before the colours: all groups at 26 px, then at 24 px; if neither fits, the smallest shown group
+  joins `other` and the shorter list tries 26 and 24 px again, down to 1 group plus other. Never
+  below 24. A group folded into `other` is not placed (B6): its brands are drawn in the foreign
+  colour like `other`, so every trail colour on the map has its chip.
 * **Clock.** `CLOCK_ROUND` 0 (auto): the time is floored to 5 minutes while `rate(m)` exceeds 2
   minutes per frame (nights of the day video), else to the minute; the week block sets 60 (`8 am`).
 * **Axis**: day: `clockText(W0)` left and `clockText(W1)` right (the same clock time) plus a 1 px

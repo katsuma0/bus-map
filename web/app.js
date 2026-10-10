@@ -2472,9 +2472,9 @@ function buildShortsLayout() {
         series: Array.isArray(byMode[m.id]) ? byMode[m.id] : new Array(histN).fill(0),
       }));
     }
-    const { list, size, merged } = fitChips(parts, F, L.textW);
+    const { list, size, merged, tried } = fitChips(parts, F, L.textW);
     if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
-    L.chips = { parts: list, size, font: `500 ${size}px ${F.tnum}`, y: 1320, merged };
+    L.chips = { parts: list, size, font: `500 ${size}px ${F.tnum}`, y: 1320, merged, tried };
   }
   L.spark = { x0: 88 + dx, x1: 592 + dx, y0: 1334, y1: 1386 };
   L.axisY = 1416;
@@ -2532,10 +2532,15 @@ function fitChips(parts, F, textW = 504) {
     + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
   let list = parts;
   const merged = [];
+  const tried = [];
   for (;;) {
-    for (const size of [26, 24]) if (widthAt(list, size) <= textW) return { list, size, merged };
+    for (const size of [26, 24]) {
+      const w = widthAt(list, size);
+      tried.push({ n: list.length, size, w });
+      if (w <= textW) return { list, size, merged, tried };
+    }
     const real = list.filter((p) => !p.other);
-    if (real.length <= 1) return { list, size: 24, merged };
+    if (real.length <= 1) return { list, size: 24, merged, tried };
     const smallest = real.reduce((a, b) => (b.share < a.share || (b.share === a.share && list.indexOf(b) > list.indexOf(a)) ? b : a));
     let other = list.find((p) => p.other);
     if (!other) {
@@ -3437,6 +3442,14 @@ const busmap = {
   stillTimes: () => stillTimesV4(),
   get brandMap() { return brandMap; },
   countAt: (T) => countAtV4(T),
+  // The chips line's fit (B9): the parts shown, their size, every width
+  // tried on the way, and the groups folded into "other", which B6 then
+  // draws in the foreign colour.
+  get chips() {
+    const c = shorts && shorts.chips;
+    return c ? { ids: c.parts.map((p) => p.id), size: c.size, merged: c.merged.slice(), width: shorts.textW,
+      tried: c.tried.map((t) => ({ ...t })) } : null;
+  },
 };
 window.busmap = busmap;
 

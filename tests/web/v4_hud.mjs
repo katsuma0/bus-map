@@ -14,6 +14,8 @@
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
 //  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart, and
 //       no card line pair splits the place name
+//  B-9  a group the chips line folds into "other" was tried at 24 px first,
+//       and (B6) its brands are drawn foreign, not placed
 //
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
 // five-digit count that has to split, Mississauga x12 and Toronto x8 for the
@@ -144,6 +146,18 @@ function inPage() {
       }
     }
   }
+  // B9 and B6: a group the chips line folds into "other" is fitted only
+  // after 24 px fails, and none of its brands keeps a colour of its own.
+  out.chips = bm.chips;
+  out.foldedPlaced = [];
+  if (out.chips && out.chips.merged.length) {
+    const folded = new Set(out.chips.merged);
+    (meta.brands || []).forEach((b, i) => {
+      const g = b.kind === 'gtfs' || b.kind === 'mode' ? b.id : b.entry || b.id;
+      const e = bm.brandMap[i];
+      if (folded.has(g) && (e.placed || e.how !== 'foreign')) out.foldedPlaced.push(`${e.id}=${e.trail}(${e.how})`);
+    });
+  }
   const placed = (bm.brandMap || []).filter((b) => b.placed);
   out.placed = placed.map((b) => `${b.id}=${b.trail}(${b.how})`);
   out.closest = Infinity;
@@ -182,6 +196,15 @@ async function run(h, name, query, variant) {
     ok(!lines.join(' ').includes(r.place) || lines.some((l) => l.includes(r.place)),
       `${tag} B-10: the card splits "${r.place}": ${JSON.stringify(lines)}`);
   }
+  if (r.chips) {
+    // Every width tried but the last is too wide, the last fits, and each
+    // fold comes right after a 24 px try.
+    const t = r.chips.tried, W = r.chips.width;
+    const order = t.every((x, k) => (k === t.length - 1 ? x.w <= W + 1e-6 || x.n <= 2 : x.w > W)
+      && (k + 1 >= t.length || t[k + 1].n === x.n || x.size === 24));
+    ok(order && t[t.length - 1].size === r.chips.size, `${tag} B-9: chip fit order ${JSON.stringify(t)} for ${W} px`);
+    ok(!r.foldedPlaced.length, `${tag} B-6: brands of folded groups keep their colour: ${r.foldedPlaced.join(', ')}`);
+  }
   ok(r.atPeak.total === r.peakCount, `${tag} B-6: count ${r.atPeak.total} at the peak ${r.peakT}, V.peak.count ${r.peakCount}`);
   ok(r.countText && r.countText.replace(/,/g, '').startsWith(String(r.peakCount)), `${tag} B-6: count line "${r.countText}" at the peak`);
   ok(r.countText && r.countText.split(' ')[1] === r.wantNoun, `${tag} B-9: count line "${r.countText}", want the noun "${r.wantNoun}"`);
@@ -192,8 +215,9 @@ async function run(h, name, query, variant) {
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join(' | ')}`);
   const sizes = Object.fromEntries(r.stills.am.filter((b) => ['count', 'chips', 'title', 'weekday'].includes(b.name)).map((b) => [b.name, b.size]));
   const card = r.frames[0].filter((b) => b.name.startsWith('card_title')).map((b) => `${b.text}@${b.size}`).join(' / ');
+  const folded = r.chips && r.chips.merged.length ? `  folded ${r.chips.merged.join(',')}` : '';
   console.log(`  ${tag.padEnd(24)} peak ${String(r.peakCount).padStart(5)}  sizes ${JSON.stringify(sizes)}${r.count2 ? ' split' : ''}  `
-    + `card ${card}  vehicles ${r.vehicles} (${r.nearEdge} edge)  closest ${r.placed.length > 1 ? `${r.closestPair} ${r.closest.toFixed(3)}` : '-'}`);
+    + `card ${card}  vehicles ${r.vehicles} (${r.nearEdge} edge)  closest ${r.placed.length > 1 ? `${r.closestPair} ${r.closest.toFixed(3)}` : '-'}${folded}`);
   await page.context().close();
   return r;
 }
