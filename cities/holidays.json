@@ -1,4 +1,8 @@
 {"CA-ON": {"2026-10-12": "Thanksgiving", "2026-12-25": "Christmas Day", "2026-12-28": "Boxing Day (observed)"},
  "CA": {"2026-10-12": "Thanksgiving"},
+ "US": {"2026-01-01": "New Year's Day", "2026-01-19": "Martin Luther King Jr. Day", "2026-02-16": "Washington's Birthday",
+        "2026-05-25": "Memorial Day", "2026-06-19": "Juneteenth", "2026-07-03": "Independence Day (observed)",
+        "2026-09-07": "Labor Day", "2026-10-12": "Columbus Day", "2026-11-11": "Veterans Day",
+        "2026-11-26": "Thanksgiving Day", "2026-12-25": "Christmas Day"},
  "JP": {"2026-09-21": "Respect for the Aged Day", "2026-09-22": "Citizens' Holiday", "2026-09-23": "Autumnal Equinox Day",
         "2026-10-12": "Sports Day", "2026-11-03": "Culture Day", "2026-11-23": "Labour Thanksgiving Day"}}

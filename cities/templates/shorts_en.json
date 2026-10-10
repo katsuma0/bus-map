@@ -32,11 +32,14 @@
   "median_few": "{feed} has fewer than three usable {month} {days_plural}, so its {days} {verb} one typical date.",
   "verb_one": "uses",
   "verb_many": "each use",
-  "credit_line": "{name} ({publisher}): {licence}."
+  "credit_line": "{name} ({publisher}): {licence}.",
+  "credit_line_same": "{name}: {licence}."
  },
  "tags": ["transit map", "bus map", "GTFS"],
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
-             "JP-14": "Kanagawa", "JP-23": "Aichi", "JP-26": "Kyoto", "JP-27": "Osaka", "JP-01": "Hokkaido"},
+             "JP-14": "Kanagawa", "JP-23": "Aichi", "JP-26": "Kyoto", "JP-27": "Osaka", "JP-01": "Hokkaido",
+             "US-NY": "New York", "US-IL": "Illinois", "US-TX": "Texas", "US-AZ": "Arizona", "US-PA": "Pennsylvania",
+             "US-CA": "California", "US-FL": "Florida"},
  "banned": ["delve", "leverage", "utilize", "robust", "seamless", "elevate", "unlock", "harness", "curated", "bespoke",
             "crafted", "journey", "realm", "tapestry", "testament", "underscore", "pivotal", "meticulous", "boasts", "nestled"]
 }

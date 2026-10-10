@@ -366,6 +366,29 @@ class Units(unittest.TestCase):
         self.assertEqual(defs["mode:bus"]["hex"], "")
         self.assertEqual(defs["miway"]["alt"], "026bcd")
 
+    def test_credit_units(self):
+        """A route with no entry credits the entry that lists its feed; a feed no entry lists credits itself."""
+        entries = [{"id": "vm", "feeds": ["vm"], "agency_names": ["Valley Metro"], "label": "Valley Metro",
+                    "color": "#591769"}]
+        R = lambda fid, rid, mode, color, agency: {"id": f"{fid}:{rid}", "feed": fid, "short": rid, "long": "",  # noqa: E731
+                                                   "mode": mode, "color_raw": color, "agency": agency}
+        routes = [R("vm", "1", "bus", "591769", "Valley Metro"),
+                  R("vm", "SKYT", "rail", "53565F", "Phoenix Sky Harbor International Airport"),
+                  R("other", "a", "bus", "112233", "Acme")]
+        brand, defs = tn.assign_brands(routes, entries, U.MODES)
+        self.assertEqual(brand, ["vm", "mode:rail", "other:acme"])
+        units, labels = tn.credit_units([r["feed"] for r in routes], brand, defs, entries,
+                                        {"vm": "Valley Metro", "other": "Other Transit"})
+        self.assertEqual(units, ["entry:vm", "entry:vm", "feed:other"])
+        self.assertEqual(labels, {"entry:vm": "Valley Metro", "feed:other": "Other Transit"})
+        # A chip word as the label, the agency in the credit.
+        entries[0].update(label="Bus", credit="Valley Metro Bus")
+        brand, defs = tn.assign_brands(routes, entries, U.MODES)
+        units, labels = tn.credit_units([r["feed"] for r in routes], brand, defs, entries,
+                                        {"vm": "Valley Metro", "other": "Other Transit"})
+        self.assertEqual(defs["vm"]["label"], "Bus")
+        self.assertEqual(labels, {"entry:vm": "Valley Metro Bus", "feed:other": "Other Transit"})
+
     def test_auto_rush_frame(self):
         rng = np.random.default_rng(7)
         # 80 vehicles in a 3 km cluster at (5, 2), 20 spread over the day frame

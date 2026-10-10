@@ -507,7 +507,7 @@ does today).
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
-| `boundary.area_km2` | float | yes | | census land area; the match must be within 20% |
+| `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
 | `center` | [lon, lat] | no | boundary bbox centre | documentation and a fit fallback |
 | `frame.km_vertical`, `frame.center_km` | float, [float, float] | no | boundary fit (D3.2) | km about the area origin; pins the day frame |
@@ -633,6 +633,7 @@ depend on the pinned packages, not on those; D-8 compares the outputs themselves
 | `verified` | bool | true only when the hex is the dominant informative `route_color` of the agency in its own GTFS (A10 warns otherwise); false = from the livery, checked by a person before the batch PR merges |
 | `lines` | `none` / `rail` / `all` | which routes keep their own informative `color_raw` as a line brand (rail = any mode other than `bus`) |
 | `alt` | `#rrggbb` or null | second candidate of the distinctness ladder (B6) |
+| `credit` | str or absent | the agency's name in the on-screen credit when `label` (the chip word) is not one, e.g. label `Bus`, credit `MTA Bus`; absent = `label` |
 | `rules[]` | list | `short` (regex on `route_short_name`) or `route_ids` ([str]) to a sub-brand |
 
 #### 2.5 Holidays: `cities/holidays.json` (A owns)

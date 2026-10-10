@@ -211,6 +211,15 @@ class GTA(unittest.TestCase):
         self.assertEqual(len(m["credits"]), 5)
         self.assertIn("\n".join(m["credits"]), m["description"])
 
+    def test_credit_without_repeated_publisher(self):
+        """A feed whose publisher is its own name is credited once."""
+        nm = {"feeds": [{"id": "cta", "name": "Chicago Transit Authority", "publisher": "Chicago Transit Authority",
+                         "licence_id": "cc-by-4.0", "inside_share": 0.9, "inside_vehicle_minutes": 9.0},
+                        {"id": "go", "name": "GO Transit", "publisher": "Metrolinx", "licence_id": "cc-by-4.0",
+                         "inside_share": 0.1, "inside_vehicle_minutes": 1.0}]}
+        lines = sm.credit_lines(nm, self.pl.licences(), self.pl.templates())
+        self.assertEqual(lines, ["Chicago Transit Authority: CC BY 4.0.", "GO Transit (Metrolinx): CC BY 4.0."])
+
     def test_unknown_placeholder(self):
         t = json.loads(json.dumps(self.pl.templates()))
         t["title"]["day"] = "Every {vehicle} in {place}"
