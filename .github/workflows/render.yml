@@ -125,13 +125,18 @@ jobs:
 
   render:
     needs: [plan, build]
-    if: ${{ !cancelled() && needs.build.result != 'failure' && needs.plan.outputs.renders != '{"include":[]}' }}
+    # build is skipped, not failed, when plan, area or overture fails; every leg would then set up
+    # a runner only to find no build artifact. Renders need a successful build of this run.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success' && needs.plan.outputs.renders != '{"include":[]}' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions: {contents: write}
     strategy: {fail-fast: false, max-parallel: 20, matrix: "${{ fromJSON(needs.plan.outputs.renders) }}"}
     steps:
       - uses: actions/checkout@v4
+      # First, so a missing build fails in seconds rather than after the tool setup.
+      - uses: actions/download-artifact@v4
+        with: {name: "build-${{ matrix.city }}", path: "build/${{ matrix.city }}/"}
       - uses: actions/setup-python@v5
         with: {python-version: "3.13", cache: pip}
       - run: pip install --require-hashes --no-deps -r requirements.txt
@@ -142,8 +147,6 @@ jobs:
         with: {path: "~/.cache/ms-playwright", key: "pw-${{ hashFiles('package-lock.json') }}"}
       - run: npx playwright install --with-deps chromium
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - uses: actions/download-artifact@v4
-        with: {name: "build-${{ matrix.city }}", path: "build/${{ matrix.city }}/"}
       - env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
