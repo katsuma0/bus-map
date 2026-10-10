@@ -2725,20 +2725,62 @@ function buildShortsStatics() {
   grad.addColorStop(0, rgba(accent, 0.5));
   grad.addColorStop(1, rgba(accent, 0.03));
   st.sparkFill = grad;
-  if (showSafe) {
-    st.safe = document.createElement('canvas');
-    st.safe.width = W;
-    st.safe.height = H;
-    const g = st.safe.getContext('2d');
-    g.fillStyle = 'rgba(255,0,0,0.18)';
-    g.fillRect(0, 0, W, SAFE.y0);
-    g.fillRect(0, SAFE.y1, W, H - SAFE.y1);
-    g.fillRect(SAFE.x1, SAFE.y0, W - SAFE.x1, SAFE.y1 - SAFE.y0);
-    g.strokeStyle = 'rgba(255,0,0,0.9)';
-    g.lineWidth = 1;
-    g.strokeRect(SAFE.x0 + 0.5, SAFE.y0 + 0.5, SAFE.x1 - SAFE.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
-  }
+  if (showSafe) st.safe = buildSafeOverlay();
   shortsStatics = st;
+}
+
+// The ?safe=1 overlay (B9), for the judge only: red where no text may go
+// (the top overlays, the bottom rows, the button column and the left margin),
+// the button column outlined, each tall phone's crop shaded and dashed, the
+// safe zone outlined and the fit box the city is framed in dashed.
+function buildSafeOverlay() {
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(255,0,0,0.18)';
+  g.fillRect(0, 0, W, SAFE.y0);
+  g.fillRect(0, SAFE.y1, W, H - SAFE.y1);
+  g.fillRect(0, SAFE.y0, SAFE.x0, SAFE.y1 - SAFE.y0);
+  g.fillRect(SAFE.x1, SAFE.y0, W - SAFE.x1, SAFE.y1 - SAFE.y0);
+  // The button column a second time, so it reads darker than the margin.
+  const btn = ZONES.phone.buttons;
+  g.fillRect(btn.x0, SAFE.y0, btn.x1 - btn.x0, SAFE.y1 - SAFE.y0);
+  g.strokeStyle = 'rgba(255,0,0,0.9)';
+  g.lineWidth = 1;
+  g.strokeRect(btn.x0 + 0.5, SAFE.y0 + 0.5, btn.x1 - btn.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
+  // The widest crop is shaded, every crop's edge dashed and named at the top.
+  const crops = ZONES.phone.crops;
+  const widest = Math.max(...crops.map((k) => k.x));
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(0, 0, widest, H);
+  g.fillRect(W - widest, 0, widest, H);
+  g.strokeStyle = 'rgba(255,170,0,0.95)';
+  g.fillStyle = 'rgba(255,170,0,0.95)';
+  g.font = '500 20px Inter, sans-serif';
+  g.textBaseline = 'top';
+  g.setLineDash([12, 8]);
+  crops.forEach((k, n) => {
+    g.beginPath();
+    for (const x of [k.x + 0.5, W - k.x - 0.5]) {
+      g.moveTo(x, 0);
+      g.lineTo(x, H);
+    }
+    g.stroke();
+    g.textAlign = 'left';
+    g.fillText(k.aspect, k.x + 6, 8 + 26 * n);
+    g.textAlign = 'right';
+    g.fillText(k.aspect, W - k.x - 6, 8 + 26 * n);
+  });
+  g.setLineDash([]);
+  g.strokeStyle = 'rgba(255,0,0,0.9)';
+  g.strokeRect(SAFE.x0 + 0.5, SAFE.y0 + 0.5, SAFE.x1 - SAFE.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
+  const f = ZONES.fit;
+  g.strokeStyle = 'rgba(0,220,255,0.9)';
+  g.setLineDash([6, 6]);
+  g.strokeRect(f.x0 + 0.5, f.y0 + 0.5, f.x1 - f.x0 - 1, f.y1 - f.y0 - 1);
+  g.setLineDash([]);
+  return c;
 }
 
 // Boundary (B11): the mask A wrote, decoded once for the inside flags, and
