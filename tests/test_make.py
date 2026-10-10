@@ -210,7 +210,7 @@ cfg = {"FRAME_ZOOM": 1, "FRAME_DX_KM": 0, "FRAME_DY_KM": 0, "TRAIL_MINUTES": 40,
        "TRAIL_SHOULDER_W": 9, "TRAIL_SHOULDER_ALPHA": 0.35, "TRAIL_ALPHA": 0.8, "TRAIL_LAYER_ALPHA": 0.85,
        "BUS_CORE_R": 2.4, "BUS_HALO_R": 11, "BUS_HALO_ALPHA": 0.35, "ROUTE_ALPHA": 0.3, "BASE_ROADS_GAIN": 1,
        "BASE_WATER_GAIN": 1, "TIME_WARP_GAMMA": 1, "TIME_WARP_FLOOR": 0.15, "CARD_TITLE_MAX": 132, "CARD_LINES": 0,
-       "CARD_SCRIM": 0.25, "CARD_CENTER_Y": 620, "PANEL_ALPHA": 1}
+       "CARD_SCRIM": 0.25, "CARD_CENTER_Y": 620, "PANEL_ALPHA": 1, "CAMERA_AMP": 1}
 cfg.update(V["render"])
 cfg.update(json.loads(arg("--render-json") or "{}"))
 cfg["KM_VERTICAL"] = (V.get("frame") or meta["frame"])["km_vertical"] / cfg["FRAME_ZOOM"]
@@ -583,6 +583,20 @@ class Validation(unittest.TestCase):
         b["areas"][0]["feeds"][3]["licence_id"] = "ogl-yorkshire"
         self.assertTrue(any("unknown licence id 'ogl-yorkshire'" in e for e in self.batch_errors(b)))
 
+    def test_camera_variety(self):
+        """B18: variety.camera names one of the page's paths, or off."""
+        r = json.loads(json.dumps(self.recipe))
+        for ok in make.CAMERA_PATHS + ("off",):
+            r["variety"]["camera"] = ok
+            self.assertEqual(self.recipe_errors(r), [], ok)
+        for bad in ("pull-out", "auto", "", 1, None):
+            r["variety"]["camera"] = bad
+            errs = self.recipe_errors(r)
+            if bad is None:
+                self.assertEqual(errs, [], "null is the default")
+            else:
+                self.assertTrue(any("variety.camera: must be off or one of" in e for e in errs), bad)
+
     def test_recipe_modes(self):
         """A recipe's `modes` is a subset of the batch's mode ids; the trim keeps them in batch order."""
         for ok in (["rail"], ["bus", "streetcar"], ["rail", "bus", "streetcar"]):
@@ -833,7 +847,7 @@ class Derivation(Scratch):
         city = self.repo.show("test-north")
         self.assertEqual(city["city.day.json"]["frame"], {"km_vertical": 14.5, "center_km": [2.0, 8.0]})
         self.assertNotIn("city.week.json", city)
-        self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "FRAME_ZOOM": 1.05})
+        self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "CAMERA_PATH": "pull-out-east", "FRAME_ZOOM": 1.05})
         self.assertEqual(len(city["keys"]["day"]["render_key"]), 64)
 
     def test_no_brands_file_yet(self):
@@ -897,10 +911,73 @@ class Derivation(Scratch):
         r["override"]["variant_render"] = {"day": {"FRAME_ZOOM": 0.9, "TRAIL_MINUTES": 10}, "rush": {"FRAME_ZOOM": 1.2}}
         r["override"]["brand_colors"] = {"brampton:zum": "#E31837", "yrt": "0058a9"}
         rj, bh = self.pl.render_query(r, "day")
-        self.assertEqual(rj, {"CARD_LINES": 1, "BUS_HALO_R": 12, "FRAME_ZOOM": 0.945, "TRAIL_MINUTES": 10})
+        self.assertEqual(rj, {"CARD_LINES": 1, "CAMERA_PATH": "pull-out-east", "BUS_HALO_R": 12, "FRAME_ZOOM": 0.945,
+                              "TRAIL_MINUTES": 10})
         rj, _ = self.pl.render_query(r, "rush")
         self.assertEqual(rj["FRAME_ZOOM"], 1.2)
         self.assertEqual(bh, "brampton:zum:e31837;yrt:0058a9")
+
+    def test_camera_query(self):
+        """B18: one camera path per city, the same in every variant: variety.camera, else the
+        batch's spread pick; off turns the preset's camera off; the amplitudes ride in override."""
+        r = json.loads(json.dumps(self.pl.recipe("test-north", self.batch)))
+        # test-centre comes first in the batch and takes the sway that test-north's id picks too.
+        self.assertEqual((make.camera_path("test-centre"), make.camera_path("test-north")), ("drift-sway", "drift-sway"))
+        derived = make.camera_paths(self.batch["cities"])["test-north"]
+        self.assertEqual(derived, "pull-out-east")
+        for v in ("day", "rush", "week"):
+            self.assertEqual(self.pl.render_query(r, v)[0]["CAMERA_PATH"], derived, v)
+        orphan = dict(r, id="test-elsewhere")
+        self.assertEqual(self.pl.render_query(orphan, "day")[0]["CAMERA_PATH"], make.camera_path("test-elsewhere"),
+                         "a recipe its batch does not list keeps its own pick")
+        r["variety"]["camera"] = "pull-out-east"
+        r["override"]["render"] = {"CAMERA_ZOOM": 0.06}
+        r["override"]["variant_render"] = {"rush": {"CAMERA_AMP": 0.8}}
+        for v in ("day", "rush", "week"):
+            rj = self.pl.render_query(r, v)[0]
+            self.assertEqual((rj["CAMERA_PATH"], rj["CAMERA_ZOOM"]), ("pull-out-east", 0.06), v)
+            self.assertNotIn("CAMERA", rj, "the preset turns the camera on, not the recipe")
+        self.assertEqual(self.pl.render_query(r, "rush")[0]["CAMERA_AMP"], 0.8)
+        r["variety"]["camera"] = "off"
+        rj = self.pl.render_query(r, "day")[0]
+        self.assertIs(rj["CAMERA"], False)
+        self.assertNotIn("CAMERA_PATH", rj)
+
+    def test_camera_path(self):
+        """The page's cameraPathFor() is the same FNV-1a (tests/web/v4_camera.mjs: test-tiny is
+        pull-out-west), and the ten GTA cities spread so neighbours rarely share a move."""
+        self.assertEqual(make.camera_path("test-tiny"), "pull-out-west")
+        self.assertEqual(len(make.CAMERA_PATHS), 6)
+        with open(os.path.join(REPO, "tests/fixtures/gta/batches/gta.json")) as fh:
+            gta = {rid: make.camera_path(rid) for rid in json.load(fh)["cities"]}
+        self.assertEqual(len(gta), 10)
+        self.assertEqual((gta["gta-toronto"], gta["gta-markham"], gta["gta-oshawa"]),
+                         ("pull-out-north", "drift-sway", "pull-out-south"))
+        self.assertGreaterEqual(len(set(gta.values())), 5)
+        self.assertLessEqual(max(list(gta.values()).count(p) for p in make.CAMERA_PATHS), 3)
+
+    def test_camera_paths(self):
+        """make.py spreads a batch: in batch order each city keeps its id's pick unless more
+        cities before it share that path than the least used one has, so the ten GTA cities use
+        all six paths at most twice; a recipe's own path is kept and counted, and appending a city
+        never moves one before it."""
+        with open(os.path.join(REPO, "tests/fixtures/gta/batches/gta.json")) as fh:
+            ids = json.load(fh)["cities"]
+        got = make.camera_paths(ids)
+        counts = [list(got.values()).count(p) for p in make.CAMERA_PATHS]
+        self.assertEqual(sorted(counts), [1, 1, 2, 2, 2, 2])
+        moved = {rid: (make.camera_path(rid), p) for rid, p in got.items() if p != make.camera_path(rid)}
+        self.assertEqual(moved, {"gta-markham": ("drift-sway", "pull-out-east"),
+                                 "gta-oakville": ("pull-out-north", "drift-orbit")})
+        for k in range(1, len(ids)):
+            prefix = make.camera_paths(ids[:k])
+            self.assertEqual(prefix, {rid: got[rid] for rid in ids[:k]}, k)
+            c = [list(prefix.values()).count(p) for p in make.CAMERA_PATHS]
+            self.assertLessEqual(max(c) - min(c), 1, k)
+        # A named path stays put and counts: with Toronto on the sway, Mississauga moves on.
+        pinned = make.camera_paths(ids, {"gta-toronto": "drift-sway", "gta-brampton": "off"})
+        self.assertEqual((pinned["gta-toronto"], pinned["gta-brampton"]), ("drift-sway", "off"))
+        self.assertNotEqual(pinned["gta-mississauga"], "drift-sway")
 
     def test_render_key_scope(self):
         recipe = self.pl.recipe("test-centre", self.batch)
