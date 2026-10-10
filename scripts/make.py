@@ -2561,13 +2561,14 @@ class Pipeline:
         out = self.out_dir(batch)
         metas = self.cmd_meta(name, from_netmeta=work, out_dir=out)
         meta_keys = [m["meta_key"] for m in metas]
-        for m in metas:
-            fname = os.path.basename(m["file"]).replace(".mp4", ".meta.json")
-            release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname,
-                                asset_label(fname, m["meta_key"]), "application/json")
+        # The meta key hashes every input of a .meta.json, so an asset that already carries it holds these
+        # bytes; skipping it saves three API calls per video against the 1,000 an hour GITHUB_TOKEN gets.
         csv_name = f"{name}-youtube.csv"
-        release.swap_upload(gh, rel["id"], assets, os.path.join(out, csv_name), csv_name,
-                            asset_label(csv_name, self.csv_key(meta_keys)), "text/csv")
+        for fname, key, mime in [(os.path.basename(m["file"]).replace(".mp4", ".meta.json"), m["meta_key"],
+                                  "application/json") for m in metas] + [(csv_name, self.csv_key(meta_keys), "text/csv")]:
+            if fname in assets and label_key(assets[fname].get("label")) == key[:16]:
+                continue
+            release.swap_upload(gh, rel["id"], assets, os.path.join(out, fname), fname, asset_label(fname, key), mime)
         rows, flags = [], set()
         for m in metas:
             stem = os.path.basename(m["file"])[:-4]

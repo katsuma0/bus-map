@@ -1107,6 +1107,12 @@ class Actions(Scratch):
         self.assertIn("| 1 | test-centre-day |", st["releases"][0]["body"])
         p = self.plan(env)
         self.assertEqual((p["renders"]["include"], p["publish"]), ([], "false"))
+        # A publish with nothing changed swaps no metadata: each swap is three API calls.
+        log = os.path.join(self.repo.tmp, "gh.log")
+        open(log, "w").close()
+        self.repo.run("release", "test", "--publish", env=env)
+        calls = read_text(log).splitlines()
+        self.assertEqual([c for c in calls if c.split()[0] in ("POST", "PATCH", "DELETE") and "/assets" in c], [])
         # template-only change: publish, no render
         t = self.repo.read_json("cities/templates/shorts_en.json")
         t["title"]["day"] = "Every {modes_singular} in {place}, one day"
