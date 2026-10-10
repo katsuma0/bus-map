@@ -1604,9 +1604,11 @@ const ZONES = {
 // day panel's top. make.py fits the city into it (cities/defaults.json
 // fit_box, D3.2), so no part of the city sits under the panel or the title.
 ZONES.fit = { x0: SAFE.x0, y0: SAFE.y0 + 150, x1: SAFE.x1, y1: SAFE.y1 - ZONES.panelH.day };
-// The card block stays 10 px under the fit box's top and 40 px over the day
-// panel; CARD_CENTER_Y 0 centres it 380 px under SAFE.y0, above the city's centre.
-ZONES.card = { y0: ZONES.fit.y0 + 10, y1: ZONES.fit.y1 - 40, centerY: SAFE.y0 + 380 };
+// The card takes the panel's band, which is empty while the card shows: a
+// 300 to 400 px block anywhere in the fit box hides half the framed city on
+// the hook frame. CARD_CENTER_Y 0 hangs the block 20 px over SAFE.y1; a set
+// value may lift it until its top is 40 px into the fit box.
+ZONES.card = { y0: ZONES.fit.y1 - 40, y1: SAFE.y1 - 20 };
 // What a tall phone hides, for the ?safe=1 overlay: each side's crop and the
 // button column.
 ZONES.phone = { crops: [{ aspect: '19.5:9', x: 97 }, { aspect: '20:9', x: 108 }], buttons: { x0: 811, x1: 972 } };
@@ -2946,11 +2948,14 @@ function buildCard() {
     items.push({ name: k ? 'card_line1b' : 'card_line1', text, y, font: `400 ${l1size}px ${F.inter}`, size: l1size, kind: 'line1' });
   });
   const h = y + 12;
-  // 0 takes the zone's centre line, 380 px under SAFE.y0. The value drawn goes
-  // back into CONFIG, so busmap.config and the tuning arms built on it read it.
-  if (!(CONFIG.CARD_CENTER_Y > 0)) CONFIG.CARD_CENTER_Y = ZONES.card.centerY;
+  // 0 hangs the block from the zone's bottom. The value drawn goes back into
+  // CONFIG, so busmap.config and the tuning arms built on it read it, and it
+  // rounds back to the same B. A block taller than the zone keeps its bottom
+  // and grows up: below it lie YouTube's title rows.
+  const lowest = Math.floor(ZONES.card.y1 - h);
+  if (!(CONFIG.CARD_CENTER_Y > 0)) CONFIG.CARD_CENTER_Y = Math.round(lowest + h / 2);
   let B = Math.round(CONFIG.CARD_CENTER_Y - h / 2);
-  B = Math.max(ZONES.card.y0, Math.min(ZONES.card.y1 - h, B));
+  B = Math.min(lowest, Math.max(ZONES.card.y0, B));
   for (const it of items) it.y += B;
   // The band behind the text: full strength between 48 px feathers.
   const top = B - 60, bandH = h + 120;
@@ -2970,14 +2975,27 @@ function buildCard() {
   cardLayout = { B, h, items, ruleY: B + ruleTop, band, bandY: top, lines: [line0, line1], titleSize: S };
 }
 
-// Card alpha at frame i (B10): held, faded out, and for a wrap loop faded
-// back in so the last frame carries the full card like frame 0.
+// Card alpha at frame i (B10): held, faded out, and faded back in so the last
+// frame carries the full card like frame 0. A wrap loop's fade ends on frame
+// N - 1. An xfade loop's ends where the cross-fade to frame 0 starts: the
+// snapshot's card then lands on the same card, so the cross-fade moves only
+// the map, and the HUD (in the card's band) is gone before it.
 function cardAlphaV4(i) {
   if (!isV4 || !CONFIG.CARD || !cardOn || !cardLayout) return 0;
   const N = totalFrames;
+  const FI = CONFIG.CARD_FADE_IN;
   const aOut = i < CONFIG.CARD_HOLD ? 1 : 1 - smoothstep(Math.min(1, (i - CONFIG.CARD_HOLD) / CONFIG.CARD_FADE_OUT));
-  const aIn = CONFIG.LOOP === 'wrap' ? smoothstep(clamp01((i - (N - 1 - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN)) : 0;
+  const aIn = CONFIG.LOOP === 'wrap' ? smoothstep(clamp01((i - (N - 1 - FI)) / FI))
+    : CONFIG.LOOP === 'xfade' ? smoothstep(clamp01((i - (N - 2 * FI)) / FI)) : 0;
   return Math.max(aOut, aIn);
+}
+
+// The alpha the card draws at for card alpha a, and the HUD for 1 - a (B10):
+// the card shows only above a = 0.5 and the HUD only below it. The card hangs
+// in the panel's band, so a cross-fade of the two would put text on text;
+// between them the map shows alone.
+function upperHalf(a) {
+  return smoothstep(clamp01(2 * a - 1));
 }
 
 // Measures a text, records its box for hudBoxes() and draws it unless the
@@ -3066,8 +3084,9 @@ function countAtV4(T) {
   return { total, byGroup };
 }
 
-// The Shorts HUD at alpha a (1 - card alpha).
+// The Shorts HUD for a = 1 - card alpha, drawn at upperHalf(a).
 function drawHudShorts(T, a) {
+  a = upperHalf(a);
   const C = CONFIG.COLORS;
   const L = shorts;
   const st = shortsStatics;
@@ -3263,9 +3282,11 @@ function drawAxisShorts(T, a) {
   }
 }
 
-// The card at alpha a (B10): a light scrim over the whole frame so the map
-// stays the hook, a feathered band behind the text, then the text.
+// The card for card alpha a, drawn at upperHalf(a) (B10): a light scrim over
+// the whole frame so the map stays the hook, a feathered band behind the
+// text, then the text.
 function drawCard(a) {
+  a = upperHalf(a);
   if (!cardLayout || a <= 0 || hudMode === 'none') return;
   const C = CONFIG.COLORS;
   const cl = cardLayout;

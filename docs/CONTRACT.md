@@ -865,7 +865,7 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `CARD_HOLD` / `CARD_FADE_OUT` / `CARD_FADE_IN` | int frames | 27 / 18 / 30 | | |
 | `CARD_SCRIM` | float | 0.25 | | `cardscrim` |
 | `CARD_BAND` | float | 0.85 | | `cardband` |
-| `CARD_CENTER_Y` | int px | 0 (auto: 670, B10) | | `cardy` |
+| `CARD_CENTER_Y` | int px | 0 (auto: the block hung 20 px over `SAFE.y1`, B10) | | `cardy` |
 | `CARD_TITLE_MAX` | int px | 132 | | `cardsize` |
 | `CARD_LINES` | int | 0 | from `variety.card_line` | `cardline` |
 | `PEAK_MARKER` | bool | false | true | `peak` |
@@ -911,12 +911,12 @@ Every existing member stays. Added:
 | `variant` | str | active variant, `''` for legacy |
 | `window` | `{start, end}` | seconds |
 | `safe` | `{x0: 120, y0: 290, x1: 800, y1: 1440}` | the text safe zone (B9) |
-| `zones` | `{fit, panel: {w, pad, left, right, day, week, split}, card: {y0, y1, centerY}, phone: {crops, buttons}}` | the layout's other zones, all derived from `safe` (B9): `fit` is `defaults.json` `fit_box`, `panel` its widths and heights |
+| `zones` | `{fit, panel: {w, pad, left, right, day, week, split}, card: {y0, y1}, phone: {crops, buttons}}` | the layout's other zones, all derived from `safe` (B9): `fit` is `defaults.json` `fit_box`, `panel` its widths and heights |
 | `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle` (one box per line), `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
 | `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
 | `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
 | `setCard(on)` | fn | turns the card on or off without reload |
-| `cardAlpha(i)` | fn | card alpha at frame i |
+| `cardAlpha(i)` | fn | card alpha a(i) at frame i (B10); the card draws at c(i), the HUD at u(i) |
 | `stillTimes()` | fn | `{am, noon, pm, late, night}` absolute seconds inside the window (B15) |
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
@@ -1167,9 +1167,11 @@ Card text from `meta.card.templates[VARIANT][CARD_LINES]`, a pair `[line0, line1
 `{month}` (`meta.timeline.month_label`). An unknown placeholder is a `console.error`.
 
 Layout per variant at init, left-aligned at x 132, width limit 656 (`SAFE` less 12 px a side, as
-the title), block centred on `CARD_CENTER_Y` (0 means auto: `SAFE.y0 + 380` = 670, above the city
-centre, which D3.2 puts at y 760, so the busiest part of the map stays visible under the card; the
-resolved value goes back into `CONFIG`, so `busmap.config` reports what is drawn):
+the title), in the panel's band, which is empty while the card shows: the fit box holds the
+whole city, and a 300 to 400 px block anywhere in it hid half the city on the hook frame (0.53 to
+0.86 of the inside vehicles in the GTA). The block is centred on `CARD_CENTER_Y`; 0 means auto,
+the block hung from the zone's bottom, `CARD_CENTER_Y = round(floor(1420 - h) + h / 2)`; the
+resolved value goes back into `CONFIG`, so `busmap.config` reports what is drawn:
 
 * Title `meta.card.title`: MontserratX 800, letter-spacing 0.04 em, S = the largest even size <=
   `CARD_TITLE_MAX` (132) and >= 72 whose width fits. If S is under 100 and the title has a space,
@@ -1184,31 +1186,40 @@ resolved value goes back into `CONFIG`, so `busmap.config` reports what is drawn
 * Line 1: InterX 400 32 px, title colour at 0.85 alpha, baseline = last line-0 baseline + 52; 32
   down to 30, then wraps, also keeping `{place}` whole when it can.
 * Block height h = last baseline + 12 - B; `B = round(CARD_CENTER_Y - h / 2)`, clamped so the block
-  stays inside y 450..1040 (10 px under the fit box's top, 40 px over the day panel).
-* Scrim: the whole frame in `scrim` at `CARD_SCRIM x a` (0.25), so the moving map stays the hook;
-  plus a full-width band from y `B - 60` to `B + h + 60` at `CARD_BAND x a` (0.85) with 48 px linear
+  stays inside y 1040..1420 (40 px into the fit box's bottom, 20 px over `SAFE.y1`). A block taller
+  than 380 px keeps its bottom on 1420 and grows up, since below lie YouTube's title rows.
+* Scrim: the whole frame in `scrim` at `CARD_SCRIM x c` (0.25), so the moving map stays the hook;
+  plus a full-width band from y `B - 60` to `B + h + 60` at `CARD_BAND x c` (0.85) with 48 px linear
   feathers at both edges. The card text is measured for contrast against this background (G4).
 
 Card alpha for frame i of N = `totalFrames`, `smooth(x) = x x x x (3 - 2x)`:
 
 ```
 a_out(i) = i < CARD_HOLD ? 1 : 1 - smooth(min(1, (i - CARD_HOLD) / CARD_FADE_OUT))       // 1 to frame 26, 0 from frame 45
-a_in(i)  = LOOP == 'wrap' ? smooth(clamp((i - (N - 1 - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1)) : 0   // 1 at N - 1
+a_in(i)  = LOOP == 'wrap'  ? smooth(clamp((i - (N - 1 - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1))      // 1 at N - 1
+         : LOOP == 'xfade' ? smooth(clamp((i - (N - 2 x CARD_FADE_IN)) / CARD_FADE_IN, 0, 1)) : 0  // 1 from N - 30
 a(i)     = max(a_out(i), a_in(i))
+c(i)     = smooth(clamp(2 a(i) - 1, 0, 1))      // the card's alpha
+u(i)     = smooth(clamp(1 - 2 a(i), 0, 1))      // the HUD's alpha
 ```
 
-The HUD (title scrim, title, subtitle, panel and everything in it, peak marker) is drawn at alpha
-`1 - a(i)`; the map, trails, dots and boundary overlay are always full.
+The card is drawn at `c(i)` and the HUD (title scrim, title, subtitle, panel and everything in it,
+peak marker) at `u(i)`, so the two never show at once: the card sits where the panel does, and a
+cross-fade of the two would put text on text. Each fade takes half its window and the map shows
+alone between them. The map, trails, dots and boundary overlay are always full. `busmap.cardAlpha(i)`
+reports `a(i)`.
 
 Frame to time:
 
 * `LOOP 'wrap'` (day, week): `T(i) = timeAtProgress(i / N)`. Frame N - 1 is one step before
   `W0 + P`, which looks exactly like `W0`, and both ends carry the full card, so YouTube's loop from
   the last frame to frame 0 is one ordinary step.
-* `LOOP 'xfade'` (rush): `T(i) = timeAtProgress(i / N)`; the live frame carries no card at the end
-  (`a_in` = 0); a snapshot of frame 0 (card included) is drawn over it at alpha
+* `LOOP 'xfade'` (rush): `T(i) = timeAtProgress(i / N)`; the live frame's card is back at full by
+  frame N - 30, the HUD gone with it; a snapshot of frame 0 (card included) is drawn over it at alpha
   `smooth(clamp((i - (N - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1))`, which reaches 1 at the virtual
-  frame N, so N - 1 to 0 is one step of the cross-fade, with no held frame and no doubled card. The
+  frame N, so N - 1 to 0 is one step of the cross-fade, with no held frame. Both carry the same
+  card, and drawing it over either map is the same affine step, so the cross-fade moves only the
+  map and never doubles or dims the card. The
   snapshot is rendered lazily into an offscreen canvas, so `renderFrameV4(i)` stays a pure function
   of i.
 * `LOOP 'none'`: today's `frameTime`.
