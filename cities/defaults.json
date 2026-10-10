@@ -20,7 +20,7 @@
            "render": {"LOOP": "wrap", "TIME_WARP_MODE": "activity-daily", "TIME_WARP_FLOOR": 0.3, "SPARK_SMOOTH_MIN": 60,
                       "TRAIL_MINUTES": 30, "BUS_HALO_ALPHA": 0.1, "BUS_CORE_R": 0, "WEEKEND_BAND": true, "CLOCK_ROUND": 60}}
  },
- "render": {"capture": "canvas", "jobs": 1, "crf_ladder": [18, 16, 14, 12, 10], "min_kbps": 8000, "preset": "slow",
+ "render": {"capture": "raw", "jobs": 2, "crf_ladder": [18, 16, 14, 12, 10], "min_kbps": 8000, "preset": "slow",
             "keep_frames": [0, 300, "last"]},
  "basemap_rule": {"major": 0.2, "minor": 0.33, "rail": 0.25, "water": 0.25, "water_line": 0.33,
                   "min_road_px": 1.2, "min_water_px2": 14, "min_stream_px": 17,

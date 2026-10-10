@@ -941,10 +941,15 @@ class Actions(Scratch):
     def test_render_command_line(self):
         res = self.repo.run("render", "test-north", "--variant", "day")
         line = next(ln for ln in res.stdout.splitlines() if "render_video.mjs" in ln)
-        for want in ("--tier final", "--data build/test-north/day/network.json.gz", "--basemap build/test-north/basemap.json.gz",
-                     "--variant day", "--render-json", "--capture canvas", "--min-kbps 8000",
-                     "--crf-ladder 18,16,14,12,10", "--keep-frames 0,300,last", "--key "):
+        # The capture method is one line in defaults.json (C3), so the test follows it.
+        d = load(os.path.join(self.repo.root, "cities/defaults.json"))["render"]
+        capture = [f"--capture {d['capture']}"] + ([f"--jobs {d['jobs']}"] if d["capture"] == "raw" else [])
+        for want in ["--tier final", "--data build/test-north/day/network.json.gz", "--basemap build/test-north/basemap.json.gz",
+                     "--variant day", "--render-json", "--min-kbps 8000", "--crf-ladder 18,16,14,12,10",
+                     "--keep-frames 0,300,last", "--key "] + capture:
             self.assertIn(want, line)
+        if d["capture"] != "raw":
+            self.assertNotIn("--jobs", line)
         self.assertIn('"FRAME_ZOOM":1.05', line.replace(" ", "").replace('\\"', '"'))
 
     def test_meta_and_csv(self):
