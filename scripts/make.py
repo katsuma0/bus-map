@@ -85,8 +85,9 @@ B_GLOBS = ["web/**"]
 LOCKED_DEPS = ["requirements.txt", "package-lock.json"]
 AREA_CODE = ["scripts/build_area.py", "scripts/composite.py", "scripts/area_store.py", "scripts/build_network.py",
              "requirements.txt"]
+# The trim measures the credit with InterX, so the font file is part of its key.
 TRIM_CODE = ["scripts/trim_network.py", "scripts/area_store.py", "scripts/composite.py", "scripts/build_network.py",
-             "requirements.txt"]
+             "web/fonts/InterX.woff2", "requirements.txt"]
 BOUNDARY_CODE = ["scripts/fetch_boundary.py"]
 BASEMAP_CODE = ["scripts/basemap_v4.py", "scripts/build_basemap.py", "requirements.txt"]
 

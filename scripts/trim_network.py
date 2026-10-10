@@ -44,7 +44,7 @@ MONTHS = ["January", "February", "March", "April", "May", "June", "July", "Augus
 FRAME_W, FRAME_H = 1080, 1920
 SAFE_X1 = 880
 AM_RANGE, PM_RANGE = (300, 630), (870, 1170)
-CREDIT_FONT = os.path.join(ROOT, "web", "fonts", "Inter.woff2")
+CREDIT_FONT = os.path.join(ROOT, "web", "fonts", "InterX.woff2")
 CREDIT_PX, CREDIT_WIDTH, CREDIT_LINES = 22, 504, 2
 # The page measures with InterX and applies kerning; a small allowance keeps
 # a line A accepts from needing a third line in the browser.
@@ -103,7 +103,7 @@ _FONT = {}
 
 
 def text_width(text, px):
-    """Advance width in px of `text` in the repo's Inter at weight 400 (its default instance)."""
+    """Advance width in px of `text` in InterX at weight 400 (its default instance)."""
     if "cmap" not in _FONT:
         from fontTools.ttLib import TTFont
         f = TTFont(CREDIT_FONT)
