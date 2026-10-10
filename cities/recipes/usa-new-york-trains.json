@@ -1,0 +1,13 @@
+{
+ "id": "usa-new-york-trains",
+ "batch": "usa",
+ "area": "nyc",
+ "place": "New York City",
+ "boundary": {"name": "New York", "subtypes": ["locality"], "area_km2": 1223.59},
+ "modes": ["rail"],
+ "center": [-73.94, 40.71],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}}
+}

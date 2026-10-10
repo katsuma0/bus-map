@@ -1,0 +1,13 @@
+{
+ "id": "usa-chicago-buses",
+ "batch": "usa",
+ "area": "chicago",
+ "place": "Chicago",
+ "boundary": {"name": "Chicago", "subtypes": ["locality"], "area_km2": 607.44},
+ "modes": ["bus"],
+ "center": [-87.68, 41.84],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.3}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the North Side grid at 2.7:1; 1.3 (alpha clamps at 1) gives 5.6:1"}}
+}

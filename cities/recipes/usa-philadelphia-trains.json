@@ -1,0 +1,13 @@
+{
+ "id": "usa-philadelphia-trains",
+ "batch": "usa",
+ "area": "philadelphia",
+ "place": "Philadelphia",
+ "boundary": {"name": "Philadelphia", "subtypes": ["locality"], "area_km2": 369.59},
+ "modes": ["rail"],
+ "center": [-75.13, 40.0],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "left", "card_line": 1, "zoom": 0.95},
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.0}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on North Philadelphia at 4.1:1; 1.0 gives 5.5:1"}}
+}

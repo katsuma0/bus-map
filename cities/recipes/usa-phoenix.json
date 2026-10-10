@@ -1,0 +1,12 @@
+{
+ "id": "usa-phoenix",
+ "batch": "usa",
+ "area": "phoenix",
+ "place": "Phoenix",
+ "boundary": {"name": "Phoenix", "subtypes": ["locality"], "area_km2": 1342.31},
+ "center": [-112.07, 33.57],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

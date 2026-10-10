@@ -1,0 +1,119 @@
+{
+ "batch": "usa",
+ "title": "USA: 7 of the 10 largest cities",
+ "theme": "sodium",
+ "month": "2026-10",
+ "overture_release": "2026-09-23.1",
+ "render_epoch": 0,
+ "review_videos": ["usa-new-york-trains-day", "usa-new-york-buses-rush", "usa-chicago-trains-week", "usa-houston-rush", "usa-philadelphia-buses-day"],
+ "areas": [
+  {
+   "id": "nyc",
+   "origin": [-73.94, 40.70],
+   "timezone": "America/New_York",
+   "country": "US",
+   "region": "US-NY",
+   "holidays": "US",
+   "area_box": [-74.56, 39.7, -73.26, 41.42],
+   "feeds": [
+    {"id": "subway", "name": "NYC Subway", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-516/mdb-516-202608280038/mdb-516-202608280038.zip", "sha256": "2c9e69b82ac596a2fe660b56656509570cfba3c2e4c50be75eaf624eee1bc6f8"}},
+    {"id": "bus-bk", "name": "MTA Brooklyn Bus", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-512/mdb-512-202609030120/mdb-512-202609030120.zip", "sha256": "ec59b464b666acdf69c24bed1f919e6b156d9ae81d23e0db6ee8f21a6dda22e1"}},
+    {"id": "bus-mn", "name": "MTA Manhattan Bus", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-513/mdb-513-202609030140/mdb-513-202609030140.zip", "sha256": "b9c2a52452d0942932f9cb541d691be0aa7647ddfc39551df8d3f0002b2bf310"}},
+    {"id": "bus-qn", "name": "MTA Queens Bus", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-520/mdb-520-202609030030/mdb-520-202609030030.zip", "sha256": "f10d14a2fe517a50f98dc1d998de964f9022dad85c662c0749afd8bd7c693e32"}},
+    {"id": "bus-bx", "name": "MTA Bronx Bus", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-528/mdb-528-202609030059/mdb-528-202609030059.zip", "sha256": "b53a354a127ee16aedf70b930c84daaff47c9ca2ba8dd2e1c2c032c06ed056c6"}},
+    {"id": "bus-si", "name": "MTA Staten Island Bus", "publisher": "MTA New York City Transit", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-514/mdb-514-202609030018/mdb-514-202609030018.zip", "sha256": "72db06b86b04f4c43409fa45eacdf2f963b78152493b0a116aefd90812290301"}},
+    {"id": "busco", "name": "MTA Bus Company", "publisher": "MTA Bus Company", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-510/mdb-510-202609030140/mdb-510-202609030140.zip", "sha256": "ae5d51bd3063c24bdaaf6b534edce12e6bcef889a222147abf618b1678fe5dcc"}},
+    {"id": "lirr", "name": "Long Island Rail Road", "publisher": "MTA Long Island Rail Road", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-507/mdb-507-202610100010/mdb-507-202610100010.zip", "sha256": "06aaaccc4b7fa936380dee72c16240d765f7e3ed226b611c2bb14e1d88c7ba96"}},
+    {"id": "mnr", "name": "Metro-North Railroad", "publisher": "MTA Metro-North Railroad", "licence_id": "mta-data-feeds", "licence_text": "MTA Data Feed Terms and Conditions", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-524/mdb-524-202610100153/mdb-524-202610100153.zip", "sha256": "00688a9a40a26ca9fea165273db3abae9855c6706c72afa8dc279c0466bbcf0e"}}
+   ]
+  },
+  {
+   "id": "chicago",
+   "origin": [-87.68, 41.84],
+   "timezone": "America/Chicago",
+   "country": "US",
+   "region": "US-IL",
+   "holidays": "US",
+   "area_box": [-88.24, 40.97, -87.09, 42.46],
+   "feeds": [
+    {"id": "cta", "name": "Chicago Transit Authority", "publisher": "Chicago Transit Authority", "licence_id": "cta-developer", "licence_text": "CTA Developer License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-389/mdb-389-202609160157/mdb-389-202609160157.zip", "sha256": "a9372be5b70fcee4ed98c9476433f86065637a9a500b8af6afbb84d000ef2746"}},
+    {"id": "metra", "name": "Metra", "publisher": "Northeast Illinois Regional Commuter Railroad Corporation", "licence_id": "metra-gtfs", "licence_text": "Metra GTFS License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2854/mdb-2854-202610040138/mdb-2854-202610040138.zip", "sha256": "06b6f940e9f9c38805a7acaf8582a20d42491073a200078e4a6227ff2f12926d"}}
+   ]
+  },
+  {
+   "id": "houston",
+   "origin": [-95.37, 29.76],
+   "timezone": "America/Chicago",
+   "country": "US",
+   "region": "US-TX",
+   "holidays": "US",
+   "area_box": [-96.28, 28.18, -94.43, 31.01],
+   "feeds": [
+    {"id": "houmetro", "name": "Houston METRO", "publisher": "Metropolitan Transit Authority of Harris County", "licence_id": "houston-metro-data", "licence_text": "METRO Data Use Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2060/mdb-2060-202610090145/mdb-2060-202610090145.zip", "sha256": "71ae944d82e4c00788e788f8d97b9d53842264e3ba0900da94bc094c38ed04dd"}}
+   ]
+  },
+  {
+   "id": "phoenix",
+   "origin": [-112.07, 33.45],
+   "timezone": "America/Phoenix",
+   "country": "US",
+   "region": "US-AZ",
+   "holidays": "US",
+   "area_box": [-112.86, 32.2, -111.2, 34.62],
+   "feeds": [
+    {"id": "valleymetro", "name": "Valley Metro", "publisher": "Valley Metro, via City of Phoenix Open Data", "licence_id": "odc-by-1.0", "licence_text": "Open Data Commons Attribution License 1.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-147/mdb-147-202609290147/mdb-147-202609290147.zip", "sha256": "5fd088231ac2028c28cc5b545b209684558024f456eb7c547db452c6164d8ae6"}}
+   ]
+  },
+  {
+   "id": "philadelphia",
+   "origin": [-75.13, 40.00],
+   "timezone": "America/New_York",
+   "country": "US",
+   "region": "US-PA",
+   "holidays": "US",
+   "area_box": [-75.48, 39.38, -74.66, 40.46],
+   "feeds": [
+    {"id": "septa-bus", "name": "SEPTA Bus and Metro", "publisher": "Southeastern Pennsylvania Transportation Authority", "licence_id": "septa-licence", "licence_text": "SEPTA License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-502/mdb-502-202610070123/mdb-502-202610070123.zip", "sha256": "dfb95c82311fd46f516f296151939951303f04eb2b04e4569597780982ca18d6"}},
+    {"id": "septa-rail", "name": "SEPTA Regional Rail", "publisher": "Southeastern Pennsylvania Transportation Authority", "licence_id": "septa-licence", "licence_text": "SEPTA License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-503/mdb-503-202610070132/mdb-503-202610070132.zip", "sha256": "c908d0f0e8098bc625cbfa095d631f645cca549a76a6453af9a3b528c7b31961"}}
+   ]
+  },
+  {
+   "id": "san-antonio",
+   "origin": [-98.49, 29.45],
+   "timezone": "America/Chicago",
+   "country": "US",
+   "region": "US-TX",
+   "holidays": "US",
+   "area_box": [-99.13, 28.23, -97.75, 30.34],
+   "feeds": [
+    {"id": "via", "name": "VIA Metropolitan Transit", "publisher": "VIA Metropolitan Transit", "licence_id": "via-developer", "licence_text": "VIA Developer's License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tld-217/tld-217-202610100110/tld-217-202610100110.zip", "sha256": "e249d7d6c7076d28e3d309dc397286c0a023329108e236915f5e41791d57e7e6"}}
+   ]
+  },
+  {
+   "id": "san-diego",
+   "origin": [-117.13, 32.82],
+   "timezone": "America/Los_Angeles",
+   "country": "US",
+   "region": "US-CA",
+   "holidays": "US",
+   "area_box": [-117.78, 31.52, -116.26, 33.76],
+   "feeds": [
+    {"id": "mts", "name": "San Diego MTS", "publisher": "San Diego Metropolitan Transit System", "licence_id": "mts-developer", "licence_text": "MTS Developer License Agreement", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-13/mdb-13-202610070132/mdb-13-202610070132.zip", "sha256": "d5fe222374a72bd085ea99df80b6a8a6a8c3a50b628327087ec88d5c86fe58fa"}}
+   ]
+  }
+ ],
+ "modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 11, 700, 701, 702, 704, 711, 712, 715]},
+  {"id": "streetcar", "label": "streetcars", "singular": "streetcar", "route_types": [0, 5, 900]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 12, 100, 109, 400],
+   "routes": [{"feed": "houmetro", "route_id": "^(700|800|900)$", "why": "METRORail Red, Green and Purple are light rail with route_type 0"},
+              {"feed": "valleymetro", "route_id": "^(A|B|SKYT)$", "why": "Valley Metro Rail A and B and the PHX Sky Train have route_type 0; the Tempe streetcar S stays a streetcar"},
+              {"feed": "mts", "route_id": "^5[0-9][0-9]$", "why": "the San Diego Trolley lines 510 to 550 are light rail with route_type 0"}]},
+  {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4, 1000, 1200]}
+ ],
+ "cities": ["usa-new-york-trains", "usa-chicago-trains", "usa-houston", "usa-new-york-buses", "usa-phoenix", "usa-philadelphia-trains", "usa-chicago-buses", "usa-san-antonio", "usa-philadelphia-buses", "usa-san-diego"],
+ "variants_default": ["day", "rush", "week"],
+ "hashtags": ["#shorts", "#transit", "#publictransit"],
+ "category": "Travel & Events",
+ "release": {"tag": "shorts-usa", "name": "Shorts: USA"}
+}

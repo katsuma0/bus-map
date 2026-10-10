@@ -1,0 +1,12 @@
+{
+ "id": "usa-san-antonio",
+ "batch": "usa",
+ "area": "san-antonio",
+ "place": "San Antonio",
+ "boundary": {"name": "San Antonio", "subtypes": ["locality"], "area_km2": 1307.0},
+ "center": [-98.49, 29.47],
+ "variants": ["day", "rush", "week"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 1, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}
