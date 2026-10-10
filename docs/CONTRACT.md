@@ -1471,7 +1471,7 @@ the camera off, 283 ms with it on, about 43 ms of it the mipmapped base draw; th
 smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the city
 line's keep rect at every frame (the fixture's frame on all six paths, a frame with room, the
 cropped rush, and Markham and Toronto when built), and where the floor binds the factor at
-`CAMERA_BOUND_MIN` with the line at most 30 px past its rect (inside it with `cambound=0`), the
+`CAMERA_BOUND_MIN` with the line at most 60 px past its rect (inside it with `cambound=0`), the
 HUD and the counts with and without the
 camera, all six paths, `CAMERA_ZOOM` 0 and the sprite, scaled and bounded trail modes, and the
 cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`

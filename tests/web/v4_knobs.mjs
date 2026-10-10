@@ -87,7 +87,7 @@ delete fixture.meta.color_by;
 fs.writeFileSync(nobrandPath, JSON.stringify(fixture));
 const BASES = {
   tiny: TINY,
-  framed: `${TINY}&zoom=0.8`,
+  framed: `${TINY}&zoom=0.6`,
   nobrand: 'data=../build/test_web/tiny_nobrand.json&basemap=../tests/fixtures/v4_tiny/basemap.json&colorby=',
 };
 
