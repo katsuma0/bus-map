@@ -18,10 +18,13 @@
 //           city core further (their shares of the zoom and the drift)
 //  line     at every frame the city line's bbox stays in its keep rect (the
 //           looser of the safe zone and the fitted bbox, plus 10 px, never
-//           off the frame), recomputed here from meta.boundary: on the
+//           off the frame), recomputed here from meta.boundary, unless the cap
+//           would take the move under CAMERA_BOUND_MIN: the factor is then the
+//           floor and the line leaves the rect by at most 30 px. On the
 //           fixture's frame, whose line fills the fit box width, the cap
-//           binds for all six paths and frame 0 still pushes in; a frame that
-//           crops the line (the rush) has no rect; so do Markham and Toronto
+//           binds for all six paths (at the floor; with the floor at 0 the
+//           line stays in) and frame 0 still pushes in; a frame that crops
+//           the line (the rush) has no rect; Markham and Toronto bind as well
 //  core     frame 0 keeps the pivot (the fit box centre, below the card) within
 //           2% of the frame width of where the fitted frame has it
 //  headroom the cached base covers the visible rectangle at every phase
@@ -137,9 +140,11 @@ async function variantChecks(h, query, tag, kind) {
 
 // The city line under the camera: at every frame its bbox stays in the keep
 // rect. want is 'binds' (the fitted line leaves less room than the move: the
-// cap brings some frame within 0.5 px of the rect, and frame 0 still pushes
-// in), 'free' (the whole move fits) or 'crop' (the frame crops the line, so
-// there is no rect and only the speed cap applies).
+// cap brings some frame within 0.5 px of the rect, or, where that would take
+// the factor under CAMERA_BOUND_MIN, holds it at the floor and the line goes
+// at most 30 px past the rect; frame 0 still pushes in), 'free' (the whole
+// move fits) or 'crop' (the frame crops the line, so there is no rect and
+// only the speed cap applies).
 async function lineChecks(h, query, tag, want) {
   const page = await h.open(query);
   const r = await page.evaluate(() => {
@@ -166,21 +171,25 @@ async function lineChecks(h, query, tag, want) {
       if (gap < -0.01) out++;
       near = Math.min(near, gap);
     }
-    return { cam: bm.camera, box, keep, out, near, ext, z0: bm.cameraAt(0).zoom, zmax: Math.max(...Array.from({ length: N }, (_, i) => bm.cameraAt(i / N).zoom)) };
+    return { cam: bm.camera, box, keep, out, near, ext, floor: C.CAMERA_BOUND_MIN, z0: bm.cameraAt(0).zoom, zmax: Math.max(...Array.from({ length: N }, (_, i) => bm.cameraAt(i / N).zoom)) };
   });
   const c = r.cam;
   ok(c && c.box.every((v, k) => Math.abs(v - r.box[k]) < 1e-6), `${tag}: camera.box ${JSON.stringify(c && c.box)}, the rings give ${JSON.stringify(r.box)}`);
   ok(JSON.stringify(c && c.keep) === JSON.stringify(r.keep), `${tag}: camera.keep ${JSON.stringify(c && c.keep)}, want ${JSON.stringify(r.keep)}`);
-  ok(r.out === 0, `${tag}: the city line leaves its keep rect at ${r.out} frames`);
+  // The floor is what binds when the factor is CAMERA_BOUND_MIN itself; only
+  // then may the line leave its rect, and by 30 px at most.
+  const atFloor = want === 'binds' && c.bound === r.floor;
+  if (atFloor) ok(r.near >= -30, `${tag}: at the floor ${r.floor} the city line goes ${(-r.near).toFixed(2)} px past its keep rect, want 30 at most`);
+  else ok(r.out === 0, `${tag}: the city line leaves its keep rect at ${r.out} frames`);
   if (want === 'binds') {
-    ok(c.bound < 1 && r.near < 0.5, `${tag}: the cap does not bind (factor ${c.bound}, closest ${r.near.toFixed(2)} px)`);
+    ok(c.bound < 1 && c.bound >= r.floor && r.near < 0.5, `${tag}: the cap does not bind or goes under the floor ${r.floor} (factor ${c.bound}, closest ${r.near.toFixed(2)} px)`);
     ok(r.z0 === r.zmax && r.z0 > 1, `${tag}: frame 0 is not the push-in under the cap (zoom ${r.z0} of max ${r.zmax})`);
   } else if (want === 'free') {
     ok(c.bound === 1 && r.near >= 0, `${tag}: the whole move should fit (factor ${c.bound})`);
   } else {
     ok(r.keep === null && c.bound === 1, `${tag}: a frame that crops the line has a keep rect or a cap (${c.bound})`);
   }
-  console.log(`  line ${tag.padEnd(18)} ${c.path.padEnd(14)} factor ${c.bound.toFixed(3)} zoom ${(c.zoom * 100).toFixed(2)}% drift ${(c.drift / 1080 * 100).toFixed(2)}%; `
+  console.log(`  line ${tag.padEnd(18)} ${c.path.padEnd(14)} factor ${c.bound.toFixed(3)}${atFloor ? ' (floor)' : ''} zoom ${(c.zoom * 100).toFixed(2)}% drift ${(c.drift / 1080 * 100).toFixed(2)}%; `
     + `line x ${r.ext[0].toFixed(1)}..${r.ext[2].toFixed(1)}, y ${r.ext[1].toFixed(1)}..${r.ext[3].toFixed(1)}`
     + (r.keep ? ` in [${r.keep.map((v) => v.toFixed(1)).join(', ')}], closest ${r.near.toFixed(2)} px` : ' (cropped)'));
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join('; ')}`);
@@ -399,11 +408,14 @@ try {
   await mixChecks(h);
   await lineChecks(h, TINY, 'tiny day', 'binds');
   await lineChecks(h, TINY_WEEK, 'tiny week', 'binds');
+  // With no floor the cap alone keeps the line in its rect.
+  await lineChecks(h, `${TINY}&cambound=0`, 'tiny floor 0', 'binds');
   for (const p of ['pull-out-east', 'pull-out-north', 'pull-out-south', 'drift-orbit', 'drift-sway']) await lineChecks(h, `${TINY}&campath=${p}`, `tiny ${p}`, 'binds');
   await lineChecks(h, `${TINY}&zoom=0.8`, 'tiny zoom 0.8', 'free');
   await lineChecks(h, `${TINY}&variant=rush`, 'tiny rush', 'crop');
   // The two cities the judges measured: Markham's west tip left the frame and
-  // Toronto's east end went under the action buttons.
+  // Toronto's east end went under the action buttons. Both fill the width, so
+  // the floor binds and keeps them within 30 px of their keep rects.
   for (const [id, render] of NO_GTA ? [] : [['gta-markham', { FRAME_ZOOM: 1.05, CAMERA_PATH: 'drift-sway' }], ['gta-toronto', { CAMERA_PATH: 'pull-out-north' }]]) {
     const net = `build/${id}/day/network.json.gz`, bm = `build/${id}/basemap.json.gz`;
     if (!fs.existsSync(path.join(ROOT, net)) || !fs.existsSync(path.join(ROOT, bm))) continue;

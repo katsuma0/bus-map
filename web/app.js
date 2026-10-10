@@ -190,6 +190,9 @@ const CONFIG = {
   CAMERA_DRIFT: 0.03,
   CAMERA_AMP: 1,
   CAMERA_MAX_SPEED: 0.006,
+  // The city line's factor (B18) never goes under this: a visible move beats
+  // keeping a wide city's whole outline in frame at every phase.
+  CAMERA_BOUND_MIN: 0.7,
   // 'cache' draws the base map once, finer than the push-in needs; 'vector'
   // redraws it every frame, which is slow and only the reference the cache is
   // measured against (tests/web/v4_camera.mjs).
@@ -1633,7 +1636,7 @@ const V4_KNOBS = [
   ['layeralpha', 'TRAIL_LAYER_ALPHA', 'num'], ['smooth', 'SPARK_SMOOTH_MIN', 'num'],
   ['camera', 'CAMERA', 'bool'], ['campath', 'CAMERA_PATH', 'enum'], ['camzoom', 'CAMERA_ZOOM', 'num'],
   ['camdrift', 'CAMERA_DRIFT', 'num'], ['camamp', 'CAMERA_AMP', 'num'], ['camspeed', 'CAMERA_MAX_SPEED', 'num'],
-  ['cambase', 'CAMERA_BASE', 'enum'],
+  ['cambase', 'CAMERA_BASE', 'enum'], ['cambound', 'CAMERA_BOUND_MIN', 'num'],
 ];
 // Brand distinctness ladder (B6): [name, lightness shift, hue rotation in
 // degrees]. Lightness comes before hue so a known colour keeps its hue, and
@@ -1908,6 +1911,7 @@ function buildCameraV4() {
   const R0 = cameraNum('CAMERA_DRIFT', 0, 0.2) * W * mix[1];
   const amp = cameraNum('CAMERA_AMP', 0, 3);
   const vmax = cameraNum('CAMERA_MAX_SPEED', 1e-4, 0.05) * W * totalFrames / CONFIG.FPS;
+  const floor = cameraNum('CAMERA_BOUND_MIN', 0, 1);
   // A short video would move faster for the same amplitudes; the cap holds the
   // rush to the day's speed. Bisection, since the speed is not quite linear.
   let s = 1;
@@ -1924,7 +1928,8 @@ function buildCameraV4() {
   // the speed cap knows nothing of the city: one that fills the fit box width
   // (D3.2, x 50..870) would reach x 19..901 at frame 0, past the frame edge
   // with FRAME_ZOOM over 1 and under the action buttons beyond x 880. One more
-  // factor scales both down until the line's bbox stays in the keep rect.
+  // factor scales both down until the line's bbox stays in the keep rect, but
+  // not under CAMERA_BOUND_MIN, where the line may slip a few px past it.
   const box = boundaryBoxPx(), keep = cameraKeepRect(box);
   let bound = 1;
   if (keep && !cameraKeeps(path, Z, R, box, keep)) {
@@ -1933,7 +1938,7 @@ function buildCameraV4() {
       const mid = (lo + hi) / 2;
       if (cameraKeeps(path, Z * mid, R * mid, box, keep)) lo = mid; else hi = mid;
     }
-    bound = lo;
+    bound = Math.max(lo, floor);
   }
   Z *= bound;
   R *= bound;

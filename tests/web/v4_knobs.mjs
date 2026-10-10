@@ -44,13 +44,13 @@ const KNOBS = [
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
   // The camera (B18) mid loop, where the zoom and the drift both show, on a
-  // frame that leaves the city line room for the whole move: on the fixture's
-  // own frame the line's cap binds, and a smaller amplitude or speed below it
-  // changes nothing.
+  // frame that leaves the city line room for the whole move, so the line's cap
+  // hides no knob; its floor (cambound) moves on the fixture's own frame, the
+  // one where the cap binds.
   ['camera', 'CAMERA', false, MID, 'framed'], ['campath', 'CAMERA_PATH', 'drift-orbit', MID, 'framed'],
   ['camzoom', 'CAMERA_ZOOM', 0.05, MID, 'framed'], ['camdrift', 'CAMERA_DRIFT', 0.015, MID, 'framed'],
   ['camamp', 'CAMERA_AMP', 0.5, MID, 'framed'], ['camspeed', 'CAMERA_MAX_SPEED', 0.003, MID, 'framed'],
-  ['cambase', 'CAMERA_BASE', 'vector', MID, 'framed'],
+  ['cambase', 'CAMERA_BASE', 'vector', MID, 'framed'], ['cambound', 'CAMERA_BOUND_MIN', 1, MID],
 ];
 
 async function hashOf(h, query, where) {

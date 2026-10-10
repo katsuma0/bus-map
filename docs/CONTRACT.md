@@ -892,6 +892,7 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `CAMERA_DRIFT` | float 0..0.2, share of the frame width | 0.03 | | `camdrift` |
 | `CAMERA_AMP` | float 0..3 | 1 | | `camamp` |
 | `CAMERA_MAX_SPEED` | float, frame widths a second | 0.006 | | `camspeed` |
+| `CAMERA_BOUND_MIN` | float 0..1, the city line's factor at least | 0.7 | | `cambound` |
 | `CAMERA_BASE` | `'cache'`, `'vector'` | `'cache'` | | `cambase` |
 
 New query names for existing keys: `dotcore` -> `BUS_CORE_R` (0 allowed: halo only), `halor` ->
@@ -1289,15 +1290,24 @@ off screen for 11 s) or under the action buttons beyond x 880 (Toronto's east en
 the fitted frame shows the whole line (the bbox of `meta.boundary.rings` inside the frame), both
 amplitudes are scaled by one more factor, found by bisection over the same sampled phases, until the
 line's bbox stays inside the keep rect at every phase: each side at the looser of the safe zone and
-the fitted bbox, plus 10 px, and never past the frame edge. The camera thus takes the line at most
-10 px past the safe zone, or past where the fitted frame already has it; the slack is the fit box's
-own (it reaches 10 px past the safe zone's left edge), and without it a city that fills the fit box
-width could not move at all. The factor is 1 when the whole move fits and about 0.3 for the four
-GTA cities that fill the width (Toronto, Vaughan, Burlington, Markham), whose day and week then push
-in by 2.3 to 2.5% and drift 0.9%; frame 0 is still the push-in. Across the GTA day videos the zoom
-thus runs from 2.3% through 4% (the drifts) to 6.5 to 7.6% (the other pull-outs). A frame that
-crops the line (the rush close-ups) has no keep rect, and only the speed cap applies.
-`busmap.camera` reports the factor (`bound`), the fitted bbox (`box`) and the rect (`keep`).
+the fitted bbox, plus 10 px, and never past the frame edge. The factor never goes under
+`CAMERA_BOUND_MIN` (0.7, `cambound`). Above that floor the camera takes the line at most 10 px past
+the safe zone, or past where the fitted frame already has it; the slack is the fit box's own (it
+reaches 10 px past the safe zone's left edge), and without it a city that fills the fit box width
+could not move at all. The factor is 1 when the whole move fits. For the four GTA cities that fill
+the width (Toronto, Vaughan, Burlington, Markham) the keep rect alone gave about 0.3, a push-in of
+2.3 to 2.5% and a drift of 0.9% that nobody notices. A visible move beats keeping a wide city's
+whole outline in frame at every phase, so their factor stops at the floor: the day videos push in by
+4.9 to 5.3% and drift 1.9 to 2.0% (the week 5.6% and 2.1%), and frame 0 is still the push-in. Only
+at the floor may the line leave the keep rect, and on those day videos it does by 11 to 12 px. It
+never leaves the frame (Markham's west tip comes closest, at x 7.9 on frame 0) and goes at most
+26 px past x 880, under the action buttons, on Markham's frame 0, whose fitted line already reaches
+x 885 (Toronto 11 px at u 0.94, Vaughan 11 px at u 0.22, Burlington 8 px at u 0.24). The text is
+drawn at identity and does not move. Across the GTA day videos the zoom thus runs from 4% (the
+drifts) through 4.9 to 5.3% (the wide cities) to 6.5% (Brampton and Oshawa, whose whole move
+fits). A frame that crops the line (the rush close-ups) has no keep rect, and only the speed cap
+applies. `busmap.camera` reports the factor (`bound`), the fitted bbox (`box`) and the rect
+(`keep`).
 
 **Sharpness.** The base map and the dormant network are drawn once into a cache that covers the
 union over the loop of the base rectangle on screen (plus 3 px), at `2 (1 + Z)` times the fitted
@@ -1326,7 +1336,9 @@ the camera off, 283 ms with it on, about 43 ms of it the mipmapped base draw; th
 **Tests.** `tests/web/v4_camera.mjs`: the path from the id, the loop seam, the speed cap and its
 smoothness over every frame, the amplitudes per variant, the core at frame 0, the headroom, the city
 line's keep rect at every frame (the fixture's frame on all six paths, a frame with room, the
-cropped rush, and Markham and Toronto when built), the HUD and the counts with and without the
+cropped rush, and Markham and Toronto when built), and where the floor binds the factor at
+`CAMERA_BOUND_MIN` with the line at most 30 px past its rect (inside it with `cambound=0`), the
+HUD and the counts with and without the
 camera, all six paths, `CAMERA_ZOOM` 0 and the sprite, scaled and bounded trail modes, and the
 cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
 knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path`, the batch
