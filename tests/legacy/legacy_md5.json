@@ -1,0 +1,18 @@
+{
+ "base": "302d8116491107849b8a5b39e9cb9ee33bcdf41b",
+ "md5": {
+  "data/built/network.json": "5351e5e971f8003f95e63b61901e6012",
+  "data/built/basemap.json": "c19d0da197bd73230133799027fc8c80",
+  "data/gta/built/network.json.gz": "782b45f85497aa65ad945067e2495a6b",
+  "data/gta/built/basemap.json.gz": "05b9e4dfbf1216e4ec943ea059151439",
+  "data/tokyo-trains/built/network.json.gz": "50dbe409c03691da5c225e3e7b416fa6",
+  "data/tokyo-buses/built/network.json.gz": "f894d80e5b2b730d3d68d34035d58850",
+  "data/kyoto-trains/built/network.json.gz": "b6cf5fd6a3e5531f386ba53880c7859d",
+  "data/kyoto-buses/built/network.json.gz": "9f66f810203dfe2aa6032ac63331ba7f",
+  "data/osaka-trains/built/network.json.gz": "f53c28a6d0aba782fcb20a5ec2ed53d3",
+  "data/osaka-buses/built/network.json.gz": "2cd43ea4b0a1f24c46b9d82e551976bd",
+  "data/tokyo/built/basemap.json.gz": "a0bb9335568e8c83f5d915f9b00fd05c",
+  "data/kyoto/built/basemap.json.gz": "7e677dcba9426082a9ed61ab07b8a651",
+  "data/osaka/built/basemap.json.gz": "3185d6ad647dd1c708c5c0ce7ae7c3df"
+ }
+}
