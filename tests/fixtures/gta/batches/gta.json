@@ -35,7 +35,7 @@
  "cities": ["gta-toronto", "gta-mississauga", "gta-brampton", "gta-markham", "gta-vaughan",
             "gta-oakville", "gta-richmond-hill", "gta-burlington", "gta-oshawa", "gta-whitby"],
  "variants_default": ["day", "rush", "week"],
- "hashtags": ["#shorts", "#transit", "#gta"],
+ "hashtags": ["#shorts", "#transit", "#ontario"],
  "category": "Travel & Events",
  "release": {"tag": "shorts-gta", "name": "Shorts: GTA top 10"}
 }
