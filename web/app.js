@@ -2358,9 +2358,13 @@ function textWidth(text, font, spacing = 0) {
 // Splits text at spaces into at most maxLines lines of maxW px. 'greedy'
 // fills each line in turn (the credit); 'balanced' picks the break that keeps
 // the longer of two lines shortest (the card). null when it cannot fit.
-function wrapText(text, font, maxW, maxLines, how) {
+function wrapText(text, font, maxW, maxLines, how, keep = '') {
   if (textWidth(text, font) <= maxW || maxLines < 2) return textWidth(text, font) <= maxW ? [text] : null;
-  const words = text.split(' ');
+  // The kept phrase (the place) wraps as one word: "Every bus in Richmond /
+  // Hill, ..." under the title RICHMOND HILL reads as two names.
+  const glue = '\u0001';
+  const glued = keep && keep.includes(' ') ? text.split(keep).join(keep.split(' ').join(glue)) : text;
+  const words = glued.split(' ').map((w) => w.split(glue).join(' '));
   if (how === 'balanced' && maxLines === 2) {
     let best = null;
     for (let k = 1; k < words.length; k++) {
@@ -2788,12 +2792,14 @@ function buildCard() {
     items.push({ name: k ? 'card_title2' : 'card_title', text, y, font: titleFont(S), size: S, spacing: 0.04 * S, kind: 'title' });
   });
   const ruleTop = y + 30;
-  let l0size = 44;
-  let l0 = wrapText(line0, `500 44px ${F.inter}`, 796, 2, 'balanced');
-  if (!l0) {
-    l0size = 40;
-    l0 = wrapText(line0, `500 40px ${F.inter}`, 796, 2, 'balanced') || [line0];
+  // A smaller line keeps the place whole before a split place is accepted.
+  const place = meta.place || '';
+  let l0size = 40, l0 = null;
+  for (const [size, keep] of [[44, place], [40, place], [44, ''], [40, '']]) {
+    l0 = wrapText(line0, `500 ${size}px ${F.inter}`, 796, 2, 'balanced', keep);
+    if (l0) { l0size = size; break; }
   }
+  if (!l0) l0 = [line0];
   y = ruleTop + 64;
   l0.forEach((text, k) => {
     if (k) y += 54;
@@ -2801,7 +2807,9 @@ function buildCard() {
   });
   let l1size = 32;
   while (l1size > 30 && textWidth(line1, `400 ${l1size}px ${F.inter}`) > 796) l1size--;
-  const l1 = line1 ? wrapText(line1, `400 ${l1size}px ${F.inter}`, 796, 2, 'balanced') || [line1] : [];
+  const l1font = `400 ${l1size}px ${F.inter}`;
+  const l1 = line1 ? wrapText(line1, l1font, 796, 2, 'balanced', place) || wrapText(line1, l1font, 796, 2, 'balanced')
+    || [line1] : [];
   l1.forEach((text, k) => {
     y += k ? 40 : 52;
     items.push({ name: k ? 'card_line1b' : 'card_line1', text, y, font: `400 ${l1size}px ${F.inter}`, size: l1size, kind: 'line1' });

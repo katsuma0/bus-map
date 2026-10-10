@@ -12,7 +12,8 @@
 //       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
-//  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart
+//  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart, and
+//       no card line pair splits the place name
 //
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
 // five-digit count that has to split, Mississauga x12 and Toronto x8 for the
@@ -78,6 +79,7 @@ function inPage() {
   out.atPeak = bm.countAt(pt);
   out.countText = (bm.hudBoxes().find((b) => b.name === 'count') || {}).text;
   out.count2 = bm.hudBoxes().some((b) => b.name === 'count2');
+  out.place = meta.place || '';
   // B9: one mode's own noun only when no other mode has half a vehicle
   // inside in any minute of [start, end), not just at the peak.
   const present = (meta.modes || []).filter((md) => {
@@ -175,6 +177,11 @@ async function run(h, name, query, variant) {
   const r = await page.evaluate(inPage);
   for (const [k, boxes] of Object.entries(r.stills)) checkBoxes(tag, `still ${k}`, boxes);
   for (const [i, boxes] of Object.entries(r.frames)) checkBoxes(tag, `frame ${i}`, boxes);
+  for (const pair of [['card_line0', 'card_line0b'], ['card_line1', 'card_line1b']]) {
+    const lines = r.frames[0].filter((b) => pair.includes(b.name)).map((b) => b.text);
+    ok(!lines.join(' ').includes(r.place) || lines.some((l) => l.includes(r.place)),
+      `${tag} B-10: the card splits "${r.place}": ${JSON.stringify(lines)}`);
+  }
   ok(r.atPeak.total === r.peakCount, `${tag} B-6: count ${r.atPeak.total} at the peak ${r.peakT}, V.peak.count ${r.peakCount}`);
   ok(r.countText && r.countText.replace(/,/g, '').startsWith(String(r.peakCount)), `${tag} B-6: count line "${r.countText}" at the peak`);
   ok(r.countText && r.countText.split(' ')[1] === r.wantNoun, `${tag} B-9: count line "${r.countText}", want the noun "${r.wantNoun}"`);

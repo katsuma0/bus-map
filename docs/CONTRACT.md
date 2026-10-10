@@ -1144,9 +1144,10 @@ under the card):
 * Accent rule: x 72..168, 6 px tall, top at the last title baseline + 30.
 * Line 0: InterX 500 44 px, title colour, baseline = rule top + 64; wraps at a space into at most two
   lines 54 px apart (most templates need two: 792 to 1,088 px at 44 px); 40 px only if two lines are
-  not enough.
+  not enough. No break falls inside `{place}` (`Richmond / Hill` under the title reads as two
+  names) unless no 44 or 40 px wrap can keep it whole.
 * Line 1: InterX 400 32 px, title colour at 0.85 alpha, baseline = last line-0 baseline + 52; 32
-  down to 30, then wraps.
+  down to 30, then wraps, also keeping `{place}` whole when it can.
 * Block height h = last baseline + 12 - B; `B = round(CARD_CENTER_Y - h / 2)`, clamped so the block
   stays inside y 400..1100.
 * Scrim: the whole frame in `scrim` at `CARD_SCRIM x a` (0.25), so the moving map stays the hook;
