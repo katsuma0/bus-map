@@ -434,3 +434,743 @@ shapefile (`.dbf`, cp932) rather than the GML.
 ### Video script
 
 `--city tokyo-trains` etc. as today; outputs `out/<id>.mp4`.
+
+## v4: Shorts (recipes, batches, area stores, network v4, page knobs)
+
+v4 networks carry `"meta": {"schema": 4, ...}` and only reach new code: the
+legacy configs above have no `schema`, their scripts are untouched, and the page
+takes the v4 path only for a schema 4 file. This section copies the contract
+parts of the Shorts spec (revision 2, sections 2, A3, B9 and B10) so the repo
+carries the formats its scripts read and write. `scripts/make.py` implements
+2.14 and the derivations behind 2.7; `cities/batches/README.md` describes the
+recipe, batch and lock files with their validation rules.
+
+Additions made while implementing (they extend, never change, the formats below):
+
+* a fixture-only feed source `{"path": "data/gtfs/<zip>"}`: a zip committed on the batch's branch
+  (the `test` batch uses it, so it needs no tag, URL or key);
+* the lock may carry `areas.<area>.rules` (the composite rule per feed and day class, next to
+  `dates`), `areas.<area>.divisions.bbox`, and `boundaries.<id>.week_eligible: false` with
+  `week_why` after a week trim exits 3; the divisions file is
+  `cache/overture/<release>/divisions/<region>-<area>.geojson`, one per area;
+* `<stem>.netmeta.json` also carries `month`, `timeline`, `window`, `modes`, `frames` and
+  `trips_total`, and `<stem>.meta.json` also carries `licence_flags` (the CSV column);
+* trims get the trim step key in `$SHORTS_BUILD_KEY` for `meta.build_key`.
+
+### 2. Shared interfaces
+
+Types: `str`, `int`, `float`, `bool`, `[x, y]` arrays, `obj`. Unknown keys are an error in recipes,
+batch files and locks (make.py validates), and a console warning in the page (as `applyRender`
+does today).
+
+#### 2.1 Recipe: `cities/recipes/<id>.json`
+
+```json
+{
+  "id": "gta-markham",
+  "batch": "gta",
+  "area": "gta",
+  "place": "Markham",
+  "boundary": {"name": "Markham", "subtypes": ["locality"], "area_km2": 210.93},
+  "center": [-79.299, 43.880],
+  "variants": ["day", "rush", "week"],
+  "rush": {"frame": null, "auto": true},
+  "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.05},
+  "override": {
+    "render": {"BUS_HALO_R": 12},
+    "variant_render": {"day": {"TRAIL_MINUTES": 10}},
+    "brand_colors": {},
+    "_why": {"BUS_HALO_R": "11 px dots merged on Highway 7; 12 px keeps them round",
+             "day.TRAIL_MINUTES": "8 min left gaps on Highway 7 at the peak; 12 min fused Viva and YRT"}
+  }
+}
+```
+
+| key | type | required | default | meaning |
+|---|---|---|---|---|
+| `id` | str `^[a-z0-9][a-z0-9-]{1,39}$` | yes | | also the output name stem |
+| `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
+| `area` | str | no | the batch's only area | required when the batch has several areas |
+| `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
+| `boundary.name` | str | yes | | Overture `names.primary`, exact |
+| `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
+| `boundary.area_km2` | float | yes | | census land area; the match must be within 20% |
+| `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
+| `center` | [lon, lat] | no | boundary bbox centre | documentation and a fit fallback |
+| `frame.km_vertical`, `frame.center_km` | float, [float, float] | no | boundary fit (D3.2) | km about the area origin; pins the day frame |
+| `variants` | [str] | no | batch `variants_default` | subset of `day`, `rush`, `week`; `week` is dropped when not eligible (A3.6) |
+| `rush.frame` | obj or null | no | null | a pinned closer frame for the rush; must lie inside the day trim box |
+| `rush.auto` | bool | no | true | with `rush.frame` null, A computes a closer frame (A8.6); false = the day frame |
+| `variety.panel_side` | `left` / `right` | no | `left` | preference; the side is chosen by A8.7 and this breaks ties within 10% |
+| `variety.card_line` | int 0..2 | no | 0 | index into the card templates; a `cardline` tuning pick writes here |
+| `variety.zoom` | float | no | 1.0 | multiplies FRAME_ZOOM (D3.8) |
+| `override.render` | obj of CONFIG keys | no | {} | for every variant; never a key that any `defaults.variants.*.render` block sets (validation error) |
+| `override.variant_render` | obj variant -> obj | no | {} | per variant, merged after `override.render` |
+| `override.brand_colors` | obj brand id -> hex | no | {} | passed as `brandhex=` |
+| `override._why` | obj | no | {} | `KEY` or `<variant>.KEY` -> one line from the judge |
+
+#### 2.2 Batch file: `cities/batches/<batch>.json`
+
+```json
+{
+  "batch": "gta",
+  "title": "GTA top 10",
+  "theme": "lake",
+  "month": "2026-10",
+  "overture_release": "2026-09-23.1",
+  "render_epoch": 0,
+  "areas": [{
+    "id": "gta",
+    "origin": [-79.47, 43.80],
+    "timezone": "America/Toronto",
+    "country": "CA",
+    "region": "CA-ON",
+    "holidays": "CA-ON",
+    "area_box": [-80.06, 43.06, -78.58, 44.25],
+    "feeds": [
+      {"id": "ttc", "name": "TTC", "publisher": "Toronto Transit Commission",
+       "licence_id": "ogl-toronto", "licence_text": "Open Government Licence - Toronto",
+       "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/ttc.zip"}}
+    ]
+  }],
+  "modes": [{"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]}],
+  "cities": ["gta-toronto", "gta-mississauga"],
+  "variants_default": ["day", "rush", "week"],
+  "hashtags": ["#shorts", "#transit", "#gta"],
+  "category": "Travel & Events",
+  "release": {"tag": "shorts-gta", "name": "Shorts: GTA top 10"}
+}
+```
+
+| key | type | meaning |
+|---|---|---|
+| `theme` | `lake` / `ink` / `sodium` / `slate` / `teal` | one theme per batch (decision 5) |
+| `month` | `YYYY-MM` | composite month; an area may override it with its own `month` |
+| `render_epoch` | int | part of every render key; bump it to force every render (an empty commit does not trigger the workflow because of its `paths` filter) |
+| `areas[].origin` | [lon, lat] | projection origin of every network and basemap in the area. One origin per area keeps the equirectangular x scale right (a single US origin at 35N would be about 8% off at both New York and San Antonio) |
+| `areas[].timezone`, `country`, `region`, `holidays` | str | `holidays` is a key into `cities/holidays.json`; `country`/`region` select the Overture divisions file |
+| `areas[].area_box` | [w, s, e, n] degrees | explicit. Trips whose shape bbox misses it are dropped from the area store. `make.py show <batch>` prints a suggestion (D3.3); adding a city never changes it unless the integrator edits it |
+| `areas[].feeds[]` | list | see below |
+| `modes` | list | as `cities/gta.json` modes, without colours (the theme supplies them) |
+| `cities` | [id] | upload order |
+
+Feed entry: `id`, `name`, `publisher`, `licence_id` (exact key into `cities/licences.json`),
+`licence_text` (the display string), optional `allow_nc` (a reason string; lets a `no` licence
+through `plan` and `meta`, printed in flags and release notes), `source`:
+
+| `source` | meaning | lock records |
+|---|---|---|
+| `{"tag": "...", "path": "..."}` | a file inside a tag of this repo | commit, sha256, bytes |
+| `{"url": "...", "sha256": "..."}` | an immutable URL (MDB `mdb-<id>-<stamp>.zip`, Transitland, producer). Required for zips over 100 MB, which a git data branch cannot hold (London BODS 1,686 MB, Paris 157 and 270 MB, Singapore 336 MB, Tel Aviv 140 MB) | url, sha256, bytes |
+| `{"secret": "ODPT_KEY", "url": "...{key}..."}` | a key-protected download; Actions passes the repository secret through `env`, the sandbox reads `$ODPT_KEY` | url without the key, sha256 of the bytes |
+| `{"model": "honsu", "inputs": {"tag": "...", "area": "yokohama"}}` | `model_gtfs.py` output built from tagged inputs (Japan); the model PR adds the area | input sha256s, output sha256 |
+
+#### 2.3 Lock: `cities/locks/<batch>.lock.json`
+
+```json
+{
+  "batch": "gta",
+  "locked_at": "2026-10-10T12:00:00Z",
+  "areas": {
+    "gta": {
+      "feeds": {"ttc": {"source": "tag", "tag": "feeds/gta-2026-10-09", "commit": "<40 hex>", "path": "gtfs/ttc.zip",
+                        "sha256": "<64 hex>", "bytes": 36417654, "feed_version": "", "valid": ["2026-09-30", "2026-10-31"]}},
+      "overture": {"release": "2026-09-23.1", "bbox": [-80.12, 43.01, -78.52, 44.30],
+                   "data_tag": "overture/gta-2026-09-23.1", "files": {"segments": "<sha256>", "water": "<sha256>"}},
+      "divisions": {"key": "CA-ON", "sha256": "<sha256>"},
+      "dates": {"day": {"ttc": ["2026-10-01", "..."]}, "week": {"ttc": {"mon": ["2026-10-05", "..."]}}}
+    }
+  },
+  "boundaries": {"gta-markham": {"id": "<division_area id>", "division_id": "<id>", "subtype": "locality", "area_km2": 211.4,
+                                 "frame": {"km_vertical": 49.0, "center_km": [15.7, 6.0]}, "clip": [-79.53, 43.55, -79.02, 44.16]}},
+  "tools": {"python": "3.13.16", "chromium": "1194", "ffmpeg": "6.1.1-3ubuntu5"}
+}
+```
+
+`dates` (with the composite rule per class, A3.7) is written after the first area build, for review
+in the PR. `--frozen` (the default on Actions) fails on changed feed bytes, changed dates, or an
+installed package version that differs from `requirements.txt`. `tools` is informational: a
+different Python patch, Chromium or ffmpeg build prints a warning only (networks and basemaps
+depend on the pinned packages, not on those; D-8 compares the outputs themselves).
+
+#### 2.4 Brands: `cities/brands.json`
+
+```json
+{
+  "version": 1,
+  "agencies": [
+    {"id": "ttc", "feeds": ["ttc"], "agency_names": ["TTC"], "label": "TTC", "color": "#ed1c24",
+     "verified": true, "source": "ttc.zip routes.txt: ED1C24 on 146 bus and 11 streetcar routes",
+     "lines": "rail", "alt": null, "rules": []},
+    {"id": "brampton", "feeds": ["brampton"], "agency_names": ["Brampton Transit"], "label": "Brampton",
+     "color": "#0067b1", "verified": false, "source": "no route_color in brampton.zip; livery blue, approximate",
+     "lines": "none", "alt": null,
+     "rules": [{"id": "zum", "label": "Züm", "short": "^5\\d\\d$", "color": "#e31837", "verified": false,
+                "source": "Züm red, approximate"}]}
+  ]
+}
+```
+
+| key | type | meaning |
+|---|---|---|
+| `feeds` | [feed id] | the entry applies to routes of these feeds |
+| `agency_names` | [str] or absent | if present, also match `agency_name`; absent = every agency of the feed |
+| `color` | `#rrggbb` | raw brand colour; the renderer moves it into the theme envelope (B5) |
+| `verified` | bool | true only when the hex is the dominant informative `route_color` of the agency in its own GTFS (A10 warns otherwise); false = from the livery, checked by a person before the batch PR merges |
+| `lines` | `none` / `rail` / `all` | which routes keep their own informative `color_raw` as a line brand (rail = any mode other than `bus`) |
+| `alt` | `#rrggbb` or null | second candidate of the distinctness ladder (B6) |
+| `rules[]` | list | `short` (regex on `route_short_name`) or `route_ids` ([str]) to a sub-brand |
+
+#### 2.5 Holidays: `cities/holidays.json` (A owns)
+
+```json
+{"CA-ON": {"2026-10-12": "Thanksgiving", "2026-12-25": "Christmas Day", "2026-12-28": "Boxing Day (observed)"},
+ "CA": {"2026-10-12": "Thanksgiving"}}
+```
+
+Later batches add their country or region keys (section 10).
+
+#### 2.6 Licences and copy templates (D owns)
+
+`cities/licences.json` maps exact ids to rules; nothing is matched on free text (revision 1 matched
+"non-commercial" inside the scouts' "No non-commercial clause found", and missed "for non
+commercial use").
+
+```json
+{"licences": {
+  "ogl-toronto":     {"name": "Open Government Licence - Toronto", "commercial": "yes",
+                      "statement": "Contains information licensed under the Open Government Licence - Toronto."},
+  "ogl-york":        {"name": "Open Government Licence - York Region", "commercial": "yes",
+                      "statement": "Contains information licensed under the Open Government Licence - York Region."},
+  "ogl-mississauga": {"name": "Open Government Licence - Mississauga", "commercial": "yes", "statement": "..."},
+  "ogl-brampton":    {"name": "Open Government Licence - Brampton", "commercial": "yes", "statement": "..."},
+  "ogl-durham":      {"name": "Open Government Licence - Durham", "commercial": "yes", "statement": "..."},
+  "ogl-oakville":    {"name": "Open Government Licence - Oakville", "commercial": "yes", "statement": "..."},
+  "ogl-burlington":  {"name": "Open Government Licence - Burlington", "commercial": "yes", "statement": "..."},
+  "ogl-milton":      {"name": "Open Government Licence - Milton", "commercial": "yes", "statement": "..."},
+  "metrolinx-open-data": {"name": "Metrolinx Open Data Licence", "commercial": "check",
+                          "note": "read the Metrolinx open data terms before monetising"},
+  "cc-by-4.0": {"commercial": "yes"}, "cc-by-sa-4.0": {"commercial": "yes"}, "cc0-1.0": {"commercial": "yes"},
+  "odbl-1.0": {"commercial": "yes"}, "dl-de-by-2.0": {"commercial": "yes"}, "etalab-2.0": {"commercial": "yes"},
+  "cc-by-nc-4.0": {"commercial": "no"}, "cc-by-nc-sa-4.0": {"commercial": "no"},
+  "unknown": {"commercial": "check", "note": "licence not confirmed"}
+ },
+ "map": {"id": "overture-osm", "text": "Overture Maps Foundation (CDLA Permissive 2.0), © OpenStreetMap contributors (ODbL)", "commercial": "yes"}}
+```
+
+Each `ogl-*` statement follows the Toronto one with its own licence name ("..." above). An unknown `licence_id` is a validation
+error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; `check` goes into
+`flags`, the CSV's `licence_flags` and the release notes.
+
+`cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
+filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
+`{peak_count}` (the variant's peak, 2.9), `{trips}`, `{month}`. D adds in metadata `{agencies}`,
+`{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}`, `{peak_day}`.
+
+#### 2.7 Derived configs (D writes, A reads)
+
+All carry `"schema": 4`. Legacy configs have no `schema` and never reach v4 code (they are read
+only by the untouched legacy scripts).
+
+**Area config** `build/areas/<area>/area.<tl>.json`:
+
+| key | type | example | meaning |
+|---|---|---|---|
+| `schema`, `kind` | | `4`, `"area"` | |
+| `id` | str | `"gta"` | area id |
+| `origin` | [lon, lat] | `[-79.47, 43.8]` | from the area |
+| `area_box` | [w, s, e, n] | from the area | explicit, never derived from the city set |
+| `gtfs_dir` | str | `"cache/feeds/gta"` | zips named `<feed id>.zip` |
+| `feeds` | list | area feeds plus `sha256` | |
+| `modes` | list | batch modes | |
+| `timeline` | obj | see below | |
+| `stop_times_chunk` | int | 2000000 | rows per pandas chunk (A4) |
+
+`timeline`: `{"kind": "day" | "week", "month": "2026-10", "timezone": "America/Toronto",
+"holidays": {"2026-10-12": "Thanksgiving"}, "drop_pct": 8, "min_week_dates": 2, "fallback_days":
+28, "guard": {"low": 0.90, "high": 1.03, "min_dates": 3}}`.
+
+**City config** `build/<id>/city.<tl>.json`:
+
+| key | type | example | meaning |
+|---|---|---|---|
+| `schema`, `kind` | | `4`, `"city"` | |
+| `id`, `batch`, `area`, `place` | str | `"gta-markham"`, `"gta"`, `"gta"`, `"Markham"` | |
+| `title` | str | `"MARKHAM"` | uppercase place |
+| `origin` | [lon, lat] | area origin | |
+| `frame` | obj | `{"km_vertical": 49.0, "center_km": [15.7, 6.0]}` | the day frame (also the week frame) |
+| `trim_scale` | float | 1.25 | trim box = frame box scaled by this, plus 1 km |
+| `boundary` | obj | `{"file": "build/gta-markham/boundary.geojson", "name": "Markham", "simplify_km": 0.02, "mask_km": 0.025}` | |
+| `brands` | str | `"cities/brands.json"` | |
+| `group_by` | obj | `{"field": "agency-auto", "min_share": 0.03, "max_groups": 3}` | |
+| `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM"`, `"Data: {n} transit agencies · Map: Overture, OSM"` | on-screen credit; at most 2 lines at 22 px in 504 px (B9) |
+| `preset`, `theme` | str, obj | `"shorts"`, `{"batch": "lake"}` | copied to meta |
+| `render` | obj | `{}` | copied to meta.render (base values only) |
+| `variants` | obj | 2.9 | `start: "am_peak"` and the rush frame are filled by A |
+| `rush` | obj | `{"auto": true, "zoom": [1.4, 2.2], "share": 0.6}` | A8.6 |
+| `panel` | obj | `{"preferred": "right", "tie": 0.10, "rect": [60, 1140, 620, 1500]}` | A8.7 |
+| `card` | obj | `{"title": "MARKHAM", "templates": {...}}` | copied |
+| `major_share` | float | 0.05 | a feed is major in this city at this share of inside vehicle-minutes |
+
+**Basemap config** `build/<id>/basemap.config.json`: exactly the dict that the unmodified
+`build_basemap.build(city)` reads: `id`, `origin`, `clip`, `basemap_dir`, `basemap`,
+`gzip: true`, `boundary: null`, `built_dir: "build/<id>"`, no `basemap_city`, plus `"schema": 4`
+(ignored by `build`). Output `build/<id>/basemap.json.gz`.
+
+#### 2.8 Area store: `build/areas/<area>/<tl>/` (A writes and reads)
+
+Internal, never loaded by the page. A directory of `.npy` files read with
+`np.load(path, mmap_mode="r")`, so a trim touches only the rows it needs and peak memory stays
+small on 16 GB runners even for Paris or New York, plus `meta.json` and `stamp.json`.
+
+| file | dtype, shape | content |
+|---|---|---|
+| `meta.json` | JSON | `schema`, `area`, `origin`, `timeline` (with per-feed `dates`, `excluded`, `rule` per day class), `feeds[]` stats (A6), `routes[]` `{id, short, long, color, color_raw, type, feed, mode, agency}`, `day_classes` (`["wd"]` or `["mon", ..., "sun"]`), `n_dates` per feed and day class |
+| `shape_off.npy` | int64 (S+1) | offsets into the shape arrays |
+| `shape_xy.npy` | int32 (2 x points) | x, y interleaved, metres (= km rounded to 3 decimals, times 1000) |
+| `shape_cum.npy` | int32 (points) | cumulative length in 0.1 m (= km rounded to 4 decimals, times 10000) |
+| `trip_off.npy` | int64 (N+1) | offsets into the stop arrays |
+| `trip_t.npy` | int32 | seconds |
+| `trip_d.npy` | int32 | metres along the shape |
+| `trip_r.npy`, `trip_s.npy`, `trip_feed.npy` | int32 (N) | route, shape, feed index |
+| `trip_sha.npy` | uint8 (N x 20) | class signature sha1 |
+| `trip_mult.npy` | int16 (N) | multiplicity: the most members of the class running on any one selected date (A3.4) |
+| `trip_dates.npy` | int16 (N x K) | per day class k: selected dates of k on which at least one member runs |
+| `trip_runs.npy` | int32 (N x K) | per day class k: member runs summed over the selected dates of k (for the mean counts) |
+| `trip_draw.npy` | uint8 (N) | bit k set when the class is drawn in class k (A3.5, A3.7) |
+
+Trips are sorted by `(t[0], "<feed>:<route_id>", sha1 hex)`: string keys, never area-level
+indices, so the order of the trips of one city does not depend on which other cities or feeds are
+in the area. Integers divided by 1000 (or 10000) give exactly the floats that
+`np.round(km, 3)` (or 4) gives, so the network JSON is byte-identical to building from floats.
+Every class with any member running on any selected date is stored (drawn or not), because the mean
+counts need them.
+
+#### 2.9 Network JSON v4 (A writes, B reads, D reads meta)
+
+Legacy keys keep their meaning. New or changed keys:
+
+```
+meta.schema            4
+meta.kind              "city"
+meta.id, batch, area, place    "gta-markham", "gta", "gta", "Markham"
+meta.title             "MARKHAM"
+meta.subtitle          variants[<first>].label
+meta.service_date      "2026-10" (the basis month; legacy key kept as a string)
+meta.origin            area origin
+meta.day_start/day_end window of the first variant (seconds; day_end may exceed 86400)
+meta.frame             {"km_vertical", "center_km"}
+meta.trim              {"scale": 1.25, "box_km": [x0, y0, x1, y1]}
+meta.modes             batch modes with "color"/"trail" omitted (the theme supplies them)
+meta.attribution       [credit]   (one line, for legacy readers)
+meta.credit            "Data: YRT, GO, TTC · Map: Overture, OSM"
+meta.build_key         sha256 of the trim step key (D2)
+meta.feeds[]           {"id","name","publisher","licence_id","licence_text","version","sha256","month_used",
+                        "dates": [...] (day) | {"mon": [...], ..., "sun": [...]} (week),
+                        "rule": "half" | "median-date" (day) | {"mon": "half", ...} (week),
+                        "median_date": "2026-10-20" | {"tue": "2026-10-20", ...} (only where rule is median-date),
+                        "excluded": [{"date","why": "holiday"|"dst"|"low"|"no service","trips","median","name"}],
+                        "classes","drawn","mean_trips_per_day",
+                        "inside_vehicle_minutes","inside_share","major": bool}
+meta.trips_total       trips in this file (copies counted)
+meta.timeline          {"kind": "day"|"week", "period": 86400|604800, "basis": "average-weekday"|"average-week",
+                        "month": "2026-10", "month_label": "October", "fallback_feeds": ["burlington"]}
+meta.hist_period       1440 (day) | 10080 (week), minutes
+meta.am_peak           {"count": 431, "time": 28860}   first argmax of raw hist in minutes 300..630 (week: Monday)
+meta.pm_peak           {"count", "time"}               same, 870..1170
+meta.hist_by_mode      {mode: [hist_period floats]}
+meta.groups            [{"id": "yrt", "label": "YRT", "brand": "yrt", "share": 0.77}, ..., {"id": "other", "label": "other", "brand": null, "share": 0.02}]
+meta.hist_by_group     {group: [hist_period floats]}
+meta.boundary          {"name", "rings": [[x,y,...]], "holes": [[x,y,...]], "area_km2", "bbox_km": [x0,y0,x1,y1],
+                        "source": "Overture 2026-09-23.1 division_area <id>",
+                        "mask": {"cell_km": 0.025, "x0", "y0", "nx", "ny", "rle": [...]}}
+meta.panel             {"side": "right", "inside_under": {"left": 31, "right": 12}, "why": "fewer inside vehicles under the panel"}
+meta.brands            [{"id": "yrt", "label": "YRT", "hex": "0058a9", "kind": "agency"|"rule"|"line"|"gtfs"|"mode",
+                         "entry": "yrt", "rail": false, "share": 0.81, "verified": false, "alt": null, "source": "..."}]
+meta.color_by          "brand"
+meta.preset            "shorts"
+meta.theme             {"batch": "lake"}
+meta.render            {...} base values from the city config
+meta.variants          {"day": V, "rush": V}  (day network)  |  {"week": V}  (week network)
+meta.card              {"title": "MARKHAM", "templates": {"day": [[line0, line1], [..], [..]], "rush": [...], "week": [...]}}
+routes[i].agency, type, color_raw   agency_name, route_type int, route_color as in routes.txt ('' when blank)
+routes[i].brand        index into meta.brands
+routes[i].group        group id
+trips[i]               {"r","s","t","d"} plus "w" (7-bit mask, bit 0 = Monday) in week files
+hist                   [hist_period floats, 2 decimals]: mean vehicles running inside the boundary,
+                       index = minute of the period (day: 0 = 00:00; week: 0 = Monday 00:00)
+```
+
+`hist`, `hist_by_mode` and `hist_by_group` are the mean running counts over each feed's selected
+dates (decision 2), always, including where the drawn set follows the median-date rule. Every number
+on screen and in the metadata is read from them (B9, B10, D5), so the count line, the peak label,
+the card and the description cannot disagree.
+
+Variant object `V`:
+
+```json
+{"start": 28860, "end": 115260, "label": "An average October weekday",
+ "frame": null,
+ "peak": {"count": 431, "time": 28860},
+ "render": {"DURATION_FRAMES": 1500, "HOLD_START": 0, "HOLD_END": 0, "LOOP": "wrap",
+            "TIME_WARP_MODE": "activity", "SPARK_SMOOTH_MIN": 35}}
+```
+
+`V.peak` = first argmax of the raw `hist` over the minutes of `[start, end)` (wrapped with the
+period), count rounded. `V.frame` for the rush is the pinned or the automatic frame (A8.6), else
+null.
+
+Defaults per variant (D writes them from `cities/defaults.json`):
+
+| variant | start, end | frames | render block |
+|---|---|---|---|
+| `day` | `am_peak.time`, start + 86400 | 1500 (50 s) | `LOOP "wrap"`, `TIME_WARP_MODE "activity"`, `SPARK_SMOOTH_MIN 35` |
+| `rush` | 23400 (06:30), 34200 (09:30) | 750 (25 s) | `LOOP "xfade"`, `TIME_WARP_MODE "linear"`, `SPARK_SMOOTH_MIN 15`, `TRAIL_MINUTES 8` (A8.6 rescales it for a closer frame) |
+| `week` | Monday `am_peak.time`, start + 604800 | 1800 (60 s) | `LOOP "wrap"`, `TIME_WARP_MODE "activity-daily"`, `TIME_WARP_FLOOR 0.3`, `SPARK_SMOOTH_MIN 60`, `TRAIL_MINUTES 30`, `BUS_HALO_ALPHA 0.1`, `BUS_CORE_R 0`, `WEEKEND_BAND true`, `CLOCK_ROUND 60` |
+
+All three set `DURATION_FRAMES` to the frame count and `HOLD_START`/`HOLD_END` to 0.
+
+#### 2.10 Page query and CONFIG keys (B implements, C and D pass)
+
+New CONFIG keys, each declared in `CONFIG` with the default below (so `applyRender` type-checks
+them). The default is today's behaviour; the Shorts values come from the preset (B3).
+
+| CONFIG key | type | default | shorts preset | query |
+|---|---|---|---|---|
+| `PRESET` | str | `''` | | `preset` |
+| `HUD_LAYOUT` | `'panel'`, `'shorts'` | `'panel'` | `'shorts'` | `layout` |
+| `THEME` | `''`, `lake`, `ink`, `sodium`, `slate`, `teal` | `''` (today's COLORS) | from `meta.theme.batch` | `theme` |
+| `VARIANT` | str | `''` | first key of `meta.variants` | `variant` |
+| `COLOR_BY` | `''`, `'brand'` | `''` (use meta.color_by) | `'brand'` | `colorby` |
+| `BRAND_MIN_DE` | float | 0.08 | | |
+| `TIME_WARP_MODE` | `'empty'`, `'activity'`, `'activity-daily'`, `'linear'` | `'empty'` | `'activity'` | `warp` |
+| `TIME_WARP_GAMMA` | float | 1 | 1 | `warpgamma` |
+| `TIME_WARP_FLOOR` | float | 0.15 | 0.15 | `warpfloor` |
+| `TIME_WARP_SMOOTH_MIN` | int | 60 | 60 | |
+| `LOOP` | `'none'`, `'wrap'`, `'xfade'` | `'none'` | per variant | `loop` |
+| `CLOCK_ROUND` | int minutes, 0 = auto | 0 | | `clockround` |
+| `CARD` | bool | false | true | `card` (0/1) |
+| `CARD_HOLD` / `CARD_FADE_OUT` / `CARD_FADE_IN` | int frames | 27 / 18 / 30 | | |
+| `CARD_SCRIM` | float | 0.25 | | `cardscrim` |
+| `CARD_BAND` | float | 0.85 | | `cardband` |
+| `CARD_CENTER_Y` | int px | 620 | | `cardy` |
+| `CARD_TITLE_MAX` | int px | 132 | | `cardsize` |
+| `CARD_LINES` | int | 0 | from `variety.card_line` | `cardline` |
+| `PEAK_MARKER` | bool | false | true | `peak` |
+| `MODE_CHIPS` | bool | false | true | `chips` |
+| `OUTSIDE_DIM` | float 0..1 | 0 | 0.55 | `outside` |
+| `CITY_LINE_W` / `CITY_LINE_ALPHA` | float | 2 / 0.8 | | |
+| `PANEL_ALPHA` | float | 1 | 1 | `panelalpha` |
+| `PANEL_SIDE` | `''`, `'left'`, `'right'` | `''` (= `meta.panel.side`, else left) | | `panelside` |
+| `TITLE_SIZE` | int px | 64 | | |
+| `PANEL_TOP` | int px | 0 (auto, B9) | | |
+| `FONT_SET` | `'classic'`, `'extended'` | `'classic'` | `'extended'` | `fonts` |
+| `FRAME_ZOOM` | float | 1 | | `zoom` |
+| `FRAME_DX_KM` / `FRAME_DY_KM` | float | 0 / 0 | | `cx` / `cy` |
+| `BASE_ROADS_GAIN` / `BASE_WATER_GAIN` | float | 1 / 1 | | `roads` / `water` |
+| `WEEKEND_BAND` | bool | false | | |
+
+New query names for existing keys: `dotcore` -> `BUS_CORE_R` (0 allowed: halo only), `halor` ->
+`BUS_HALO_R`, `haloalpha` -> `BUS_HALO_ALPHA`, `layeralpha` -> `TRAIL_LAYER_ALPHA`, `smooth` ->
+`SPARK_SMOOTH_MIN`. Existing ones stay (`trailmin`, `trailalpha`, `corew`, `shoulderw`,
+`shoulder`, `shoulderbands`, `routealpha`, `trailscale`, `trailstep`, `trailbands`, `simplify`,
+`trailmode`, `osm`).
+
+New non-CONFIG query parameters:
+
+| query | value | effect |
+|---|---|---|
+| `render` | URI-encoded JSON object of CONFIG keys | applied after `meta.render` and the variant block, before pinned knobs; carries D3.8's merge |
+| `brandhex` | `id:rrggbb;id:rrggbb` | replaces `meta.brands[].hex` before normalisation; carries `override.brand_colors` |
+| `hud` | `left`, `right` (today), `none`, `notext` | `none` skips HUD and card; `notext` draws every scrim, band and panel backdrop but no text |
+| `safe` | `1` | draws the safe zone and the YouTube overlay zones (judge only) |
+| `data`, `basemap` | URLs (today) | `../build/<id>/day/network.json.gz` etc. |
+
+Precedence, lowest first: CONFIG default, LARGE_FRAME profile (frames of 60 km and up, as today),
+preset (`web/presets/<name>.json` `render`), theme tokens, `meta.theme` keys, `meta.render`,
+`meta.variants[v].render`, `render=` query JSON, single query knobs (pinned, as today).
+
+#### 2.11 busmap API additions (B implements; C and D call)
+
+Every existing member stays. Added:
+
+| member | type | meaning |
+|---|---|---|
+| `variant` | str | active variant, `''` for legacy |
+| `window` | `{start, end}` | seconds |
+| `safe` | `{x0: 60, y0: 240, x1: 880, y1: 1500}` | |
+| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle`, `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`; `size` in px |
+| `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
+| `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
+| `setCard(on)` | fn | turns the card on or off without reload |
+| `cardAlpha(i)` | fn | card alpha at frame i |
+| `stillTimes()` | fn | `{am, noon, pm, late, night}` absolute seconds inside the window (B15) |
+| `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
+| `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
+
+#### 2.12 render_video.mjs additions (C implements; D calls)
+
+```
+--data PATH            repo-relative network file; adds data=../PATH
+--basemap PATH         repo-relative basemap file; adds basemap=../PATH
+--variant NAME         adds variant=NAME
+--render-json JSON     adds render=<encodeURIComponent(JSON)>
+--brandhex STR         adds brandhex=STR
+--tier T               stills | preview | final | tune  (absent = today's behaviour exactly)
+--out PATH             tiers: the MP4 (final, preview); default out/shorts/<batch>/<name>.mp4
+--name STEM            output stem, default from --out
+--out-dir DIR          stills/tune output directory
+--times LIST           stills/tune: comma list of H:MM (26:30 allowed), seconds, or "none"
+--frames LIST          stills/tune: comma list of frame indices, "last" allowed (card checks)
+--sheet                stills: also write <out-dir>/<name>.sheet.jpg (at most 1568 px on the long edge)
+--clip-at T            tune: clip starts at the frame whose time is T (default busmap.stillTimes().am)
+--clip-frames N        tune: default 90
+--roundtrip            tune: also write the 720p VP9 round trips (C5)
+--capture MODE         screenshot | canvas | raw | webcodecs (C3)
+--jobs N               raw only, default min(3, CPUs - 1)
+--min-kbps N           final: default 8000
+--crf-ladder LIST      final: default 18,16,14,12,10
+--key HEX              final: the render key (D2), written into the sidecar
+--keep-frames LIST     final: also save the lossless canvas PNG of these frames ("0,300,last") into --review-dir
+--review-dir DIR       final: review files (C6)
+--keep-intermediate    final: keep the lossless intermediate
+--dry-run              print the page URL and the final ffmpeg arguments, render nothing
+```
+
+#### 2.13 Sidecar, network metadata, metadata, CSV
+
+Sidecar `<stem>.json` next to every MP4 (C): `{"name", "variant", "tier", "frames", "fps": 30,
+"width": 1080, "height": 1920, "duration_s", "crf", "kbps", "bitrate_floor_met", "capture",
+"ms_per_frame", "query", "network_sha256", "basemap_sha256", "code_sha256": {"app.js",
+"index.html", "color.js", "themes.json", "presets/shorts.json", "render_video.mjs"}, "git_commit",
+"chromium", "ffmpeg", "runner", "started_at", "key"}`.
+
+Network metadata `<stem>.netmeta.json` (D, from the network meta, before rendering):
+`{"id", "variant", "place", "title", "label", "month_label", "peak", "am_peak", "pm_peak", "feeds"
+(id, name, publisher, licence_id, licence_text, dates, rule, excluded, inside_share, major),
+"modes_present", "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
+batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
+
+Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
+"credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],
+"flags": [str], "publish_order", "meta_key"}`.
+
+CSV `out/shorts/<batch>/<batch>-youtube.csv`, UTF-8 with BOM, RFC 4180 quoting, columns
+`publish_order,file,title,description,tags,category,made_for_kids,visibility,licence_flags`
+(`made_for_kids` = `no`, `visibility` = `private`).
+
+#### 2.14 make.py CLI (D implements)
+
+```
+python3 scripts/make.py lock <batch> [--refresh]
+python3 scripts/make.py fetch <batch> [--area A] [--feeds-only | --overture-only] [--push-data-tag] [--frozen]
+python3 scripts/make.py build <batch> [--area A] [--city ID] [--area-only] [--timeline day|week] [--frozen] [--no-upstream]
+python3 scripts/make.py stills <id> [--variant V] [--extra-query Q]
+python3 scripts/make.py preview <id> --variant V
+python3 scripts/make.py render <id> --variant V [--tier final] [--no-upstream] [--review-dir DIR]
+python3 scripts/make.py tune <id> [--variant V] [--knob K | --next] [--pick K=a|b|c --why TEXT] [--auto] [--apply]
+python3 scripts/make.py meta <batch> [--only ID-VARIANT] [--from-netmeta DIR] [--no-upstream] [--allow-nc]
+python3 scripts/make.py plan --from-branch batch/<batch> --github-output FILE
+python3 scripts/make.py release <batch> --upload ID-VARIANT | --publish       # Actions only (GITHUB_TOKEN)
+python3 scripts/make.py review-push <batch> --from DIR                        # Actions only
+python3 scripts/make.py check-legacy [--record]
+python3 scripts/make.py show <batch> | <id>                                   # derived configs, keys, area_box suggestion
+```
+
+Every subprocess is `sys.executable -I scripts/<tool>.py ...` or `node scripts/render_video.mjs
+...` with an argument list, never a shell string, and with `PYTHONHASHSEED=0` in its environment.
+`--no-upstream` never runs a step other than the one asked for: it checks
+`build/<id>/manifest.json` (and the area stamp) and fails on a missing input or a key mismatch.
+`--allow-nc` exists for local experiments only; Actions reads `allow_nc` from the batch file.
+
+### A3. Composite dates and trip classes (`scripts/composite.py`)
+
+Functions (pure, unit-tested):
+
+```python
+def service_dates(feed) -> dict[str, set[datetime.date]]       # calendar + calendar_dates, the rule of bn.active_services
+def trips_per_date(feed, svc) -> collections.Counter            # trips per date; a frequencies.txt template counts its expanded runs
+def select_dates(counts, timeline, tz, max_t1) -> dict          # A3.1 to A3.3, per feed and day class
+def read_frame(feed, name, columns, key, keep, chunksize)       # A4
+def read_stop_times(feed, trip_ids, chunksize) -> StopTimes     # A4; the arrays build_feed builds (lines 511 to 520)
+def trip_classes(feed, svc, sel, st) -> list[TripClass]         # A3.4, A3.5
+def apply_guard(classes, sel, counts, guard) -> dict            # A3.7
+```
+
+**A3.1 Candidates.** For each feed and each day class (`wd` for a day timeline; `mon` .. `sun`
+for a week timeline), the dates of that class in the month that lie in the feed's validity (first
+to last date with any service). `wd` = Monday to Friday.
+
+**A3.2 Exclusions,** in this order, each recorded in `excluded` with its reason:
+
+1. `holiday`: the date is in `timeline.holidays`, with its name.
+2. `no service`: 0 trips on the date.
+3. `dst`: the UTC offset in the feed's `agency_timezone` (first agency; else `timeline.timezone`)
+   differs between local `d 00:00` and `d 00:00 + H`, with `H = max(30, ceil(max_t1 / 3600))` hours
+   and `max_t1` the feed's latest stop time (TTC 30:59 gives 31 h). For the GTA this drops Saturday
+   2026-10-31 (the change is at 02:00 on 11-01) and Sunday 2026-11-01; no October weekday.
+4. `low`: trips on the date `< (1 - drop_pct / 100) x median` (drop_pct 8), the median over the
+   class's dates still in after steps 1 to 3. One pass. Every median in A3 is a lower median (for
+   an even count, the lower of the two middle values), so all tests stay in integers.
+
+**A3.3 Fallback.** If a class has no date left for a feed, the feed uses the dates of that class in
+`[first valid date, first valid date + fallback_days - 1]` (28 days) with the same exclusions, and
+`month_used` becomes that window's month (Burlington: 2026-11-02 to 11-27, 20 weekdays,
+`month_used` `2026-11`). If that is empty too, the feed contributes nothing and the summary says so.
+
+**A3.4 Signature classes.** Inputs: every trip whose service runs on any selected date of any
+class (frequency templates: every expanded run). Signature, joined with `\x1f`, hashed with sha1:
+
+```
+route_short_name | route_long_name | route_type      (from routes.txt; never route_id, GO versions it)
+direction_id
+shape_id
+stop_id sequence                 (by stop_sequence, joined with '|')
+arrival_time sequence            (raw strings)
+departure_time sequence          (raw strings)
+frequency offset                 ('' or '@<seconds>' for expanded runs)
+```
+
+For each class c and selected date x: `runs_c(x)` = members of c running on x. Then
+`D_c = {x : runs_c(x) >= 1}`, the **multiplicity** `mult_c = max_x runs_c(x)` (Brampton and
+Oakville each have 2 classes with `mult` 2 on every weekday), and per day class k
+`dates_k(c) = |D_c ∩ W_k|`, `runs_k(c) = sum over x in W_k of runs_c(x)`. The representative is
+the member running on the earliest selected date, ties by the smallest `trip_id`; its stop times,
+shape and route are what gets built. Every set or dict that is iterated is iterated in sorted order
+(no string-hash order anywhere).
+
+**A3.5 Half rule.** With `W_k` the selected dates of class k for that feed, class c is drawn in k
+when `2 x dates_k(c) >= |W_k|` (integers; decision 2's "at least half"), and then drawn
+`mult_c` times. Day file: k = `wd`. Week file: `draw` bit k per class, the trip is in the network
+when any bit is set, and its `w` mask is the `draw` bits.
+
+**A3.6 Week eligibility** (per city, at the week trim): every feed with `major: true` in the city's
+day network (inside share at least `major_share` 0.05) must have at least `min_week_dates` (2)
+dates in every day class from the month itself (a fallback month does not count). Otherwise exit 3
+with the reasons. GTA: Burlington is not eligible (Burlington Transit is major there and has no
+October dates); the other nine are (E3).
+
+**A3.7 Guard (two-sided).** For each feed and day class k, after A3.5: `ratio = (sum of mult_c over
+drawn classes) / median over W_k of trips_per_date`. When `ratio < guard.low` (0.90), `ratio >
+guard.high` (1.03) or `|W_k| < guard.min_dates` (3), the feed's drawn set in k becomes the
+**median-date rule**: the trips of the selected date whose count is the lower median of `W_k`
+(for an even count the lower of the two middle values; ties: the earliest date), each class with
+`runs_c` on that date as its copy count. `rule` becomes `"median-date"` and `median_date` names
+the date in `meta.feeds[]`; the summary warns. Only the drawn set changes: `hist` stays the mean
+over all of `W_k` (A9). On the GTA data this rule takes, from 0.1.4: GO Sat (Oct 24), GO Sun (Oct
+18), GO Tue (Oct 20, ratio 1.039), DRT Tue (Oct 20) and Wed (Oct 21, ratio 1.999: DRT's two
+timetables tie on every class), UP Mon and Milton Mon (2 dates each: Oct 19). Every other class
+keeps the half rule.
+
+MUST (A-4): for every feed and every day class of both timelines, the drawn count over the median
+is within 0.97 to 1.03, and the date lists and rules equal E3.
+
+### B9. Shorts layout (`HUD_LAYOUT 'shorts'`)
+
+Safe zone: x 60..880, y 240..1500; everything below is inside it. Left-aligned text throughout. On
+a 6.1-inch phone one frame pixel is about 0.06 mm and Shorts are often served at 720 x 1280, so the
+sizes below are minimums, never shrunk further. `dx` = 0 for the left panel, 260 for the right one
+(panel x 320..880, text x 348..852). Font names are the `extended` families (B13).
+
+| element | font | colour | x | baseline y | fit |
+|---|---|---|---|---|---|
+| title scrim | | `scrim` | | | sprite 1080 x 460 at y 0: alpha stops 0: S, 0.55: S, 0.80: 0.55 S, 1: 0; S = `TITLE_SCRIM` |
+| title (`meta.title`) | MontserratX 700, `TITLE_SIZE` 64, letter-spacing 0.12 em | title | 72 | 316 | width <= 796: shrink by 2 down to 48 |
+| subtitle (variant label) | MontserratX 400 36 | subtitle | 72 | 370 | 36 down to 32 |
+| panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95) | 60+dx..620+dx | | y `PANEL_TOP`..1500 |
+| weekday (week only) | MontserratX 800, fitted once on `WEDNESDAY` from 80 down to 64 (68 with the repo fonts) | clock | 88+dx | clock row - 50 | |
+| clock | day and rush: MontserratXTnum 800 88; week: MontserratXTnum 600 40 | clock | 88+dx | 1232 (day, rush), 1238 (week) | |
+| count | MontserratXTnum 600 40 | accent | 88+dx | 1282 | fitted once on the widest text down to 36; then split (below) |
+| chips | MontserratXTnum 500 26, dots r 9 | breakdown | 88+dx | 1320 | chips rule below |
+| sparkline | area + 3 px accent stroke | accent | 88+dx..592+dx | y 1334..1386, floor line 1386.5 (1 px `floor`) | curve height `y1 - y0 - 6` |
+| peak marker | dot r 5; label MontserratXTnum 600 26 `peak 3,951` | accent | right of the dot (left when it would pass 592+dx) | dot y + 9, inside 1353..1386 | |
+| axis | MontserratX 500 26 | axis | 88+dx left, 592+dx right-aligned | 1416 | |
+| credit (`meta.credit`) | InterX 400 22 | credit | 88+dx | 1450 and 1476 | wraps at a space into at most 2 lines of 504 px; never cut |
+
+* **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1140 for day
+  and rush, 1110 for the week (weekday cap top 1138), 44 px higher again when the count splits.
+* **Count line**: `${withCommas(n)} ${noun} in ${meta.place}` with `n = round(histRaw(T / 60))`;
+  noun = the mode label (singular when n is 1) when one mode has inside vehicles at `V.peak`, else
+  `vehicles` / `vehicle`. Fit once on the text at `V.peak.count`: 40 px, down to 36; if it still
+  exceeds 504 px, split before ` in `: `count` (`12,345 vehicles`) and `count2` (`in Richmond
+  Hill`) 44 px apart, and the rows above move up 44 px. The count never exceeds the peak label,
+  because both read `hist` and the label is its maximum over the window.
+* **Chips** (`MODE_CHIPS`): groups from `meta.groups` in order (else modes). Each part is a dot r 9
+  centred at `(x + 9, baseline - 9)` in the group's colour (B6), then the text `412 YRT` from
+  `x + 26`; 20 px between parts. The numbers are the group means at T, rounded by largest
+  remainder so they add up to the count line's n. Fit once at each group's maximum over the window:
+  all groups at 26 px; else the smallest shown group joins `other` (2 groups plus other), then 1
+  plus other; then 24 px. Never below 24.
+* **Clock.** `CLOCK_ROUND` 0 (auto): the time is floored to 5 minutes while `rate(m)` exceeds 2
+  minutes per frame (nights of the day video), else to the minute; the week block sets 60 (`8 am`).
+* **Axis**: day: `clockText(W0)` left and `clockText(W1)` right (the same clock time) plus a 1 px
+  floor-colour tick at midnight (y 1386..1394) with `midnight` centred under it when its centre is
+  at least 120 px from both ends. Rush: `6:30 am` / `9:30 am`, ticks at 7, 8, 9 am. Week: day letters
+  `M T W T F S S` centred on each calendar day's visible span (none under 30 px), the current day's
+  letter in MontserratX 700 accent; 1 px ticks at each midnight; with `WEEKEND_BAND` an accent
+  rectangle at 0.07 alpha from x(Saturday 00:00) to x(Monday 00:00), y 1334..1386, under the area.
+* **Weekday** (week): `['MONDAY', ..., 'SUNDAY'][floor(T / 86400) % 7]`, T counted from the
+  composite Monday 00:00. It is the big line of the week panel; the clock is the small line.
+* **Peak marker** (`PEAK_MARKER`): at `V.peak.time` on the drawn curve, shown once T has passed it;
+  label `peak ${withCommas(V.peak.count)}`.
+* **Asserts.** After layout, every box above and every card box (B10) is checked against x 60..880,
+  y 240..1500 with `measureText` widths, and every text size against its minimum (title 48, subtitle
+  32, weekday 64, clock 40, count 36, chips 24, peak, axis 26, credit 22, card line 0 40, card line 1
+  30); any failure is a `console.error`, which fails a render (C). `hudBoxes()` reports `size`.
+* `?safe=1`: translucent `rgba(255,0,0,0.18)` boxes over y 0..240, y 1500..1920 and x 880..1080 for
+  y 240..1500, plus a 1 px outline of the safe zone. Never set by make.py renders.
+
+### B10. Card and loop frame mapping
+
+Card text from `meta.card.templates[VARIANT][CARD_LINES]`, a pair `[line0, line1]`, formatted with
+`{place}`, `{modes_singular}` (`bus and train`, `bus, streetcar and train`: modes with inside
+vehicles at `V.peak`), `{modes_plural}`, `{peak_time}` (`clockText(V.peak.time)`), `{peak_count}`
+(`V.peak.count` with commas), `{trips}`, `{month}` (`meta.timeline.month_label`). An unknown
+placeholder is a `console.error`.
+
+Layout per variant at init, left-aligned at x 72, width limit 796, block centred on `CARD_CENTER_Y`
+(620: above the city centre, which D3.2 puts at y 845, so the busiest part of the map stays visible
+under the card):
+
+* Title `meta.card.title`: MontserratX 800, letter-spacing 0.04 em, S = the largest even size <=
+  `CARD_TITLE_MAX` (132) and >= 72 whose width fits. If S is under 100 and the title has a space,
+  split at the space that minimises the longer line and refit (`RICHMOND / HILL` 124 px). Baselines
+  `B + 0.80 S + k x 0.98 S`.
+* Accent rule: x 72..168, 6 px tall, top at the last title baseline + 30.
+* Line 0: InterX 500 44 px, title colour, baseline = rule top + 64; wraps at a space into at most two
+  lines 54 px apart (most templates need two: 792 to 1,088 px at 44 px); 40 px only if two lines are
+  not enough.
+* Line 1: InterX 400 32 px, title colour at 0.85 alpha, baseline = last line-0 baseline + 52; 32
+  down to 30, then wraps.
+* Block height h = last baseline + 12 - B; `B = round(CARD_CENTER_Y - h / 2)`, clamped so the block
+  stays inside y 400..1100.
+* Scrim: the whole frame in `scrim` at `CARD_SCRIM x a` (0.25), so the moving map stays the hook;
+  plus a full-width band from y `B - 60` to `B + h + 60` at `CARD_BAND x a` (0.85) with 48 px linear
+  feathers at both edges. The card text is measured for contrast against this background (G4).
+
+Card alpha for frame i of N = `totalFrames`, `smooth(x) = x x x x (3 - 2x)`:
+
+```
+a_out(i) = i < CARD_HOLD ? 1 : 1 - smooth(min(1, (i - CARD_HOLD) / CARD_FADE_OUT))       // 1 to frame 26, 0 from frame 45
+a_in(i)  = LOOP == 'wrap' ? smooth(clamp((i - (N - 1 - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1)) : 0   // 1 at N - 1
+a(i)     = max(a_out(i), a_in(i))
+```
+
+The HUD (title scrim, title, subtitle, panel and everything in it, peak marker) is drawn at alpha
+`1 - a(i)`; the map, trails, dots and boundary overlay are always full.
+
+Frame to time:
+
+* `LOOP 'wrap'` (day, week): `T(i) = timeAtProgress(i / N)`. Frame N - 1 is one step before
+  `W0 + P`, which looks exactly like `W0`, and both ends carry the full card, so YouTube's loop from
+  the last frame to frame 0 is one ordinary step.
+* `LOOP 'xfade'` (rush): `T(i) = timeAtProgress(i / N)`; the live frame carries no card at the end
+  (`a_in` = 0); a snapshot of frame 0 (card included) is drawn over it at alpha
+  `smooth(clamp((i - (N - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1))`, which reaches 1 at the virtual
+  frame N, so N - 1 to 0 is one step of the cross-fade, with no held frame and no doubled card. The
+  snapshot is rendered lazily into an offscreen canvas, so `renderFrameV4(i)` stays a pure function
+  of i.
+* `LOOP 'none'`: today's `frameTime`.
+
+`renderAtV4(T)` stays pure and draws the HUD at full alpha with no card (stills); only
+`renderFrameV4(i)` applies the card and the snapshot.
