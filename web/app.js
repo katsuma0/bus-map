@@ -138,6 +138,46 @@ const CONFIG = {
   // Darkening at the top of the frame behind the title, 0 to 1. Off for the
   // sparse maps; a dense bus map needs it or the subtitle drowns.
   TITLE_SCRIM: 0,
+  // Shorts keys (schema 4 networks, spec 2.10). Each default is today's
+  // behaviour, and only initV4 reads them; they are declared here so that
+  // applyRender type-checks them like every other knob.
+  PRESET: '',
+  HUD_LAYOUT: 'panel',
+  THEME: '',
+  VARIANT: '',
+  COLOR_BY: '',
+  BRAND_MIN_DE: 0.08,
+  TIME_WARP_MODE: 'empty',
+  TIME_WARP_GAMMA: 1,
+  TIME_WARP_FLOOR: 0.15,
+  TIME_WARP_SMOOTH_MIN: 60,
+  LOOP: 'none',
+  CLOCK_ROUND: 0,
+  CARD: false,
+  CARD_HOLD: 27,
+  CARD_FADE_OUT: 18,
+  CARD_FADE_IN: 30,
+  CARD_SCRIM: 0.25,
+  CARD_BAND: 0.85,
+  CARD_CENTER_Y: 620,
+  CARD_TITLE_MAX: 132,
+  CARD_LINES: 0,
+  PEAK_MARKER: false,
+  MODE_CHIPS: false,
+  OUTSIDE_DIM: 0,
+  CITY_LINE_W: 2,
+  CITY_LINE_ALPHA: 0.8,
+  PANEL_ALPHA: 1,
+  PANEL_SIDE: '',
+  TITLE_SIZE: 64,
+  PANEL_TOP: 0,
+  FONT_SET: 'classic',
+  FRAME_ZOOM: 1,
+  FRAME_DX_KM: 0,
+  FRAME_DY_KM: 0,
+  BASE_ROADS_GAIN: 1,
+  BASE_WATER_GAIN: 1,
+  WEEKEND_BAND: false,
   COLORS: {
     bg: '#07080c',
     water: '#1c1f27',
@@ -1006,6 +1046,7 @@ async function init() {
     fetchJSON(CONFIG.BASEMAP_URL),
     fetchJSON(CONFIG.NETWORK_URL),
   ]);
+  if (network.meta && network.meta.schema === 4) return initV4(basemap, network);
   meta = network.meta;
   shapes = network.shapes;
   trips = network.trips;
@@ -1490,6 +1531,1821 @@ function renderFrame(i) {
   return T;
 }
 
+// ------------------------------------------------------------- v4: Shorts
+//
+// A network with meta.schema 4 (spec 2.9) leaves init() on the line after the
+// fetch and comes here; nothing below runs for the legacy configs. A legacy
+// function is called only where it already does exactly what v4 needs, and
+// everything else has a V4 copy, so the legacy bodies (and with them the
+// legacy frames) stay byte-identical; tests/legacy/bodies.py checks that.
+
+let isV4 = false;
+let variantV = null;        // meta.variants[CONFIG.VARIANT]
+let periodS = 86400;        // meta.timeline.period, seconds
+let histN = 1440;           // meta.hist_period, minutes
+let themeEnv = null;        // trail and line envelope of the active theme (B4)
+let brandMap = null;        // B6 result, busmap.brandMap
+let brandHexQuery = null;   // ?brandhex=, id -> rrggbb
+let groupColor = null;      // group id -> chip dot colour
+// Occurrences (B7): one per trip, weekday and period shift that can be on
+// screen inside the window, sorted by start time.
+let occN = 0;
+let occTrip = null;
+let occOff = null;
+let occT0 = null;
+let occT1 = null;
+let maxDur = 0;
+let sparkSmooth = null;     // hist smoothed by SPARK_SMOOTH_MIN, circular
+let shorts = null;          // Shorts HUD geometry and fitted fonts (B9)
+let boundaryMask = null;    // decoded meta.boundary.mask (B11)
+let boundaryOverlay = null; // dimming outside the boundary plus the city line, one canvas
+let cardLayout = null;      // B10 card geometry and text, or null
+let cardOn = true;
+let hudMode = 'full';       // 'full', 'notext' or 'none' (setHud)
+let showSafe = false;
+let loopSnapshot = null;    // frame 0, drawn over the end of an xfade loop
+let lastBoxes = [];         // hudBoxes() of the last drawn frame
+let vehBuf = new Float32Array(3 * 4096);
+let vehN = 0;
+let shortsStatics = null;   // title scrim, panel backdrop, spark fill, safe zone overlay
+
+// YouTube Shorts safe zone in frame pixels: nothing on screen leaves it (B9).
+const SAFE = { x0: 60, y0: 240, x1: 880, y1: 1500 };
+// Smallest size each HUD and card text may take (B9 asserts).
+const MIN_SIZE = {
+  title: 48, subtitle: 32, weekday: 64, clock: 40, count: 36, count2: 36, chips: 24, peak: 26, axis: 26,
+  credit: 22, credit2: 22, card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30,
+  card_line1b: 30,
+};
+const DAY_NAMES = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+// Colours of modes without a brand, before the theme envelope moves them (B4).
+const MODE_SOURCES = { bus: '4864de', streetcar: 'cd3746', rail: 'cda53c', ferry: '3cbeb4' };
+// Tokens a theme adds to CONFIG.COLORS, and their values without a theme.
+const V4_COLORS = { cityLine: '#8c8f99', floor: '#3a3b43', dotCore: '#ffffff', foreign: '#8a8d96' };
+// The lake envelope stands in when a v4 file is drawn with THEME ''.
+const DEFAULT_ENV = { trailL: 0.78, trailCmin: 0.07, trailCmax: 0.15, lineL: 0.58, lineCmax: 0.13, minContrast: 3 };
+const V4_ENUMS = {
+  HUD_LAYOUT: ['panel', 'shorts'],
+  COLOR_BY: ['', 'brand'],
+  TIME_WARP_MODE: ['empty', 'activity', 'activity-daily', 'linear'],
+  LOOP: ['none', 'wrap', 'xfade'],
+  PANEL_SIDE: ['', 'left', 'right'],
+  FONT_SET: ['classic', 'extended'],
+};
+// Query names of the Shorts knobs (2.10): [query, CONFIG key, kind]. A name
+// kind is checked as a file name; 'bool' reads 0 or false as off.
+const V4_KNOBS = [
+  ['preset', 'PRESET', 'name'], ['layout', 'HUD_LAYOUT', 'enum'], ['theme', 'THEME', 'name'],
+  ['variant', 'VARIANT', 'name'], ['colorby', 'COLOR_BY', 'enum'], ['warp', 'TIME_WARP_MODE', 'enum'],
+  ['warpgamma', 'TIME_WARP_GAMMA', 'num'], ['warpfloor', 'TIME_WARP_FLOOR', 'num'], ['loop', 'LOOP', 'enum'],
+  ['clockround', 'CLOCK_ROUND', 'num'], ['card', 'CARD', 'bool'], ['cardscrim', 'CARD_SCRIM', 'num'],
+  ['cardband', 'CARD_BAND', 'num'], ['cardy', 'CARD_CENTER_Y', 'num'], ['cardsize', 'CARD_TITLE_MAX', 'num'],
+  ['cardline', 'CARD_LINES', 'num'], ['peak', 'PEAK_MARKER', 'bool'], ['chips', 'MODE_CHIPS', 'bool'],
+  ['outside', 'OUTSIDE_DIM', 'num'], ['panelalpha', 'PANEL_ALPHA', 'num'], ['panelside', 'PANEL_SIDE', 'enum'],
+  ['fonts', 'FONT_SET', 'enum'], ['zoom', 'FRAME_ZOOM', 'num'], ['cx', 'FRAME_DX_KM', 'num'],
+  ['cy', 'FRAME_DY_KM', 'num'], ['roads', 'BASE_ROADS_GAIN', 'num'], ['water', 'BASE_WATER_GAIN', 'num'],
+  ['dotcore', 'BUS_CORE_R', 'num'], ['halor', 'BUS_HALO_R', 'num'], ['haloalpha', 'BUS_HALO_ALPHA', 'num'],
+  ['layeralpha', 'TRAIL_LAYER_ALPHA', 'num'], ['smooth', 'SPARK_SMOOTH_MIN', 'num'],
+];
+// Brand distinctness ladder (B6): [name, lightness shift, hue rotation in
+// degrees]. Lightness comes before hue so a known colour keeps its hue, and
+// no step turns more than 30 degrees.
+const BRAND_LADDER = [
+  ['source', 0, 0], ['alt', 0, 0], ['dL-0.12', -0.12, 0], ['dL+0.10', 0.10, 0],
+  ['rot+15', 0, 15], ['rot-15', 0, -15], ['rot+30', 0, 30], ['rot-30', 0, -30],
+  ['dL-0.12 rot+15', -0.12, 15], ['dL-0.12 rot-15', -0.12, -15], ['dL-0.12 rot+30', -0.12, 30],
+  ['dL-0.12 rot-30', -0.12, -30],
+];
+
+const mod = (a, n) => ((a % n) + n) % n;
+const clamp01 = (x) => Math.min(1, Math.max(0, x));
+const smoothstep = (x) => x * x * (3 - 2 * x);
+
+// Python's round(), which A's builders use for every count in the file: an
+// exact half goes to the even neighbour, so 2.5 vehicles read 2 on both sides.
+function roundHalfEven(x) {
+  const r = Math.round(x);
+  return Math.abs(x - Math.trunc(x)) === 0.5 && r % 2 !== 0 ? r - 1 : r;
+}
+
+// Query knobs of 2.10, plus hud, safe, brandhex and render; all pinned, so
+// nothing later in the precedence chain overrides them (B2 step 1).
+function parseV4Query() {
+  for (const [param, key, kind] of V4_KNOBS) {
+    if (!params.has(param)) continue;
+    const raw = params.get(param);
+    let v = raw;
+    if (kind === 'num') {
+      v = Number(raw);
+      if (raw.trim() === '' || !Number.isFinite(v)) {
+        console.warn(`?${param}=${raw} ignored: not a number`);
+        continue;
+      }
+    } else if (kind === 'bool') {
+      v = raw !== '0' && raw !== 'false';
+    } else if (kind === 'name') {
+      if (!/^[A-Za-z0-9_-]*$/.test(raw)) throw new Error(`?${param}=${raw}: not a plain name`);
+    } else if (!V4_ENUMS[key].includes(raw)) {
+      console.warn(`?${param}=${raw} ignored; one of ${V4_ENUMS[key].map((e) => JSON.stringify(e)).join(', ')}`);
+      continue;
+    }
+    CONFIG[key] = v;
+    pinned.add(key);
+  }
+  if (HUD_OVERRIDE === 'none' || HUD_OVERRIDE === 'notext') hudMode = HUD_OVERRIDE;
+  showSafe = params.get('safe') === '1';
+  brandHexQuery = new Map();
+  if (params.has('brandhex')) {
+    for (const part of params.get('brandhex').split(';')) {
+      if (!part.trim()) continue;
+      // Brand ids carry colons (brampton:zum, ttc:line:d5c82b): the hex is after the last one.
+      const at = part.lastIndexOf(':');
+      const id = part.slice(0, at).trim();
+      const hex = part.slice(at + 1).trim().replace(/^#/, '').toLowerCase();
+      if (at <= 0 || !/^[0-9a-f]{6}$/.test(hex)) throw new Error(`?brandhex: bad entry "${part}", want id:rrggbb`);
+      brandHexQuery.set(id, hex);
+    }
+  }
+  if (!params.has('render')) return null;
+  let render;
+  try {
+    render = JSON.parse(params.get('render'));
+  } catch (e) {
+    throw new Error(`?render is not JSON: ${e.message}`);
+  }
+  if (!render || typeof render !== 'object' || Array.isArray(render)) throw new Error('?render must be a JSON object of CONFIG keys');
+  return render;
+}
+
+// A batch theme (web/themes.json): every COLORS token it names, and its
+// envelope for brand and mode colours.
+function applyThemeTokens(theme) {
+  const C = CONFIG.COLORS;
+  for (const [key, value] of Object.entries(theme.colors || {})) {
+    if (typeof value === 'string' && CSS.supports('color', value)) C[key] = value;
+    else console.warn(`theme token ${key} = ${JSON.stringify(value)} ignored`);
+  }
+  if (theme.env && typeof theme.env === 'object') themeEnv = { ...themeEnv, ...theme.env };
+}
+
+// Enum keys arrive through applyRender as any string; an unknown one would
+// silently draw something else, so it falls back to its default.
+function checkV4Config() {
+  const defaults = { HUD_LAYOUT: 'panel', COLOR_BY: '', TIME_WARP_MODE: 'empty', LOOP: 'none', PANEL_SIDE: '', FONT_SET: 'classic' };
+  for (const [key, allowed] of Object.entries(V4_ENUMS)) {
+    if (!allowed.includes(CONFIG[key])) {
+      console.warn(`${key} = ${JSON.stringify(CONFIG[key])} is not one of ${allowed.join(', ')}; using ${JSON.stringify(defaults[key])}`);
+      CONFIG[key] = defaults[key];
+    }
+  }
+}
+
+// FRAME_ZOOM and the km shifts land after every render block (B2 step 9b).
+// setFrame already chose the LARGE_FRAME profile on the unzoomed frame, so a
+// zoom arm never switches the trail profile.
+function finishFrame() {
+  const z = CONFIG.FRAME_ZOOM, dx = CONFIG.FRAME_DX_KM, dy = CONFIG.FRAME_DY_KM;
+  if (z === 1 && dx === 0 && dy === 0) return;
+  if (!(z > 0)) throw new Error(`FRAME_ZOOM must be positive, got ${z}`);
+  CONFIG.KM_VERTICAL /= z;
+  CONFIG.CENTER_KM = [CONFIG.CENTER_KM[0] + dx, CONFIG.CENTER_KM[1] + dy];
+  SCALE = H / CONFIG.KM_VERTICAL;
+  OX = W / 2 - CONFIG.CENTER_KM[0] * SCALE;
+  OY = H / 2 + CONFIG.CENTER_KM[1] * SCALE;
+}
+
+function fontsV4() {
+  return CONFIG.FONT_SET === 'extended'
+    ? { mont: 'MontserratX', tnum: 'MontserratXTnum', inter: 'InterX' }
+    : { mont: 'Montserrat', tnum: 'MontserratTnum', inter: 'Inter' };
+}
+
+function bgRGB() {
+  return cssToRGB(CONFIG.COLORS.bg, [7, 8, 12]);
+}
+
+// A mode's own colours, the source of MODE_SOURCES moved into the envelope.
+function modeColorsV4(id) {
+  const n = window.BusmapColor.normalise(MODE_SOURCES[id] || MODE_SOURCES.bus, themeEnv, bgRGB());
+  return { line: window.BusmapColor.parseHex(n.line), trail: window.BusmapColor.parseHex(n.trail), n };
+}
+
+async function initV4(basemap, network) {
+  if (!window.BusmapColor) throw new Error('web/color.js is not loaded');
+  const renderQuery = parseV4Query();
+  isV4 = true;
+  meta = network.meta;
+  shapes = network.shapes;
+  trips = network.trips;
+  hist = network.hist;
+  const variants = meta.variants && typeof meta.variants === 'object' ? meta.variants : {};
+  if (!CONFIG.VARIANT) CONFIG.VARIANT = Object.keys(variants)[0] || '';
+  variantV = variants[CONFIG.VARIANT];
+  if (!variantV) {
+    throw new Error(`unknown variant "${CONFIG.VARIANT}"; this network has: ${Object.keys(variants).join(', ') || 'none'}`);
+  }
+  const tl = meta.timeline || {};
+  periodS = Number(tl.period) || 86400;
+  histN = Number(meta.hist_period) || hist.length;
+  if (!Array.isArray(hist) || hist.length !== histN) throw new Error(`hist has ${hist && hist.length} bins, meta.hist_period is ${histN}`);
+  // The page's own copy of the window, which timeAtProgress and progressAt clamp to.
+  meta.day_start = variantV.start;
+  meta.day_end = variantV.end;
+  setFrame(variantV.frame || meta.frame);
+
+  // A query value wins even when empty: ?preset= and ?theme= draw without one.
+  if (!pinned.has('PRESET')) CONFIG.PRESET = meta.preset || '';
+  if (CONFIG.PRESET) {
+    if (!/^[A-Za-z0-9_-]+$/.test(CONFIG.PRESET)) throw new Error(`bad preset name ${CONFIG.PRESET}`);
+    const preset = await fetchJSON(`presets/${CONFIG.PRESET}.json`);
+    applyRender(preset.render);
+  }
+  for (const [key, value] of Object.entries(V4_COLORS)) if (!(key in CONFIG.COLORS)) CONFIG.COLORS[key] = value;
+  themeEnv = { ...DEFAULT_ENV };
+  if (!pinned.has('THEME')) CONFIG.THEME = (meta.theme && meta.theme.batch) || '';
+  if (CONFIG.THEME) {
+    const themes = await fetchJSON('themes.json');
+    if (!Object.hasOwn(themes, CONFIG.THEME)) {
+      throw new Error(`unknown theme "${CONFIG.THEME}"; web/themes.json has: ${Object.keys(themes).join(', ')}`);
+    }
+    applyThemeTokens(themes[CONFIG.THEME]);
+  }
+  if (meta.theme && typeof meta.theme === 'object') {
+    const rest = { ...meta.theme };
+    delete rest.batch;
+    applyTheme(rest);
+  }
+  // The scrims and the outside dimming are the background, whatever the theme.
+  CONFIG.COLORS.scrim = CONFIG.COLORS.bg;
+  CONFIG.COLORS.outside = CONFIG.COLORS.bg;
+  applyRender(meta.render);
+  applyRender(variantV.render);
+  applyRender(renderQuery);
+  checkV4Config();
+  finishFrame();
+  totalFrames = CONFIG.HOLD_START + CONFIG.DURATION_FRAMES + CONFIG.HOLD_END;
+
+  buildModesV4(network);
+  const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
+  if (brand) buildColorsBrand(network);
+  else buildColors(network);
+  buildGroupsV4(network);
+
+  const F = fontsV4();
+  const faces = CONFIG.HUD_LAYOUT === 'shorts'
+    ? [`700 ${CONFIG.TITLE_SIZE}px ${F.mont}`, `400 36px ${F.mont}`, `800 80px ${F.mont}`, `500 26px ${F.mont}`,
+      `700 26px ${F.mont}`, `800 132px ${F.mont}`, `800 88px ${F.tnum}`, `600 40px ${F.tnum}`, `500 26px ${F.tnum}`,
+      `600 26px ${F.tnum}`, `400 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
+    : ['600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum', '600 32px Montserrat',
+      '500 24px Montserrat', '600 32px MontserratTnum', '500 24px MontserratTnum', '500 20px Montserrat', '400 18px Inter',
+      `800 132px ${F.mont}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`];
+  await Promise.all(faces.map((f) => document.fonts.load(f).catch(() => null)));
+  await document.fonts.ready;
+
+  baseCanvas = buildBaseV4(basemap, network);
+  buildSpritesV4();
+  await promoteSprites();
+  buildRibbons();
+  buildOccurrences();
+  buildWarpV4();
+  if (CONFIG.HUD_LAYOUT === 'shorts') buildShortsLayout();
+  else buildHudLayout();
+  buildSparklineV4();
+  if (CONFIG.HUD_LAYOUT === 'shorts') buildShortsStatics();
+  else buildHudStatics();
+  buildBoundary();
+  buildCard();
+  checkLayoutV4();
+  return { basemap, network };
+}
+
+// buildModes with the theme's mode colours: v4 files carry no mode colours.
+function buildModesV4(network) {
+  const list = Array.isArray(meta.modes) && meta.modes.length ? meta.modes : null;
+  modes = (list || [{ id: 'bus', label: 'buses', singular: 'bus' }]).map((m) => {
+    const c = modeColorsV4(m.id);
+    return { id: m.id, label: m.label || m.id, singular: m.singular || m.label || m.id, color: c.line, trail: c.trail };
+  });
+  for (const m of modes) m.trailCss = rgba(m.trail, 1);
+  const index = new Map(modes.map((m, i) => [m.id, i]));
+  const top = CONFIG.STREETCAR_ON_TOP && index.has('streetcar') ? index.get('streetcar') : -1;
+  onTopMode = top;
+  layerOrder = modes.map((_, i) => i).filter((i) => i !== top);
+  if (top >= 0) layerOrder.push(top);
+  const routeMode = network.routes.map((r) => index.get(r.mode) || 0);
+  routeModes = routeMode;
+  tripMode = new Uint8Array(trips.length);
+  shapeMode = new Uint8Array(shapes.length);
+  tripT0 = new Float64Array(trips.length);
+  tripT1 = new Float64Array(trips.length);
+  runningByMode = new Int32Array(modes.length);
+  tripsSorted = true;
+  for (let n = 0; n < trips.length; n++) {
+    const trip = trips[n];
+    const m = routeMode[trip.r] || 0;
+    tripMode[n] = m;
+    shapeMode[trip.s] = m;
+    tripT0[n] = trip.t[0];
+    tripT1[n] = trip.t[trip.t.length - 1];
+    if (n > 0 && tripT0[n] < tripT0[n - 1]) tripsSorted = false;
+  }
+}
+
+// color_by "brand" (B6). Brands whose group is shown are placed and get
+// their own colour through the distinctness ladder; every other brand is
+// drawn in the theme's foreign grey, like the "other" chip, so a small brand
+// just across the border never looks like the host. Then the byRoute
+// machinery of buildColors, one colour class per drawn colour.
+function buildColorsBrand(network) {
+  byRoute = true;
+  const BC = window.BusmapColor;
+  const C = CONFIG.COLORS;
+  const bg = bgRGB();
+  const env = themeEnv;
+  const brands = Array.isArray(meta.brands) ? meta.brands : [];
+  const shown = new Set((meta.groups || []).map((g) => g.id).filter((id) => id !== 'other'));
+  const groupOf = (b) => (b.kind === 'gtfs' || b.kind === 'mode' ? b.id : b.entry || b.id);
+  const firstMode = new Map();
+  for (const r of network.routes) if (Number.isInteger(r.brand) && !firstMode.has(r.brand)) firstMode.set(r.brand, r.mode);
+  // A brand with an empty (or uninformative) hex takes its mode's colour.
+  const sourceOf = (b, i) => {
+    const q = brandHexQuery.get(b.id);
+    const hex = q !== undefined ? q : typeof b.hex === 'string' ? b.hex.replace(/^#/, '').toLowerCase() : '';
+    if (BC.informative(hex)) return hex;
+    const mode = b.kind === 'mode' ? String(b.id).replace(/^mode:/, '') : firstMode.get(i);
+    return MODE_SOURCES[mode] || MODE_SOURCES.bus;
+  };
+  for (const id of brandHexQuery.keys()) {
+    if (!brands.some((b) => b.id === id)) console.warn(`?brandhex: no brand "${id}" in meta.brands`);
+  }
+  const foreign = BC.toHex(cssToRGB(C.foreign, [138, 141, 150]));
+  // The dormant line of a foreign brand: foreign at half strength over bg.
+  const foreignLine = BC.over(foreign, 0.5, bg);
+  brandMap = brands.map((b, i) => ({ id: b.id, hex: sourceOf(b, i), trail: foreign, line: foreignLine, how: 'foreign', placed: false }));
+  const order = brands.map((_, i) => i).filter((i) => shown.has(groupOf(brands[i])))
+    .sort((a, b) => (brands[b].share || 0) - (brands[a].share || 0) || (brands[a].id < brands[b].id ? -1 : brands[a].id > brands[b].id ? 1 : a - b));
+  const placedTrails = [];
+  const upL = Math.min(0.10, 0.92 - env.trailL);
+  for (const i of order) {
+    const b = brands[i], e = brandMap[i];
+    let best = null, pass = null;
+    for (const [how, dL0, rot] of BRAND_LADDER) {
+      let src = e.hex;
+      if (how === 'alt') {
+        const alt = typeof b.alt === 'string' ? b.alt.replace(/^#/, '').toLowerCase() : '';
+        if (!BC.informative(alt) || brandHexQuery.has(b.id)) continue;
+        src = alt;
+      }
+      const n = BC.normalise(src, env, bg, how === 'dL+0.10' ? upL : dL0, rot);
+      if (!n) continue;
+      const dmin = placedTrails.reduce((m, t) => Math.min(m, BC.deltaE(n.trail, t)), Infinity);
+      const cand = { how, n, dmin };
+      if (!best || dmin > best.dmin) best = cand;
+      if (dmin >= CONFIG.BRAND_MIN_DE && BC.contrast(n.trail, bg) >= 3) { pass = cand; break; }
+    }
+    const pick = pass || best;
+    if (!pass) console.warn(`brand ${b.id}: no ladder step is ${CONFIG.BRAND_MIN_DE} from the placed brands; ${pick.how} is the farthest (${pick.dmin.toFixed(3)})`);
+    Object.assign(e, { trail: pick.n.trail, line: pick.n.line, how: pick.how, placed: true });
+    placedTrails.push(pick.n.trail);
+  }
+
+  // One colour class per drawn colour: rail brands after the others, then by
+  // trips ascending, so lines lie over buses and the busiest bus brand is on
+  // top of the bus layer.
+  const index = new Map();
+  const found = [];
+  const classOf = (trail, line, rail, rank) => {
+    const key = `${trail}/${line}`;
+    if (!index.has(key)) {
+      index.set(key, found.length);
+      found.push({ trail, line, rail, rank, trips: 0, order: found.length });
+    }
+    const c = found[index.get(key)];
+    c.rail = c.rail || rail;
+    c.rank = Math.min(c.rank, rank);
+    return index.get(key);
+  };
+  const brandClass = brandMap.map((e, i) => classOf(e.trail, e.line, e.placed && brands[i].rail === true, e.placed ? i : 1e6));
+  const routeClass = network.routes.map((r) => {
+    if (Number.isInteger(r.brand) && r.brand >= 0 && r.brand < brands.length) return brandClass[r.brand];
+    const mc = modeColorsV4(r.mode).n;
+    return classOf(mc.trail, mc.line, r.mode !== 'bus', 1e6 + 1);
+  });
+  const tripClass = new Uint16Array(trips.length);
+  const used = new Uint8Array(shapes.length);
+  for (let n = 0; n < trips.length; n++) {
+    const k = routeClass[trips[n].r] || 0;
+    tripClass[n] = k;
+    found[k].trips++;
+    used[trips[n].s] = 1;
+  }
+  let fallback = -1;
+  for (let i = 0; i < shapes.length; i++) {
+    if (!used[i]) { fallback = classOf(foreign, foreignLine, false, 1e6 + 2); break; }
+  }
+  if (!found.length) classOf(foreign, foreignLine, false, 1e6 + 2);
+  const sorted = found.slice().sort((a, b) => (a.rail - b.rail) || a.trips - b.trips || a.rank - b.rank || a.order - b.order);
+  const rank = new Uint16Array(found.length);
+  sorted.forEach((c, i) => { rank[c.order] = i; });
+  colors = sorted.map((c) => ({ hex: c.trail, css: `#${c.trail}`, lineCss: `#${c.line}`, rgb: BC.parseHex(c.trail), trips: c.trips }));
+  tripColor = new Uint16Array(trips.length);
+  for (let n = 0; n < trips.length; n++) tripColor[n] = rank[tripClass[n]];
+  const seen = new Set();
+  colorShapes = colors.map(() => []);
+  for (let n = 0; n < trips.length; n++) {
+    const key = trips[n].s * colors.length + tripColor[n];
+    if (seen.has(key)) continue;
+    seen.add(key);
+    colorShapes[tripColor[n]].push(trips[n].s);
+  }
+  if (fallback >= 0) {
+    for (let i = 0; i < shapes.length; i++) if (!used[i]) colorShapes[rank[fallback]].push(i);
+  }
+  for (const list of colorShapes) list.sort((a, b) => a - b);
+  if (CONFIG.TRAIL_MODE === 'sprite') {
+    console.warn('color_by brand draws ribbon trails; trailmode=sprite ignored');
+    CONFIG.TRAIL_MODE = 'ribbon';
+  }
+  // Chip dots take the group's entry brand colour; "other" is foreign.
+  groupColor = new Map();
+  const byId = new Map(brands.map((b, i) => [b.id, brandMap[i]]));
+  for (const g of meta.groups || []) {
+    const e = g.id === 'other' ? null : byId.get(g.brand) || byId.get(g.id);
+    groupColor.set(g.id, `#${e && e.placed ? e.trail : foreign}`);
+  }
+}
+
+// buildGroups for v4 groups ({id, label, brand, share}); "other" collects
+// routes of unknown groups.
+function buildGroupsV4(network) {
+  const list = Array.isArray(meta.groups) && meta.groups.length ? meta.groups : null;
+  if (!list) return;
+  groups = list.map((g) => ({ id: g.id, label: g.label || g.id, brand: g.brand || null, share: Number(g.share) || 0, shown: false }));
+  const index = new Map(groups.map((g, i) => [g.id, i]));
+  const fallback = index.has('other') ? index.get('other') : groups.length - 1;
+  const routeGroup = network.routes.map((r) => (index.has(r.group) ? index.get(r.group) : fallback));
+  tripGroup = new Uint8Array(trips.length);
+  for (let n = 0; n < trips.length; n++) {
+    const g = routeGroup[trips[n].r];
+    tripGroup[n] = g === undefined ? fallback : g;
+    groups[tripGroup[n]].shown = true;
+  }
+  if (!groups.some((g) => g.shown)) for (const g of groups) g.shown = true;
+  runningByGroup = new Int32Array(groups.length);
+}
+
+// token moved towards (gain < 1) or away from (gain > 1) the background, per
+// sRGB channel (B12).
+function gainCss(token, gain) {
+  if (gain === 1) return token;
+  const bg = bgRGB();
+  const c = cssToRGB(token, bg);
+  const v = c.map((x, i) => Math.round(Math.min(255, Math.max(0, bg[i] + gain * (x - bg[i])))));
+  return `rgb(${v[0]},${v[1]},${v[2]})`;
+}
+
+// buildBase with the road and water gains, and the dormant network of a
+// colour class in its line colour (lineCss) rather than its trail colour.
+function buildBaseV4(basemap, network) {
+  const C = CONFIG.COLORS;
+  const rg = CONFIG.BASE_ROADS_GAIN, wg = CONFIG.BASE_WATER_GAIN;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d', { alpha: false });
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, W, H);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+
+  const water = basemap.water || { poly: [], line: [] };
+  g.fillStyle = gainCss(C.water, wg);
+  g.beginPath();
+  for (const ring of water.poly || []) {
+    if (tracePolyline(g, ring)) g.closePath();
+  }
+  g.fill();
+  if (water.holes) {
+    g.fillStyle = C.bg;
+    g.beginPath();
+    for (const ring of water.holes) {
+      if (tracePolyline(g, ring)) g.closePath();
+    }
+    g.fill();
+  }
+
+  g.strokeStyle = gainCss(C.waterLine, wg);
+  const byClass = { river: [], canal: [], stream: [] };
+  for (const l of water.line || []) (byClass[l.c] || byClass.stream).push(l.xy);
+  g.lineWidth = 2;
+  strokeMany(g, byClass.river);
+  g.lineWidth = 1.4;
+  strokeMany(g, byClass.canal);
+  g.lineWidth = 1;
+  strokeMany(g, byClass.stream);
+
+  const roads = basemap.roads || {};
+  g.lineWidth = 1;
+  g.strokeStyle = gainCss(C.minor, rg);
+  strokeMany(g, roads.minor || []);
+  g.lineWidth = 1.6;
+  g.strokeStyle = gainCss(C.major, rg);
+  strokeMany(g, roads.major || []);
+  g.setLineDash([7, 5]);
+  g.lineWidth = 1.2;
+  g.strokeStyle = gainCss(C.rail, rg);
+  strokeMany(g, roads.rail || []);
+  g.setLineDash([]);
+
+  g.globalAlpha = 0.4;
+  g.lineWidth = 1;
+  g.strokeStyle = C.boundary;
+  strokeMany(g, basemap.boundary || []);
+  g.globalAlpha = 1;
+
+  g.globalCompositeOperation = 'lighter';
+  g.lineWidth = CONFIG.ROUTE_WIDTH;
+  if (CONFIG.OSM_ROUTES && basemap.osm_routes) {
+    g.strokeStyle = rgba(C.routeRGB, CONFIG.OSM_ROUTES_ALPHA);
+    g.lineWidth = 1.5;
+    for (const r of basemap.osm_routes) {
+      g.beginPath();
+      if (tracePolyline(g, r.xy)) g.stroke();
+    }
+    g.lineWidth = CONFIG.ROUTE_WIDTH;
+  }
+  if (byRoute) {
+    g.globalCompositeOperation = 'source-over';
+    const ml = document.createElement('canvas');
+    ml.width = W;
+    ml.height = H;
+    const lg = ml.getContext('2d');
+    lg.lineCap = 'round';
+    lg.lineJoin = 'round';
+    lg.lineWidth = CONFIG.ROUTE_WIDTH;
+    for (let k = 0; k < colors.length; k++) {
+      lg.strokeStyle = colors[k].lineCss || colors[k].css;
+      lg.beginPath();
+      for (const i of colorShapes[k]) tracePolyline(lg, network.shapes[i].xy);
+      lg.stroke();
+    }
+    g.globalAlpha = CONFIG.ROUTE_ALPHA;
+    g.drawImage(ml, 0, 0);
+    g.globalAlpha = 1;
+    return c;
+  }
+  if (CONFIG.ROUTE_BLEND === 'bounded') {
+    g.globalCompositeOperation = 'source-over';
+    for (let m = 0; m < modes.length; m++) {
+      const ml = modeLayer(m);
+      ml.globalCompositeOperation = 'source-over';
+      ml.globalAlpha = 1;
+      ml.clearRect(0, 0, W, H);
+      ml.lineCap = 'round';
+      ml.lineJoin = 'round';
+      ml.lineWidth = CONFIG.ROUTE_WIDTH;
+      ml.strokeStyle = rgba(modes[m].color, 1);
+      ml.beginPath();
+      for (let i = 0; i < network.shapes.length; i++) {
+        if (shapeMode[i] === m) tracePolyline(ml, network.shapes[i].xy);
+      }
+      ml.stroke();
+      g.globalAlpha = CONFIG.ROUTE_ALPHA;
+      g.drawImage(ml.canvas, 0, 0);
+      g.globalAlpha = 1;
+    }
+    return c;
+  }
+  let cur = -1;
+  for (let i = 0; i < network.shapes.length; i++) {
+    const m = shapeMode[i];
+    if (m !== cur) {
+      g.strokeStyle = rgba(modes[m].color, CONFIG.ROUTE_ALPHA);
+      cur = m;
+    }
+    g.beginPath();
+    if (tracePolyline(g, network.shapes[i].xy)) g.stroke();
+  }
+  g.globalCompositeOperation = 'source-over';
+  return c;
+}
+
+// buildSprites with the theme's dot core: dotCore, and none at all for
+// BUS_CORE_R 0 (the week: a bus moves tens of pixels a frame and a hard core
+// strobes, B12).
+function buildSpritesV4() {
+  const ts = CONFIG.TRAIL_SCALE;
+  trailWindow = CONFIG.TRAIL_MINUTES * 60;
+  trailSteps = Math.round(trailWindow / CONFIG.TRAIL_STEP_S);
+  trailSprites = modes.map((mode) => {
+    const list = [];
+    for (let k = 0; k <= trailSteps; k++) {
+      const a = CONFIG.TRAIL_ALPHA * (1 - k / trailSteps);
+      list.push(makeRadialSprite(CONFIG.TRAIL_RADIUS * ts, [
+        [0, rgba(mode.trail, a)],
+        [0.35, rgba(mode.trail, a * 0.6)],
+        [0.7, rgba(mode.trail, a * 0.18)],
+        [1, rgba(mode.trail, 0)],
+      ]));
+    }
+    return list;
+  });
+  trailHalf = trailSprites[0][0].width / 2;
+  sampleX = new Float64Array(trailSteps + 1);
+  sampleY = new Float64Array(trailSteps + 1);
+  sampleD = new Float64Array(trailSteps + 1);
+
+  const core = CONFIG.COLORS.dotCore || '#ffffff';
+  const busSprite = (halo) => {
+    const sprite = makeRadialSprite(Math.max(CONFIG.BUS_HALO_R, CONFIG.BUS_CORE_R, 1), [
+      [0, rgba(halo, CONFIG.BUS_HALO_ALPHA)],
+      [0.35, rgba(halo, CONFIG.BUS_HALO_ALPHA * 0.45)],
+      [0.7, rgba(halo, CONFIG.BUS_HALO_ALPHA * 0.12)],
+      [1, rgba(halo, 0)],
+    ]);
+    if (CONFIG.BUS_CORE_R > 0) {
+      const g = sprite.getContext('2d');
+      g.fillStyle = core;
+      g.beginPath();
+      g.arc(sprite.width / 2, sprite.width / 2, CONFIG.BUS_CORE_R, 0, Math.PI * 2);
+      g.fill();
+    }
+    return sprite;
+  };
+  busSprites = byRoute
+    ? colors.map((c) => busSprite(c.rgb))
+    : modes.map((mode) => busSprite(modes.length > 1 ? mode.trail : [255, 255, 255]));
+  busHalf = busSprites[0].width / 2;
+
+  if (byRoute) {
+    const c = document.createElement('canvas');
+    c.width = Math.round(W * ts);
+    c.height = Math.round(H * ts);
+    colorLayer = c.getContext('2d');
+    colorPaths = new Array(colors.length * CONFIG.TRAIL_BANDS).fill(null);
+  } else if (ts !== 1) {
+    trailCanvas = document.createElement('canvas');
+    trailCanvas.width = Math.round(W * ts);
+    trailCanvas.height = Math.round(H * ts);
+    trailCtx = trailCanvas.getContext('2d');
+  }
+}
+
+// Every (trip, weekday, period shift) that can be on screen inside the
+// window (B7). The composite repeats with period P, so a trip's copy one
+// period later is the same trip, which is why the loop has no seam.
+function buildOccurrences() {
+  const W0 = meta.day_start, W1 = meta.day_end, P = periodS;
+  const week = meta.timeline && meta.timeline.kind === 'week';
+  const t0s = [], ns = [], offs = [];
+  let warned = false;
+  maxDur = 0;
+  for (let n = 0; n < trips.length; n++) {
+    const t0 = tripT0[n], t1 = tripT1[n];
+    if (t1 - t0 > maxDur) maxDur = t1 - t0;
+    let w = 1;
+    if (week) {
+      w = trips[n].w;
+      if (!Number.isInteger(w)) {
+        if (!warned) console.warn('week network: a trip has no "w" weekday mask; drawing it every day');
+        warned = true;
+        w = 127;
+      }
+    }
+    for (let k = 0; k < 7; k++) {
+      if (!(w >> k & 1)) continue;
+      const b = 86400 * k;
+      for (let j = -1; j <= 2; j++) {
+        const off = b + j * P;
+        if (t1 + off + trailWindow >= W0 && t0 + off <= W1) {
+          t0s.push(t0 + off);
+          ns.push(n);
+          offs.push(off);
+        }
+      }
+    }
+  }
+  occN = t0s.length;
+  const idx = new Int32Array(occN);
+  for (let j = 0; j < occN; j++) idx[j] = j;
+  idx.sort((a, b) => t0s[a] - t0s[b] || ns[a] - ns[b] || offs[a] - offs[b]);
+  occTrip = new Int32Array(occN);
+  occOff = new Float64Array(occN);
+  occT0 = new Float64Array(occN);
+  occT1 = new Float64Array(occN);
+  for (let j = 0; j < occN; j++) {
+    const k = idx[j];
+    occTrip[j] = ns[k];
+    occOff[j] = offs[k];
+    occT0[j] = t0s[k];
+    occT1[j] = tripT1[ns[k]] + offs[k];
+  }
+}
+
+// First index j with arr[j] >= v (arr sorted ascending, n entries).
+function lowerBound(arr, n, v) {
+  let lo = 0, hi = n;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid] < v) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
+// arr at fractional minute min, linearly interpolated, indices taken
+// modulo the period.
+function interpCircular(arr, min) {
+  const n = arr.length;
+  const i = Math.floor(min);
+  const f = min - i;
+  const a = arr[mod(i, n)] || 0;
+  const b = arr[mod(i + 1, n)] || 0;
+  return a + (b - a) * f;
+}
+
+// Raw mean count at a fractional minute; every number on screen reads this
+// (B7), the smoothed curve only places the sparkline.
+function histRaw(min) {
+  return interpCircular(hist, min);
+}
+
+function sparkAt(min) {
+  return interpCircular(sparkSmooth, min);
+}
+
+// Centred moving average over `win` minutes with circular wrap, as the
+// legacy sparkline smooths (2 * floor(win / 2) + 1 bins).
+function smoothCircular(arr, win) {
+  const n = arr.length;
+  const half = Math.floor((win || 1) / 2);
+  const out = new Float64Array(n);
+  let sum = 0;
+  for (let k = -half; k <= half; k++) sum += arr[mod(k, n)] || 0;
+  for (let m = 0; m < n; m++) {
+    out[m] = sum / (2 * half + 1);
+    sum += (arr[mod(m + half + 1, n)] || 0) - (arr[mod(m - half, n)] || 0);
+  }
+  return out;
+}
+
+// Time warp over the window (B8). 'activity' gives each minute screen time
+// in proportion to how busy it is, never under TIME_WARP_FLOOR; the week's
+// 'activity-daily' takes each composite day's own peak, days running 04:30 to
+// 04:30, so a quiet Sunday still moves at full speed at its own busiest hour.
+function buildWarpV4() {
+  const mode = CONFIG.TIME_WARP_MODE;
+  if (mode === 'empty') {
+    buildWarp();
+    return;
+  }
+  const m0 = Math.floor(meta.day_start / 60);
+  const m1 = Math.ceil(meta.day_end / 60);
+  const n = m1 - m0;
+  const s = smoothCircular(hist, CONFIG.TIME_WARP_SMOOTH_MIN);
+  let peakAll = 0;
+  for (const v of s) if (v > peakAll) peakAll = v;
+  const days = Math.max(1, Math.round(histN / 1440));
+  const dayPeak = new Float64Array(days);
+  for (let d = 0; d < days; d++) {
+    for (let k = 0; k < 1440; k++) {
+      const v = s[mod(270 + 1440 * d + k, histN)];
+      if (v > dayPeak[d]) dayPeak[d] = v;
+    }
+  }
+  const w = new Float64Array(n);
+  const gamma = CONFIG.TIME_WARP_GAMMA, floor = CONFIG.TIME_WARP_FLOOR;
+  for (let i = 0; i < n; i++) {
+    if (mode === 'linear') { w[i] = 1; continue; }
+    const m = m0 + i;
+    const peak = mode === 'activity-daily' ? dayPeak[Math.floor(mod(m - 270, histN) / 1440) % days] : peakAll;
+    w[i] = peak > 0 ? Math.max(floor, (s[mod(m, histN)] / peak) ** gamma) : 1;
+  }
+  const cum = new Float64Array(n + 1);
+  for (let i = 0; i < n; i++) cum[i + 1] = cum[i] + w[i];
+  warp = { m0, n, w, cum, total: cum[n] };
+}
+
+// Minutes of simulated time per frame at T, for the clock rounding (B9).
+function rateAt(T) {
+  const i = Math.min(warp.n - 1, Math.max(0, Math.floor(T / 60) - warp.m0));
+  const frames = CONFIG.LOOP === 'none' ? CONFIG.DURATION_FRAMES : totalFrames;
+  return warp.w[i] > 0 ? warp.total / frames / warp.w[i] : Infinity;
+}
+
+function frameTimeV4(i) {
+  return CONFIG.LOOP === 'none' ? frameTime(i) : timeAtProgress(i / totalFrames);
+}
+
+// Width of a text in a font, with letter spacing in px as the title uses it.
+function textWidth(text, font, spacing = 0) {
+  ctx.font = font;
+  ctx.letterSpacing = `${spacing}px`;
+  const w = ctx.measureText(text).width;
+  ctx.letterSpacing = '0px';
+  return w;
+}
+
+// Splits text at spaces into at most maxLines lines of maxW px. 'greedy'
+// fills each line in turn (the credit); 'balanced' picks the break that keeps
+// the longer of two lines shortest (the card). null when it cannot fit.
+function wrapText(text, font, maxW, maxLines, how) {
+  if (textWidth(text, font) <= maxW || maxLines < 2) return textWidth(text, font) <= maxW ? [text] : null;
+  const words = text.split(' ');
+  if (how === 'balanced' && maxLines === 2) {
+    let best = null;
+    for (let k = 1; k < words.length; k++) {
+      const a = words.slice(0, k).join(' '), b = words.slice(k).join(' ');
+      const wa = textWidth(a, font), wb = textWidth(b, font);
+      if (wa <= maxW && wb <= maxW && (!best || Math.max(wa, wb) < best.w)) best = { lines: [a, b], w: Math.max(wa, wb) };
+    }
+    return best && best.lines;
+  }
+  const lines = [];
+  let cur = '';
+  for (const word of words) {
+    const next = cur ? `${cur} ${word}` : word;
+    if (cur && textWidth(next, font) > maxW) {
+      lines.push(cur);
+      cur = word;
+    } else {
+      cur = next;
+    }
+  }
+  lines.push(cur);
+  return lines.length <= maxLines && lines.every((l) => textWidth(l, font) <= maxW) ? lines : null;
+}
+
+function joinWords(list) {
+  if (list.length <= 1) return list.join('');
+  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+}
+
+// Modes with vehicles inside the boundary at the variant's peak; the count
+// line and the card name these (B9, B10).
+function modesAtPeak() {
+  const byMode = meta.hist_by_mode || {};
+  const m = variantV.peak ? variantV.peak.time / 60 : 0;
+  const list = modes.filter((md) => Array.isArray(byMode[md.id]) && interpCircular(byMode[md.id], m) > 0);
+  return list.length ? list : modes;
+}
+
+// Shorts HUD geometry (B9). Text sizes are fitted once here, on the widest
+// text the window can produce, so nothing changes size between frames.
+function buildShortsLayout() {
+  const F = fontsV4();
+  const week = meta.timeline && meta.timeline.kind === 'week';
+  const side = CONFIG.PANEL_SIDE || (HUD_OVERRIDE === 'left' || HUD_OVERRIDE === 'right' ? HUD_OVERRIDE : '')
+    || (meta.panel && (meta.panel.side === 'left' || meta.panel.side === 'right') ? meta.panel.side : 'left');
+  const dx = side === 'right' ? 260 : 0;
+  const L = { F, week, side, dx, textX: 88 + dx, rightX: 592 + dx, textW: 504 };
+  const W0 = meta.day_start, W1 = meta.day_end;
+
+  let ts = Math.round(CONFIG.TITLE_SIZE);
+  const title = meta.title || '';
+  while (ts > 48 && textWidth(title, `700 ${ts}px ${F.mont}`, 0.12 * ts) > 796) ts -= 2;
+  L.title = { text: title, size: ts, font: `700 ${ts}px ${F.mont}`, spacing: 0.12 * ts };
+  const subtitle = variantV.label || meta.subtitle || '';
+  let ss = 36;
+  while (ss > 32 && textWidth(subtitle, `400 ${ss}px ${F.mont}`) > 796) ss--;
+  L.subtitle = { text: subtitle, size: ss, font: `400 ${ss}px ${F.mont}` };
+
+  // The count noun: a mode's own word when only one mode is inside at the peak.
+  const atPeak = modesAtPeak();
+  L.nounMode = atPeak.length === 1 ? atPeak[0] : null;
+  L.peakCount = variantV.peak ? variantV.peak.count : 0;
+  const peakText = `${withCommas(L.peakCount)} ${countNoun(L, L.peakCount)} in ${meta.place || ''}`;
+  let cs = 40;
+  while (cs > 36 && textWidth(peakText, `600 ${cs}px ${F.tnum}`) > L.textW) cs--;
+  L.split = textWidth(peakText, `600 ${cs}px ${F.tnum}`) > L.textW;
+  if (L.split) {
+    cs = 40;
+    const a = `${withCommas(L.peakCount)} ${countNoun(L, L.peakCount)}`, b = `in ${meta.place || ''}`;
+    while (cs > 36 && Math.max(textWidth(a, `600 ${cs}px ${F.tnum}`), textWidth(b, `600 ${cs}px ${F.tnum}`)) > L.textW) cs--;
+  }
+  L.count = { size: cs, font: `600 ${cs}px ${F.tnum}` };
+  const up = L.split ? 44 : 0;
+  L.clockY = (week ? 1238 : 1232) - up;
+  L.clock = week ? { size: 40, font: `600 40px ${F.tnum}` } : { size: 88, font: `800 88px ${F.tnum}` };
+  if (week) {
+    let ws = 80;
+    while (ws > 64 && textWidth('WEDNESDAY', `800 ${ws}px ${F.mont}`) > L.textW) ws -= 2;
+    L.weekday = { size: ws, font: `800 ${ws}px ${F.mont}`, y: L.clockY - 50 };
+  }
+  L.countY = L.split ? 1238 : 1282;
+  L.count2Y = 1282;
+  L.panel = { x0: 60 + dx, x1: 620 + dx, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : (week ? 1110 : 1140) - up, y1: 1500 };
+
+  // Chips: groups (else modes) with their means; fitted at each one's maximum
+  // over the window.
+  L.chips = null;
+  if (CONFIG.MODE_CHIPS) {
+    const C = CONFIG.COLORS;
+    let parts;
+    if (groups) {
+      const byGroup = meta.hist_by_group || {};
+      parts = groups.map((g) => ({
+        id: g.id, label: g.label, share: g.share, other: g.id === 'other',
+        color: (groupColor && groupColor.get(g.id)) || (g.id === 'other' ? C.foreign : C.breakdown),
+        series: Array.isArray(byGroup[g.id]) ? byGroup[g.id] : new Array(histN).fill(0),
+      }));
+    } else {
+      const byMode = meta.hist_by_mode || {};
+      parts = modes.map((m) => ({
+        id: m.id, label: m.label, singular: m.singular, share: 0, other: false, color: m.trailCss,
+        series: Array.isArray(byMode[m.id]) ? byMode[m.id] : new Array(histN).fill(0),
+      }));
+    }
+    const maxOver = (series) => {
+      let p = 0;
+      for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
+      return roundHalfEven(p);
+    };
+    const widthAt = (list, size) => list.reduce((sum, p, k) => sum + (k ? 20 : 0) + 26
+      + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
+    let list = parts;
+    let size = 26;
+    const merged = [];
+    // The smallest shown group joins "other" until the line fits, then 24 px.
+    while (widthAt(list, size) > L.textW) {
+      const real = list.filter((p) => !p.other);
+      if (real.length > 1) {
+        const smallest = real.reduce((a, b) => (b.share < a.share || (b.share === a.share && list.indexOf(b) > list.indexOf(a)) ? b : a));
+        let other = list.find((p) => p.other);
+        if (!other) {
+          other = { id: 'other', label: 'other', share: 0, other: true, color: CONFIG.COLORS.foreign, series: new Array(histN).fill(0) };
+          list = list.concat([other]);
+        }
+        const sum = other.series.map((v, i) => v + (smallest.series[i] || 0));
+        const joined = { ...other, share: other.share + smallest.share, series: sum };
+        list = list.filter((p) => p !== smallest && p !== other).concat([joined]);
+        merged.push(smallest.id);
+      } else if (size > 24) {
+        size = 24;
+      } else {
+        break;
+      }
+    }
+    if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails keep their colours`);
+    L.chips = { parts: list, size, font: `500 ${size}px ${F.tnum}`, y: 1320, merged };
+  }
+  L.spark = { x0: 88 + dx, x1: 592 + dx, y0: 1334, y1: 1386 };
+  L.axisY = 1416;
+  L.axisFont = `500 26px ${F.mont}`;
+  L.axisBold = `700 26px ${F.mont}`;
+  L.peakFont = `600 26px ${F.tnum}`;
+  L.creditFont = `400 22px ${F.inter}`;
+  const credit = meta.credit || (Array.isArray(meta.attribution) ? meta.attribution.join(' ') : '');
+  L.credit = wrapText(credit, L.creditFont, L.textW, 2, 'greedy');
+  // Two lines read best broken between the data and the map credit, where
+  // the line break takes the place of the separator dot.
+  const dot = credit.indexOf(' · ');
+  if (L.credit && L.credit.length === 2 && dot > 0) {
+    const pair = [credit.slice(0, dot), credit.slice(dot + 3)];
+    if (pair.every((l) => textWidth(l, L.creditFont) <= L.textW)) L.credit = pair;
+  }
+  if (!L.credit) {
+    console.error(`credit "${credit}" needs more than two lines of ${L.textW} px at 22 px`);
+    L.credit = wrapText(credit, L.creditFont, L.textW, 99, 'greedy') || [credit];
+  }
+  shorts = L;
+}
+
+function countNoun(L, n) {
+  const m = L.nounMode;
+  if (m) return n === 1 ? m.singular : m.label;
+  return n === 1 ? 'vehicle' : 'vehicles';
+}
+
+function chipLabel(p, n) {
+  return p.singular && n === 1 ? p.singular : p.label;
+}
+
+// buildSparkline over the window with circular smoothing, for either HUD. The
+// legacy drawHUD reads spark.smooth by absolute minute, so it gets the
+// periodic curve unrolled over the window.
+function buildSparklineV4() {
+  sparkSmooth = smoothCircular(hist, CONFIG.SPARK_SMOOTH_MIN);
+  const mStart = meta.day_start / 60;
+  const mEnd = meta.day_end / 60;
+  const box = shorts ? shorts.spark : { x0: hud.sparkX0, x1: hud.sparkX1, y0: hud.sparkY0, y1: hud.sparkY1 };
+  const { x0, x1, y0, y1 } = box;
+  const headroom = shorts ? 6 : 10;
+  let peak = 0;
+  for (let m = Math.floor(mStart); m <= Math.ceil(mEnd); m++) peak = Math.max(peak, sparkSmooth[mod(m, histN)]);
+  if (peak <= 0) peak = 1;
+  const smooth = new Float64Array(Math.ceil(mEnd) + 2);
+  for (let m = 0; m < smooth.length; m++) smooth[m] = sparkSmooth[mod(m, histN)];
+  const xs = [], ys = [];
+  if (shorts) {
+    // One vertex per pixel column: a week is 10,080 minutes on 504 px.
+    for (let x = x0; x <= x1; x++) {
+      const m = mStart + ((x - x0) / (x1 - x0)) * (mEnd - mStart);
+      xs.push(x);
+      ys.push(y1 - (Math.min(sparkAt(m), peak) / peak) * (y1 - y0 - headroom));
+    }
+  } else {
+    for (let m = Math.ceil(mStart); m <= Math.floor(mEnd); m++) {
+      xs.push(x0 + ((m - mStart) / (mEnd - mStart)) * (x1 - x0));
+      ys.push(y1 - ((smooth[m] || 0) / peak) * (y1 - y0 - headroom));
+    }
+  }
+  spark = { x0, x1, y0, y1, mStart, mEnd, peak, xs, ys, smooth, headroom };
+}
+
+function sparkX(T) {
+  return spark.x0 + clamp01((T / 60 - spark.mStart) / (spark.mEnd - spark.mStart)) * (spark.x1 - spark.x0);
+}
+
+function sparkY(T) {
+  return spark.y1 - (Math.min(sparkAt(T / 60), spark.peak) / spark.peak) * (spark.y1 - spark.y0 - spark.headroom);
+}
+
+// The Shorts HUD's static sprites: the title scrim, the blurred panel
+// backdrop (blurred once here; per frame it would cost more than the map),
+// the sparkline gradient and the ?safe=1 overlay.
+function buildShortsStatics() {
+  const C = CONFIG.COLORS;
+  const L = shorts;
+  const st = {};
+  const scrim = cssToRGB(C.scrim, bgRGB());
+  if (CONFIG.TITLE_SCRIM > 0) {
+    const s = CONFIG.TITLE_SCRIM;
+    st.titleScrim = document.createElement('canvas');
+    st.titleScrim.width = W;
+    st.titleScrim.height = 460;
+    const g = st.titleScrim.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 0, 460);
+    grad.addColorStop(0, rgba(scrim, s));
+    grad.addColorStop(0.55, rgba(scrim, s));
+    grad.addColorStop(0.80, rgba(scrim, 0.55 * s));
+    grad.addColorStop(1, rgba(scrim, 0));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, W, 460);
+  }
+  // Panel colour and alpha from the token (rgba(...) carries the theme's
+  // 0.78), times PANEL_ALPHA, capped so the map always shows through a little.
+  colorProbe.fillStyle = '#000000';
+  colorProbe.fillStyle = C.panel;
+  const probe = colorProbe.fillStyle;
+  const am = /^rgba\(\d+,\s*\d+,\s*\d+,\s*([\d.]+)\)$/.exec(probe);
+  const alpha = Math.min(0.95, (am ? Number(am[1]) : 1) * CONFIG.PANEL_ALPHA);
+  const pad = 84;
+  const p = L.panel;
+  st.panelX = p.x0 - pad;
+  st.panelY = p.y0 - pad;
+  st.panel = document.createElement('canvas');
+  st.panel.width = p.x1 - p.x0 + 2 * pad;
+  st.panel.height = p.y1 - p.y0 + 2 * pad;
+  const pg = st.panel.getContext('2d');
+  pg.filter = 'blur(28px)';
+  pg.fillStyle = rgba(cssToRGB(C.panel, [8, 13, 21]), alpha);
+  pg.beginPath();
+  pg.roundRect(pad, pad, p.x1 - p.x0, p.y1 - p.y0, 24);
+  pg.fill();
+  pg.filter = 'none';
+  const accent = cssToRGB(C.accent, [255, 224, 102]);
+  const grad = ctx.createLinearGradient(0, spark.y0, 0, spark.y1);
+  grad.addColorStop(0, rgba(accent, 0.5));
+  grad.addColorStop(1, rgba(accent, 0.03));
+  st.sparkFill = grad;
+  if (showSafe) {
+    st.safe = document.createElement('canvas');
+    st.safe.width = W;
+    st.safe.height = H;
+    const g = st.safe.getContext('2d');
+    g.fillStyle = 'rgba(255,0,0,0.18)';
+    g.fillRect(0, 0, W, SAFE.y0);
+    g.fillRect(0, SAFE.y1, W, H - SAFE.y1);
+    g.fillRect(SAFE.x1, SAFE.y0, W - SAFE.x1, SAFE.y1 - SAFE.y0);
+    g.strokeStyle = 'rgba(255,0,0,0.9)';
+    g.lineWidth = 1;
+    g.strokeRect(SAFE.x0 + 0.5, SAFE.y0 + 0.5, SAFE.x1 - SAFE.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
+  }
+  shortsStatics = st;
+}
+
+// Boundary (B11): the mask A wrote, decoded once for the inside flags, and
+// one overlay canvas that dims the outside and strokes the city line.
+function buildBoundary() {
+  boundaryMask = null;
+  boundaryOverlay = null;
+  const b = meta.boundary;
+  if (!b) return;
+  const mk = b.mask;
+  if (mk && Array.isArray(mk.rle) && mk.nx > 0 && mk.ny > 0) {
+    // Rows run south to north from y0, cells west to east from x0; each row
+    // starts with an outside run and its runs add up to nx.
+    const cells = new Uint8Array(mk.nx * mk.ny);
+    let k = 0, ok = true;
+    for (let row = 0; row < mk.ny && ok; row++) {
+      let x = 0, inside = false;
+      while (x < mk.nx) {
+        if (k >= mk.rle.length) { ok = false; break; }
+        const run = mk.rle[k++];
+        if (inside) cells.fill(1, row * mk.nx + x, row * mk.nx + Math.min(mk.nx, x + run));
+        x += run;
+        inside = !inside;
+      }
+      if (x !== mk.nx) ok = false;
+    }
+    if (!ok || k !== mk.rle.length) console.error('meta.boundary.mask: the run lengths do not add up to nx in every row');
+    boundaryMask = { cell: mk.cell_km, x0: mk.x0, y0: mk.y0, nx: mk.nx, ny: mk.ny, cells };
+  } else {
+    console.warn('meta.boundary has no mask; every vehicle counts as inside');
+  }
+  const rings = (b.rings || []).concat(b.holes || []);
+  if (!rings.length) return;
+  const C = CONFIG.COLORS;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  const path = new Path2D();
+  for (const ring of rings) {
+    if (ring.length < 6) continue;
+    path.moveTo(OX + ring[0] * SCALE, OY - ring[1] * SCALE);
+    for (let i = 2; i < ring.length; i += 2) path.lineTo(OX + ring[i] * SCALE, OY - ring[i + 1] * SCALE);
+    path.closePath();
+  }
+  if (CONFIG.OUTSIDE_DIM > 0) {
+    g.fillStyle = rgba(cssToRGB(C.outside, bgRGB()), clamp01(CONFIG.OUTSIDE_DIM));
+    g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'destination-out';
+    g.fill(path, 'evenodd');
+    g.globalCompositeOperation = 'source-over';
+  }
+  if (CONFIG.CITY_LINE_W > 0 && CONFIG.CITY_LINE_ALPHA > 0) {
+    g.strokeStyle = C.cityLine;
+    g.globalAlpha = clamp01(CONFIG.CITY_LINE_ALPHA);
+    g.lineWidth = CONFIG.CITY_LINE_W;
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    g.stroke(path);
+    g.globalAlpha = 1;
+  }
+  boundaryOverlay = c;
+}
+
+// 1 when the km point lies in an inside cell of the mask; with no boundary
+// every vehicle is inside.
+function insideKm(x, y) {
+  const m = boundaryMask;
+  if (!m) return 1;
+  const ix = Math.floor((x - m.x0) / m.cell);
+  const iy = Math.floor((y - m.y0) / m.cell);
+  if (ix < 0 || iy < 0 || ix >= m.nx || iy >= m.ny) return 0;
+  return m.cells[iy * m.nx + ix];
+}
+
+// The card text (B10), placeholders filled from meta and the variant.
+function fillCardTemplate(tpl) {
+  const plural = modesAtPeak();
+  const values = {
+    place: meta.place || '',
+    modes_singular: joinWords(plural.map((m) => m.singular)),
+    modes_plural: joinWords(plural.map((m) => m.label)),
+    peak_time: variantV.peak ? clockText(variantV.peak.time) : '',
+    peak_count: variantV.peak ? withCommas(variantV.peak.count) : '',
+    trips: withCommas(meta.trips_total || trips.length),
+    month: (meta.timeline && meta.timeline.month_label) || '',
+  };
+  return String(tpl).replace(/\{([^{}]*)\}/g, (all, key) => {
+    if (Object.hasOwn(values, key)) return values[key];
+    console.error(`card template "${tpl}": unknown placeholder {${key}}`);
+    return all;
+  });
+}
+
+// Card layout (B10), for the active variant and CARD_LINES.
+function buildCard() {
+  cardLayout = null;
+  const card = meta.card;
+  const tpls = card && card.templates && card.templates[CONFIG.VARIANT];
+  if (!card || !Array.isArray(tpls) || !tpls.length) {
+    if (CONFIG.CARD) console.warn(`no card templates for variant ${CONFIG.VARIANT}; the card is off`);
+    return;
+  }
+  const F = fontsV4();
+  const pick = tpls[Math.min(tpls.length - 1, Math.max(0, Math.round(CONFIG.CARD_LINES)))];
+  const line0 = fillCardTemplate(pick[0] || '');
+  const line1 = fillCardTemplate(pick[1] || '');
+  const title = card.title || meta.title || '';
+  const titleFont = (s) => `800 ${s}px ${F.mont}`;
+  const fits = (lines, s) => lines.every((l) => textWidth(l, titleFont(s), 0.04 * s) <= 796);
+  const fitSize = (lines) => {
+    for (let s = Math.floor(CONFIG.CARD_TITLE_MAX / 2) * 2; s >= 72; s -= 2) if (fits(lines, s)) return s;
+    return null;
+  };
+  let titleLines = [title];
+  let S = fitSize(titleLines);
+  if ((S === null || S < 100) && title.includes(' ')) {
+    const words = title.split(' ');
+    let best = null;
+    for (let k = 1; k < words.length; k++) {
+      const pair = [words.slice(0, k).join(' '), words.slice(k).join(' ')];
+      const longer = Math.max(...pair.map((l) => textWidth(l, titleFont(100), 4)));
+      if (!best || longer < best.longer) best = { pair, longer };
+    }
+    const s2 = fitSize(best.pair);
+    if (s2 !== null && (S === null || s2 >= S)) {
+      titleLines = best.pair;
+      S = s2;
+    }
+  }
+  if (S === null) S = 72;
+  const items = [];
+  let y = 0;
+  titleLines.forEach((text, k) => {
+    y = 0.80 * S + k * 0.98 * S;
+    items.push({ name: k ? 'card_title2' : 'card_title', text, y, font: titleFont(S), size: S, spacing: 0.04 * S, kind: 'title' });
+  });
+  const ruleTop = y + 30;
+  let l0size = 44;
+  let l0 = wrapText(line0, `500 44px ${F.inter}`, 796, 2, 'balanced');
+  if (!l0) {
+    l0size = 40;
+    l0 = wrapText(line0, `500 40px ${F.inter}`, 796, 2, 'balanced') || [line0];
+  }
+  y = ruleTop + 64;
+  l0.forEach((text, k) => {
+    if (k) y += 54;
+    items.push({ name: k ? 'card_line0b' : 'card_line0', text, y, font: `500 ${l0size}px ${F.inter}`, size: l0size, kind: 'line0' });
+  });
+  let l1size = 32;
+  while (l1size > 30 && textWidth(line1, `400 ${l1size}px ${F.inter}`) > 796) l1size--;
+  const l1 = line1 ? wrapText(line1, `400 ${l1size}px ${F.inter}`, 796, 2, 'balanced') || [line1] : [];
+  l1.forEach((text, k) => {
+    y += k ? 40 : 52;
+    items.push({ name: k ? 'card_line1b' : 'card_line1', text, y, font: `400 ${l1size}px ${F.inter}`, size: l1size, kind: 'line1' });
+  });
+  const h = y + 12;
+  let B = Math.round(CONFIG.CARD_CENTER_Y - h / 2);
+  B = Math.max(400, Math.min(1100 - h, B));
+  for (const it of items) it.y += B;
+  // The band behind the text: full strength between 48 px feathers.
+  const top = B - 60, bandH = h + 120;
+  const band = document.createElement('canvas');
+  band.width = W;
+  band.height = Math.max(1, Math.ceil(bandH));
+  const bg = band.getContext('2d');
+  const grad = bg.createLinearGradient(0, 0, 0, bandH);
+  const scrim = cssToRGB(CONFIG.COLORS.scrim, bgRGB());
+  const f = Math.min(0.5, 48 / bandH);
+  grad.addColorStop(0, rgba(scrim, 0));
+  grad.addColorStop(f, rgba(scrim, 1));
+  grad.addColorStop(1 - f, rgba(scrim, 1));
+  grad.addColorStop(1, rgba(scrim, 0));
+  bg.fillStyle = grad;
+  bg.fillRect(0, 0, W, bandH);
+  cardLayout = { B, h, items, ruleY: B + ruleTop, band, bandY: top, lines: [line0, line1], titleSize: S };
+}
+
+// Card alpha at frame i (B10): held, faded out, and for a wrap loop faded
+// back in so the last frame carries the full card like frame 0.
+function cardAlphaV4(i) {
+  if (!isV4 || !CONFIG.CARD || !cardOn || !cardLayout) return 0;
+  const N = totalFrames;
+  const aOut = i < CONFIG.CARD_HOLD ? 1 : 1 - smoothstep(Math.min(1, (i - CONFIG.CARD_HOLD) / CONFIG.CARD_FADE_OUT));
+  const aIn = CONFIG.LOOP === 'wrap' ? smoothstep(clamp01((i - (N - 1 - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN)) : 0;
+  return Math.max(aOut, aIn);
+}
+
+// Measures a text, records its box for hudBoxes() and draws it unless the
+// HUD is in notext mode.
+function hudText(name, text, x, y, font, color, size, alpha, align = 'left', spacing = 0) {
+  ctx.font = font;
+  ctx.letterSpacing = `${spacing}px`;
+  ctx.textAlign = align;
+  const m = ctx.measureText(text);
+  const left = align === 'right' ? x - m.width : align === 'center' ? x - m.width / 2 : x;
+  lastBoxes.push({
+    name, text,
+    x0: Math.min(left, x - m.actualBoundingBoxLeft),
+    y0: y - m.actualBoundingBoxAscent,
+    x1: Math.max(left + m.width, x + m.actualBoundingBoxRight),
+    y1: y + m.actualBoundingBoxDescent,
+    color, size, font, alpha,
+  });
+  if (hudMode === 'full' && alpha > 0) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.fillText(text, x, y);
+  }
+  ctx.letterSpacing = '0px';
+}
+
+// Hour clock for the week ("8 am"), else the time floored to CLOCK_ROUND
+// minutes; 0 floors to 5 minutes while the clock runs faster than 2 minutes a
+// frame, so the night digits do not flicker.
+function clockTextV4(T) {
+  const r = CONFIG.CLOCK_ROUND > 0 ? CONFIG.CLOCK_ROUND : rateAt(T) > 2 ? 5 : 1;
+  const step = 60 * r;
+  const t = Math.floor(T / step) * step;
+  if (r >= 60) {
+    const s = mod(t, 86400);
+    let h = Math.floor(s / 3600);
+    const ap = h < 12 ? 'am' : 'pm';
+    h %= 12;
+    return `${h === 0 ? 12 : h} ${ap}`;
+  }
+  return clockText(t);
+}
+
+// Whole numbers that add up to n, by largest remainder: the chips then add
+// up to the count line even though each is a rounded mean.
+function largestRemainder(values, n) {
+  const v = values.map((x) => Math.max(0, x));
+  const out = v.map(Math.floor);
+  let left = n - out.reduce((a, b) => a + b, 0);
+  const order = v.map((_, i) => i).sort((a, b) => (v[b] - out[b]) - (v[a] - out[a]) || a - b);
+  while (left > 0 && order.length) {
+    for (const i of order) {
+      if (left <= 0) break;
+      out[i]++;
+      left--;
+    }
+  }
+  while (left < 0) {
+    let moved = false;
+    for (let k = order.length - 1; k >= 0 && left < 0; k--) {
+      if (out[order[k]] > 0) {
+        out[order[k]]--;
+        left++;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return out;
+}
+
+// The numbers the HUD shows at T: the count line and each chip.
+function countAtV4(T) {
+  if (!isV4) return null;
+  const total = roundHalfEven(histRaw(T / 60));
+  const byGroup = {};
+  if (shorts && shorts.chips) {
+    const parts = shorts.chips.parts;
+    const vals = largestRemainder(parts.map((p) => interpCircular(p.series, T / 60)), total);
+    parts.forEach((p, k) => { byGroup[p.id] = vals[k]; });
+  } else if (groups) {
+    const byG = meta.hist_by_group || {};
+    const vals = largestRemainder(groups.map((g) => (byG[g.id] ? interpCircular(byG[g.id], T / 60) : 0)), total);
+    groups.forEach((g, k) => { byGroup[g.id] = vals[k]; });
+  }
+  return { total, byGroup };
+}
+
+// The Shorts HUD at alpha a (1 - card alpha).
+function drawHudShorts(T, a) {
+  const C = CONFIG.COLORS;
+  const L = shorts;
+  const st = shortsStatics;
+  const text = hudMode === 'full';
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.textBaseline = 'alphabetic';
+  if (a > 0 && st.titleScrim) {
+    ctx.globalAlpha = a;
+    ctx.drawImage(st.titleScrim, 0, 0);
+  }
+  hudText('title', L.title.text, 72, 316, L.title.font, C.title, L.title.size, a, 'left', L.title.spacing);
+  hudText('subtitle', L.subtitle.text, 72, 370, L.subtitle.font, C.subtitle, L.subtitle.size, a);
+  if (a > 0) {
+    ctx.globalAlpha = a;
+    ctx.drawImage(st.panel, st.panelX, st.panelY);
+  }
+  const x = L.textX;
+  if (L.week) {
+    const day = DAY_NAMES[mod(Math.floor(T / 86400), 7)];
+    hudText('weekday', day, x, L.weekday.y, L.weekday.font, C.clock, L.weekday.size, a);
+  }
+  hudText('clock', clockTextV4(T), x, L.clockY, L.clock.font, C.clock, L.clock.size, a);
+  const counts = countAtV4(T);
+  const n = counts.total;
+  const noun = countNoun(L, n);
+  if (L.split) {
+    hudText('count', `${withCommas(n)} ${noun}`, x, L.countY, L.count.font, C.accent, L.count.size, a);
+    hudText('count2', `in ${meta.place || ''}`, x, L.count2Y, L.count.font, C.accent, L.count.size, a);
+  } else {
+    hudText('count', `${withCommas(n)} ${noun} in ${meta.place || ''}`, x, L.countY, L.count.font, C.accent, L.count.size, a);
+  }
+  if (L.chips) {
+    // One box for the whole line: every part shares the font and colour.
+    let cx = x;
+    const y = L.chips.y;
+    const start = lastBoxes.length;
+    L.chips.parts.forEach((p, k) => {
+      if (k) cx += 20;
+      if (text && a > 0) {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(cx + 9, y - 9, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const v = counts.byGroup[p.id] || 0;
+      hudText('chips', `${withCommas(v)} ${chipLabel(p, v)}`, cx + 26, y, L.chips.font, C.breakdown, L.chips.size, a);
+      cx = lastBoxes[lastBoxes.length - 1].x1;
+    });
+    const parts = lastBoxes.splice(start);
+    if (parts.length) {
+      lastBoxes.push({
+        ...parts[0], text: parts.map((b) => b.text).join('  '), x0: x,
+        y0: Math.min(...parts.map((b) => b.y0), y - 18), x1: parts[parts.length - 1].x1, y1: Math.max(...parts.map((b) => b.y1)),
+      });
+    }
+  }
+  drawSparkShorts(T, a, text);
+  drawAxisShorts(T, a);
+  L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, x, k ? 1476 : 1450, L.creditFont, C.credit, 22, a));
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+function drawSparkShorts(T, a, text) {
+  const C = CONFIG.COLORS;
+  const L = shorts;
+  const sp = spark;
+  const xCur = sparkX(T);
+  if (text && a > 0) {
+    ctx.globalAlpha = a;
+    if (L.week && CONFIG.WEEKEND_BAND) {
+      const xa = sparkX(5 * 86400), xb = sparkX(7 * 86400);
+      if (xb > xa) {
+        ctx.globalAlpha = a * 0.07;
+        ctx.fillStyle = C.accent;
+        ctx.fillRect(xa, sp.y0, xb - xa, sp.y1 - sp.y0);
+        ctx.globalAlpha = a;
+      }
+    }
+    const yCur = sparkY(T);
+    const last = Math.min(sp.xs.length - 1, Math.floor(xCur - sp.x0));
+    ctx.beginPath();
+    ctx.moveTo(sp.x0, sp.y1);
+    for (let j = 0; j <= last; j++) ctx.lineTo(sp.xs[j], sp.ys[j]);
+    ctx.lineTo(xCur, yCur);
+    ctx.lineTo(xCur, sp.y1);
+    ctx.closePath();
+    ctx.fillStyle = shortsStatics.sparkFill;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(sp.xs[0], sp.ys[0]);
+    for (let j = 1; j <= last; j++) ctx.lineTo(sp.xs[j], sp.ys[j]);
+    ctx.lineTo(xCur, yCur);
+    ctx.strokeStyle = C.accent;
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(sp.x0, sp.y1 + 0.5);
+    ctx.lineTo(sp.x1, sp.y1 + 0.5);
+    ctx.strokeStyle = C.floor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  if (CONFIG.PEAK_MARKER && variantV.peak) {
+    let pt = variantV.peak.time;
+    while (pt < meta.day_start) pt += periodS;
+    if (T >= pt) {
+      const px = sparkX(pt), py = sparkY(pt);
+      if (text && a > 0) {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = C.accent;
+        ctx.beginPath();
+        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const label = `peak ${withCommas(variantV.peak.count)}`;
+      const w = textWidth(label, L.peakFont);
+      const right = px + 11 + w <= L.rightX;
+      const by = Math.min(1386, Math.max(1353, py + 9));
+      hudText('peak', label, right ? px + 11 : px - 11, by, L.peakFont, C.accent, 26, a, right ? 'left' : 'right');
+    }
+  }
+}
+
+// Axis under the sparkline (B9): the window's ends and a midnight tick for
+// the day, hourly ticks for a shorter window, day letters for the week.
+function drawAxisShorts(T, a) {
+  const C = CONFIG.COLORS;
+  const L = shorts;
+  const sp = spark;
+  const W0 = meta.day_start, W1 = meta.day_end;
+  const ticks = [];
+  const tick = (t) => { if (t > W0 && t < W1) ticks.push(sparkX(t)); };
+  if (L.week) {
+    for (let d = Math.ceil(W0 / 86400); d * 86400 < W1; d++) tick(d * 86400);
+    const today = Math.floor(T / 86400);
+    for (let d = Math.floor(W0 / 86400); d * 86400 < W1; d++) {
+      const xa = sparkX(Math.max(W0, d * 86400)), xb = sparkX(Math.min(W1, (d + 1) * 86400));
+      if (xb - xa < 30) continue;
+      const cur = d === today;
+      hudText('axis', DAY_LETTERS[mod(d, 7)], (xa + xb) / 2, L.axisY, cur ? L.axisBold : L.axisFont, cur ? C.accent : C.axis, 26, a, 'center');
+    }
+  } else {
+    hudText('axis', clockText(W0), sp.x0, L.axisY, L.axisFont, C.axis, 26, a, 'left');
+    const leftEnd = lastBoxes[lastBoxes.length - 1].x1;
+    hudText('axis', clockText(W1), sp.x1, L.axisY, L.axisFont, C.axis, 26, a, 'right');
+    const rightStart = lastBoxes[lastBoxes.length - 1].x0;
+    if (W1 - W0 >= periodS) {
+      for (let d = Math.ceil(W0 / 86400); d * 86400 < W1; d++) {
+        const t = d * 86400;
+        if (t <= W0) continue;
+        tick(t);
+        // The label also needs room between the end labels: with the window
+        // starting at the morning peak, midnight sits about 170 px from the
+        // right end, where "8:04 am" already is.
+        const xm = sparkX(t);
+        const half = textWidth('midnight', L.axisFont) / 2;
+        if (xm - sp.x0 >= 120 && sp.x1 - xm >= 120 && xm - half - 12 >= leftEnd && xm + half + 12 <= rightStart) {
+          hudText('axis', 'midnight', xm, L.axisY, L.axisFont, C.axis, 26, a, 'center');
+        }
+      }
+    } else {
+      for (let t = Math.ceil(W0 / 3600) * 3600; t < W1; t += 3600) tick(t);
+    }
+  }
+  if (hudMode === 'full' && a > 0 && ticks.length) {
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = C.floor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (const x of ticks) {
+      const xr = Math.round(x) + 0.5;
+      ctx.moveTo(xr, sp.y1);
+      ctx.lineTo(xr, sp.y1 + 8);
+    }
+    ctx.stroke();
+  }
+}
+
+// The card at alpha a (B10): a light scrim over the whole frame so the map
+// stays the hook, a feathered band behind the text, then the text.
+function drawCard(a) {
+  if (!cardLayout || a <= 0 || hudMode === 'none') return;
+  const C = CONFIG.COLORS;
+  const cl = cardLayout;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = rgba(cssToRGB(C.scrim, bgRGB()), CONFIG.CARD_SCRIM * a);
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = clamp01(CONFIG.CARD_BAND * a);
+  ctx.drawImage(cl.band, 0, cl.bandY);
+  ctx.textBaseline = 'alphabetic';
+  for (const it of cl.items) {
+    const alpha = it.kind === 'line1' ? 0.85 * a : a;
+    hudText(it.name, it.text, 72, it.y, it.font, C.title, it.size, alpha, 'left', it.spacing || 0);
+  }
+  if (hudMode === 'full') {
+    ctx.globalAlpha = a;
+    ctx.fillStyle = C.accent;
+    ctx.fillRect(72, cl.ruleY, 96, 6);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// One frame of the map at T: base, trails, dots, boundary overlay. The
+// per-trip body is renderAt's, run over the occurrences that can be on screen
+// (B7), with each vehicle's inside flag recorded for lastVehicles (B11).
+function drawMapV4(T) {
+  if (!baseCanvas) throw new Error('busmap not ready');
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.drawImage(baseCanvas, 0, 0);
+
+  const bounded = !byRoute && CONFIG.TRAIL_BLEND === 'bounded' && CONFIG.TRAIL_MODE !== 'sprite';
+  const ts = bounded ? 1 : CONFIG.TRAIL_SCALE;
+  const layer = ts === 1 || byRoute ? ctx : trailCtx;
+  if (ts !== 1 && !byRoute) {
+    layer.globalCompositeOperation = 'source-over';
+    layer.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+  }
+  layer.globalCompositeOperation = 'lighter';
+
+  const buses = [];
+  const horizon = T - trailWindow;
+  const sprite = CONFIG.TRAIL_MODE === 'sprite';
+  const step = sprite ? CONFIG.TRAIL_STEP_S : trailWindow / CONFIG.TRAIL_BANDS;
+  const count = sprite ? trailSteps + 1 : CONFIG.TRAIL_BANDS + 1;
+  if (byRoute) {
+    colorPaths.fill(null);
+  } else if (!sprite) {
+    for (let m = 0; m < modes.length; m++) {
+      for (let b = 0; b < CONFIG.TRAIL_BANDS; b++) bandPaths[m][b] = new Path2D();
+    }
+  }
+  runningByMode.fill(0);
+  if (runningByGroup) runningByGroup.fill(0);
+  let running = 0;
+  vehN = 0;
+  for (let j = lowerBound(occT0, occN, T - trailWindow - maxDur); j < occN && occT0[j] <= T; j++) {
+    if (occT1[j] < horizon) continue;
+    const n = occTrip[j];
+    const trip = trips[n];
+    const Tl = T - occOff[j];
+    const range = sampleTrail(trip, Tl, ts, step, count);
+    if (range < 0) continue;
+    const first = Math.floor(range / 1024);
+    const last = range % 1024;
+    const m = tripMode[n];
+    if (first === 0 && Tl <= tripT1[n]) {
+      running++;
+      runningByMode[m]++;
+      if (runningByGroup) runningByGroup[tripGroup[n]]++;
+      const sx = sampleX[0] / ts, sy = sampleY[0] / ts;
+      buses.push(sx, sy, byRoute ? tripColor[n] : m);
+      if (3 * vehN + 3 > vehBuf.length) {
+        const grown = new Float32Array(vehBuf.length * 2);
+        grown.set(vehBuf);
+        vehBuf = grown;
+      }
+      vehBuf[3 * vehN] = sx;
+      vehBuf[3 * vehN + 1] = sy;
+      vehBuf[3 * vehN + 2] = insideKm((sx - OX) / SCALE, (OY - sy) / SCALE);
+      vehN++;
+    }
+    if (byRoute) addRibbonColor(trip, tripColor[n], first, last);
+    else if (sprite) stampTrailSprites(layer, trailSprites[m], first, last);
+    else addRibbon(trip, bandPaths[m], first, last);
+  }
+  if (byRoute) {
+    colorLayer.globalCompositeOperation = 'source-over';
+    colorLayer.globalAlpha = 1;
+    colorLayer.clearRect(0, 0, colorLayer.canvas.width, colorLayer.canvas.height);
+    strokeColorRibbons(colorLayer, ts);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
+    ctx.drawImage(colorLayer.canvas, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+  } else if (!sprite && CONFIG.TRAIL_BLEND === 'bounded') {
+    for (const m of layerOrder) {
+      const ml = modeLayer(m);
+      ml.globalCompositeOperation = 'source-over';
+      ml.clearRect(0, 0, W, H);
+      strokeRibbons(ml, 1, m);
+      ctx.globalCompositeOperation = m === onTopMode ? 'source-over' : 'lighter';
+      ctx.globalAlpha = CONFIG.TRAIL_LAYER_ALPHA;
+      ctx.drawImage(ml.canvas, 0, 0);
+      ctx.globalAlpha = 1;
+    }
+  } else {
+    if (!sprite) strokeRibbons(layer, ts);
+    if (ts !== 1) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(trailCanvas, 0, 0, W, H);
+    }
+  }
+
+  ctx.globalCompositeOperation = 'lighter';
+  for (let b = 0; b < buses.length; b += 3) {
+    const x = buses[b], y = buses[b + 1];
+    if (x < -busHalf || x > W + busHalf || y < -busHalf || y > H + busHalf) continue;
+    ctx.drawImage(busSprites[buses[b + 2]], x - busHalf, y - busHalf);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  if (boundaryOverlay) ctx.drawImage(boundaryOverlay, 0, 0);
+  return running;
+}
+
+// The whole frame at T with the HUD at hudAlpha and the card at cardA.
+function drawV4(T, hudAlpha, cardA) {
+  lastBoxes = [];
+  drawMapV4(T);
+  const n = roundHalfEven(histRaw(T / 60));
+  if (hudMode !== 'none') {
+    if (shorts) drawHudShorts(T, hudAlpha);
+    else drawHUD(T, n);
+    drawCard(cardA);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  return n;
+}
+
+function drawSafe() {
+  if (shortsStatics && shortsStatics.safe) {
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(shortsStatics.safe, 0, 0);
+  }
+}
+
+// A still at T: full HUD, no card (B10). Returns the count line's number.
+function renderAtV4(T) {
+  const n = drawV4(T, 1, 0);
+  drawSafe();
+  return n;
+}
+
+// Frame i of the video, a pure function of i. i may be totalFrames, the
+// virtual frame after the last, which equals frame 0 for both loops.
+function renderFrameV4(i) {
+  const N = totalFrames;
+  const idx = Math.min(Math.max(Math.floor(i), 0), N);
+  const T = frameTimeV4(idx);
+  let s = 0;
+  if (CONFIG.LOOP === 'xfade') {
+    // The cross-fade to frame 0 reaches 1 at the virtual frame N, so the
+    // step from N - 1 back to 0 is one ordinary fade step.
+    s = smoothstep(clamp01((idx - (N - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN));
+    if (s > 0 && !loopSnapshot) {
+      const a0 = cardAlphaV4(0);
+      drawV4(frameTimeV4(0), 1 - a0, a0);
+      loopSnapshot = document.createElement('canvas');
+      loopSnapshot.width = W;
+      loopSnapshot.height = H;
+      loopSnapshot.getContext('2d').drawImage(canvas, 0, 0);
+    }
+  }
+  const a = cardAlphaV4(idx);
+  drawV4(T, 1 - a, a);
+  if (s > 0) {
+    ctx.globalAlpha = s;
+    ctx.drawImage(loopSnapshot, 0, 0);
+    ctx.globalAlpha = 1;
+  }
+  drawSafe();
+  return T;
+}
+
+function setHudV4(mode) {
+  if (!['full', 'notext', 'none'].includes(mode)) throw new Error(`setHud: want full, notext or none, got ${mode}`);
+  hudMode = mode;
+  loopSnapshot = null;
+}
+
+function setCardV4(on) {
+  cardOn = Boolean(on);
+  loopSnapshot = null;
+}
+
+// Times the stills are taken at (B15), each inside the window.
+function stillTimesV4() {
+  if (!isV4) return null;
+  const W0 = meta.day_start, W1 = meta.day_end, P = periodS;
+  const at = (T) => {
+    let t = T;
+    while (t < W0) t += P;
+    return t;
+  };
+  if (meta.timeline && meta.timeline.kind === 'week') {
+    let fri = 4 * 1440 + 870;
+    for (let m = fri; m <= 4 * 1440 + 1170; m++) if (hist[mod(m, histN)] > hist[mod(fri, histN)]) fri = m;
+    return { am: at(meta.am_peak.time), noon: at(2 * 86400 + 45000), pm: at(fri * 60), sat: at(5 * 86400 + 46800), sun: at(6 * 86400 + 82800) };
+  }
+  if (W1 - W0 < P) {
+    return { am: at(variantV.peak ? variantV.peak.time : W0), early: at(24300), mid: at(28800), late: at(33300) };
+  }
+  return { am: at(meta.am_peak.time), noon: at(45000), pm: at(meta.pm_peak.time), late: at(81000), night: at(9000) };
+}
+
+// Init-time asserts (B9): every HUD and card box inside the safe zone and at
+// or above its minimum size, measured on the widest text the window can
+// show. A failure is a console.error, which fails a render.
+function checkLayoutV4() {
+  if (!shorts) return;
+  const keep = { boxes: lastBoxes, hudMode };
+  hudMode = 'notext';
+  lastBoxes = [];
+  // Drawn into a scratch state: notext draws no text, and the canvas is
+  // overwritten by the first real frame anyway.
+  let T = variantV.peak ? variantV.peak.time : meta.day_start;
+  while (T < meta.day_start) T += periodS;
+  drawHudShorts(Math.min(meta.day_end, T), 1);
+  drawCard(1);
+  const L = shorts;
+  const probe = [];
+  // The widest numbers the panel can show: the peak count and each chip at its maximum.
+  if (L.chips) {
+    const F = L.chips.font;
+    let w = 0;
+    L.chips.parts.forEach((p, k) => {
+      let mx = 0;
+      for (let m = Math.floor(meta.day_start / 60); m <= Math.ceil(meta.day_end / 60); m++) mx = Math.max(mx, p.series[mod(m, histN)] || 0);
+      w += (k ? 20 : 0) + 26 + textWidth(`${withCommas(roundHalfEven(mx))} ${chipLabel(p, roundHalfEven(mx))}`, F);
+    });
+    probe.push({ name: 'chips', x0: L.textX, x1: L.textX + w, y0: L.chips.y - 18, y1: L.chips.y, size: L.chips.size });
+  }
+  const problems = [];
+  for (const b of lastBoxes.concat(probe)) {
+    if (b.x0 < SAFE.x0 - 0.5 || b.x1 > SAFE.x1 + 0.5 || b.y0 < SAFE.y0 - 0.5 || b.y1 > SAFE.y1 + 0.5) {
+      problems.push(`${b.name} "${b.text || ''}" at x ${b.x0.toFixed(0)}..${b.x1.toFixed(0)}, y ${b.y0.toFixed(0)}..${b.y1.toFixed(0)} leaves the safe zone`);
+    }
+    const min = MIN_SIZE[b.name];
+    if (min && b.size < min) problems.push(`${b.name} is ${b.size} px, under its ${min} px minimum`);
+  }
+  for (const p of problems) console.error(`layout: ${p}`);
+  if (Number.isFinite(L.peakCount) && variantV.peak) {
+    const m = variantV.peak.time / 60;
+    const got = roundHalfEven(histRaw(m));
+    if (got !== variantV.peak.count) console.warn(`variant peak count ${variantV.peak.count} but hist reads ${got} at ${clockText(variantV.peak.time)}`);
+  }
+  lastBoxes = keep.boxes;
+  hudMode = keep.hudMode;
+}
+
 // ------------------------------------------------------------- page glue
 
 const ready = init().then(() => {
@@ -1506,8 +3362,8 @@ const ready = init().then(() => {
 const busmap = {
   ready,
   get totalFrames() { return totalFrames; },
-  renderFrame,
-  renderAt,
+  renderFrame: (i) => (isV4 ? renderFrameV4(i) : renderFrame(i)),
+  renderAt: (T) => (isV4 ? renderAtV4(T) : renderAt(T)),
   config: CONFIG,
   canvas,
   get meta() { return meta; },
@@ -1522,6 +3378,18 @@ const busmap = {
   frameTime: (i) => frameTime(i),
   progressAt: (T) => progressAt(T),
   timeAtProgress: (u) => timeAtProgress(u),
+  // Shorts additions (spec 2.11); all of them are inert for a legacy file.
+  get variant() { return isV4 ? CONFIG.VARIANT : ''; },
+  get window() { return meta ? { start: meta.day_start, end: meta.day_end } : null; },
+  safe: { x0: SAFE.x0, y0: SAFE.y0, x1: SAFE.x1, y1: SAFE.y1 },
+  hudBoxes: () => lastBoxes.map((b) => ({ ...b })),
+  get lastVehicles() { return vehBuf.slice(0, 3 * vehN); },
+  setHud: (mode) => setHudV4(mode),
+  setCard: (on) => setCardV4(on),
+  cardAlpha: (i) => cardAlphaV4(i),
+  stillTimes: () => stillTimesV4(),
+  get brandMap() { return brandMap; },
+  countAt: (T) => countAtV4(T),
 };
 window.busmap = busmap;
 
@@ -1542,9 +3410,9 @@ if (RECORD) {
   ready.then(() => {
     const t = parseTime(params.get('t'));
     const f = params.get('frame');
-    if (t != null) renderAt(t);
-    else if (f != null && Number.isFinite(Number(f))) renderFrame(Number(f));
-    else renderFrame(0);
+    if (t != null) busmap.renderAt(t);
+    else if (f != null && Number.isFinite(Number(f))) busmap.renderFrame(Number(f));
+    else busmap.renderFrame(0);
   });
 } else {
   ready.then(() => {
@@ -1565,7 +3433,7 @@ if (RECORD) {
     let last = 0;
 
     function show() {
-      const running = renderAt(T);
+      const running = busmap.renderAt(T);
       scrub.value = String(Math.round(progressAt(T) * 10000));
       timeEl.textContent = `${clockText(T)} · ${withCommas(running)} running`;
     }

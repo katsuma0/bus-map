@@ -1,0 +1,7 @@
+/* Extended families for FONT_SET 'extended' (Latin Extended, Greek, Cyrillic), in their own
+   files so the classic Montserrat and Inter glyphs stay untouched. Nothing here is fetched
+   until a face is used, so a page that never asks for these families loads none of them. */
+@font-face{font-family:'MontserratX';font-style:normal;font-weight:100 900;font-display:block;src:url(MontserratX.woff2) format('woff2');}
+@font-face{font-family:'InterX';font-style:normal;font-weight:100 900;font-display:block;src:url(InterX.woff2) format('woff2');}
+/* Tabular figures for the numbers that change every frame. */
+@font-face{font-family:'MontserratXTnum';font-style:normal;font-weight:100 900;font-display:block;font-feature-settings:'tnum';src:url(MontserratX.woff2) format('woff2');}

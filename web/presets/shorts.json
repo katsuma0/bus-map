@@ -1,0 +1,7 @@
+{"render": {
+  "HUD_LAYOUT": "shorts",
+  "TIME_WARP_MODE": "activity", "TIME_WARP_GAMMA": 1, "TIME_WARP_FLOOR": 0.15, "TIME_WARP_SMOOTH_MIN": 60,
+  "CARD": true, "PEAK_MARKER": true, "MODE_CHIPS": true,
+  "OUTSIDE_DIM": 0.55, "CITY_LINE_W": 2, "CITY_LINE_ALPHA": 0.8,
+  "TITLE_SCRIM": 0.62, "FONT_SET": "extended", "COLOR_BY": "brand"
+}}
