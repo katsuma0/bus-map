@@ -107,6 +107,7 @@ def city_config(cid, place, origin, boundary_file, frame, variants, kind, batch=
             "credit_fallback": "Data: {n} transit agencies · Map: Overture, OSM",
             "preset": "shorts", "theme": {"batch": "lake"}, "render": {}, "variants": V,
             "rush": {"auto": (rush or {}).get("auto", True), "zoom": [1.4, 2.2], "share": 0.6},
+            "fit_box": [50, 390, 870, 1300],
             "panel": {"preferred": panel_side, "tie": 0.10, "rect": [60, 1140, 620, 1500]},
             "card": {"title": place.upper(), "templates": {v: CARD[v] for v in variants}}, "major_share": 0.05}
 

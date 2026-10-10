@@ -317,6 +317,21 @@ class Fixtures(unittest.TestCase):
             self.assertFalse(os.path.exists(week))
 
 
+    def test_missing_config_key_fails(self):
+        """make.py always writes these keys; a config without one fails by name, never takes a private default."""
+        with tempfile.TemporaryDirectory() as tmp:
+            store, out, city, p = build_fixture(tmp, "stable", "day")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            for drop in ("fit_box", "major_share"):
+                cfg = {k: v for k, v in city.items() if k != drop}
+                path = os.path.join(tmp, f"no-{drop}.json")
+                U.dump_json(path, cfg)
+                p, _s, _g = U.run("trim_network.py", "--config", path, "--area", store, "--out",
+                                  os.path.join(tmp, drop, "network.json.gz"), check=False)
+                self.assertNotEqual(p.returncode, 0)
+                self.assertIn(f"missing {drop}", p.stderr)
+
+
 class Units(unittest.TestCase):
     def test_informative(self):
         self.assertTrue(tn.informative("ED1C24"))

@@ -652,11 +652,19 @@ def main():
     sys.exit(rc)
 
 
+# Keys make.py's city config always carries (2.7), read with no fallback: a
+# private copy of a defaults.json value is how a missing fit_box went unseen.
+REQUIRED = ("trim_scale", "group_by", "major_share", "credit_template", "credit_fallback", "fit_box")
+
+
 def trim(args, t_start):
     with open(args.config, encoding="utf-8") as fh:
         cfg = json.load(fh)
     if cfg.get("schema") != 4 or cfg.get("kind") != "city":
         raise Fail(f"{args.config}: not a schema 4 city config")
+    missing = [k for k in REQUIRED if k not in cfg] + [f"rush.{k}" for k in ("zoom", "share") if k not in (cfg.get("rush") or {})]
+    if missing:
+        raise Fail(f"{args.config}: missing {', '.join(missing)}")
     store = area_store.Store(args.area)
     sm = store.meta
     if [float(v) for v in sm["origin"]] != [float(v) for v in cfg["origin"]]:
@@ -710,7 +718,7 @@ def trim(args, t_start):
     frame = cfg["frame"]
     kv = float(frame["km_vertical"])
     cx, cy = frame["center_km"]
-    scale = float(cfg.get("trim_scale", 1.25))
+    scale = float(cfg["trim_scale"])
     hw, hh = kv * 9 / 16 / 2 * scale + 1, kv / 2 * scale + 1
     trim_box = [cx - hw, cy - hh, cx + hw, cy + hh]
     if not inside_box(bbox_km, trim_box):
@@ -772,11 +780,11 @@ def trim(args, t_start):
     cand_ids = sorted(set(city_cand))
     cand_hist = {c: fold(np.array([cc == c for cc in city_cand])) for c in cand_ids}
     cand_share = {c: share_at_am(cand_hist[c]) for c in cand_ids}
-    gb = cfg.get("group_by") or {"field": "agency-auto", "min_share": 0.03, "max_groups": 3}
+    gb = cfg["group_by"]
     if gb.get("field") != "agency-auto":
         raise Fail(f"group_by field {gb.get('field')!r} is not implemented; only 'agency-auto' is")
-    ranked = sorted((c for c in cand_ids if cand_share[c] >= float(gb.get("min_share", 0.03))),
-                    key=lambda c: (-cand_share[c], c))[:int(gb.get("max_groups", 3))]
+    ranked = sorted((c for c in cand_ids if cand_share[c] >= float(gb["min_share"])),
+                    key=lambda c: (-cand_share[c], c))[:int(gb["max_groups"])]
     shown = set(ranked)
     groups = []
     for c in ranked:
@@ -812,7 +820,7 @@ def trim(args, t_start):
     # Per feed: inside vehicle-minutes, share, major.
     feed_hist = {f["id"]: fold(route_feed == i) for i, f in enumerate(sm["feeds"])}
     vm_total = float(hist_raw.sum())
-    major_share = float(cfg.get("major_share", 0.05))
+    major_share = float(cfg["major_share"])
     feed_vm = {fid: float(h.sum()) for fid, h in feed_hist.items()}
 
     # Month label: the fallback month's name when a fallback feed is major here.
@@ -862,10 +870,10 @@ def trim(args, t_start):
         unit_of.append(u)
     unit_vm = {u: float(fold(np.array([x == u for x in unit_of])).sum()) for u in sorted(unit_label)}
     agencies = [unit_label[u] for u in sorted((u for u in unit_vm if unit_vm[u] > 0), key=lambda u: (-unit_vm[u], unit_label[u]))]
-    template = cfg.get("credit_template", "Data: {agencies} · Map: Overture, OSM")
+    template = cfg["credit_template"]
     credit = template.replace("{agencies}", ", ".join(agencies))
     if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) > CREDIT_LINES:
-        credit = cfg.get("credit_fallback", "Data: {n} transit agencies · Map: Overture, OSM").replace("{n}", str(len(agencies)))
+        credit = cfg["credit_fallback"].replace("{n}", str(len(agencies)))
 
     # Vehicles at the am peak: rush frame (A8.6) and panel side (A8.7).
     period_s = P * 60
@@ -893,9 +901,8 @@ def trim(args, t_start):
                 V["frame"] = pinned
                 render["TRAIL_MINUTES"] = min(10, max(5, round(base_tm * 1.6 / z)))
             elif rush_cfg.get("auto", True):
-                fit_box = cfg.get("fit_box", [50, 390, 870, 1300])
-                rush_info = auto_rush_frame(ix, iy, frame, trim_box, fit_box, rush_cfg.get("zoom", [1.4, 2.2]),
-                                            float(rush_cfg.get("share", 0.6)))
+                rush_info = auto_rush_frame(ix, iy, frame, trim_box, cfg["fit_box"], rush_cfg["zoom"],
+                                            float(rush_cfg["share"]))
                 if rush_info:
                     V["frame"] = rush_info["frame"]
                     render["TRAIL_MINUTES"] = min(10, max(5, round(base_tm * 1.6 / rush_info["zoom"])))
