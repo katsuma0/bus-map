@@ -14,6 +14,8 @@
 //  amounts  day and week, on a frame with room for the whole move: zoom 6 to
 //           10%, drift 2 to 4% of the frame; the 25 s rush is held to the
 //           same speed by the cap
+//  mix      the drifts push in half as far as the pull-outs and move the
+//           city core further (their shares of the zoom and the drift)
 //  line     at every frame the city line's bbox stays in its keep rect (the
 //           looser of the safe zone and the fitted bbox, plus 10 px, never
 //           off the frame), recomputed here from meta.boundary: on the
@@ -183,6 +185,36 @@ async function lineChecks(h, query, tag, want) {
     + (r.keep ? ` in [${r.keep.map((v) => v.toFixed(1)).join(', ')}], closest ${r.near.toFixed(2)} px` : ' (cropped)'));
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join('; ')}`);
   await page.context().close();
+}
+
+// The paths' shares of the zoom and the drift, on a frame with room for the
+// whole move: the drifts push in half as far and travel half as far again as
+// the pull-outs, so the city core travels further while the push-in is smaller.
+async function mixChecks(h) {
+  const share = { 'pull-out-west': [1, 1], 'pull-out-north': [1, 1], 'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5] };
+  const got = {};
+  for (const [p, [zs, rs]] of Object.entries(share)) {
+    const page = await h.open(`${TINY}&zoom=0.8&campath=${p}`);
+    const r = await page.evaluate(() => {
+      const bm = window.busmap, N = bm.totalFrames, [px, py] = bm.camera.pivot;
+      const xs = [], ys = [];
+      for (let i = 0; i < N; i++) { const m = bm.cameraAt(i / N); xs.push(m.zoom * px + m.e); ys.push(m.zoom * py + m.f); }
+      return { cam: bm.camera, travel: Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) };
+    });
+    const c = r.cam, k = c.scale * c.amp * c.bound;
+    ok(Math.abs(c.zoom - 0.08 * zs * k) < 1e-12 && Math.abs(c.drift - 0.03 * 1080 * rs * k) < 1e-9,
+      `${p}: zoom ${c.zoom} and drift ${c.drift} are not shares ${zs}, ${rs} of 0.08 and 32.4 px at factor ${k}`);
+    got[p] = { zoom: c.zoom, travel: r.travel };
+    if (page.errors.length) failures.push(`${p}: page errors ${page.errors.join('; ')}`);
+    await page.context().close();
+  }
+  for (const d of ['drift-orbit', 'drift-sway']) {
+    for (const o of ['pull-out-west', 'pull-out-north']) {
+      ok(got[d].travel > 1.5 * got[o].travel && got[d].zoom < 0.6 * got[o].zoom,
+        `${d} against ${o}: core travel ${got[d].travel.toFixed(1)} vs ${got[o].travel.toFixed(1)} px, zoom ${got[d].zoom.toFixed(4)} vs ${got[o].zoom.toFixed(4)}`);
+    }
+  }
+  console.log(`  mix: ${Object.entries(got).map(([p, g]) => `${p} zoom ${(g.zoom * 100).toFixed(2)}% core ${g.travel.toFixed(0)} px`).join(', ')}`);
 }
 
 // Camera on and off at one still: the HUD and the numbers do not move, the
@@ -364,6 +396,7 @@ try {
   await variantChecks(h, `${TINY}&zoom=0.8`, 'day', 'long');
   await variantChecks(h, `${TINY_WEEK}&zoom=0.8`, 'week', 'long');
   await variantChecks(h, `${TINY}&variant=rush`, 'rush', 'short');
+  await mixChecks(h);
   await lineChecks(h, TINY, 'tiny day', 'binds');
   await lineChecks(h, TINY_WEEK, 'tiny week', 'binds');
   for (const p of ['pull-out-east', 'pull-out-north', 'pull-out-south', 'drift-orbit', 'drift-sway']) await lineChecks(h, `${TINY}&campath=${p}`, `tiny ${p}`, 'binds');

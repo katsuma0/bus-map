@@ -1767,6 +1767,13 @@ const CAMERA_PIVOT = [460, 845];
 // The pull-outs bow sideways by this share of the drift, so the way out and
 // the way back are the two sides of a thin ellipse rather than one line.
 const CAMERA_BOW = 0.4;
+// A path's share of CAMERA_ZOOM and CAMERA_DRIFT, [1, 1] when not listed. With
+// one share for all, every upload made the same push-in and pull-out in step
+// and only the drift's direction told them apart; the drifts push in half as
+// far and travel half as far again, so they read as pans and the pull-outs as
+// pull-outs. The orbit's core then starts 0.4 x 1.5 x 3% of the width off the
+// pivot, under the 2% that frame 0 allows.
+const CAMERA_MIX = { 'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5] };
 // Phases sampled for the speed cap, the city line's cap and the base
 // headroom: 1/720 of a 25 s rush is about one frame.
 const CAMERA_STEPS = 720;
@@ -1895,8 +1902,9 @@ function buildCameraV4() {
   if (!CONFIG.CAMERA) return;
   if (CONFIG.CAMERA_PATH === 'auto') CONFIG.CAMERA_PATH = cameraPathFor(meta.id);
   const path = CONFIG.CAMERA_PATH;
-  const Z0 = cameraNum('CAMERA_ZOOM', 0, 0.5);
-  const R0 = cameraNum('CAMERA_DRIFT', 0, 0.2) * W;
+  const mix = CAMERA_MIX[path] || [1, 1];
+  const Z0 = cameraNum('CAMERA_ZOOM', 0, 0.5) * mix[0];
+  const R0 = cameraNum('CAMERA_DRIFT', 0, 0.2) * W * mix[1];
   const amp = cameraNum('CAMERA_AMP', 0, 3);
   const vmax = cameraNum('CAMERA_MAX_SPEED', 1e-4, 0.05) * W * totalFrames / CONFIG.FPS;
   // A short video would move faster for the same amplitudes; the cap holds the

@@ -1231,24 +1231,29 @@ z(u)    = 1 + Z (1 + cos th) / 2              push-in at frame 0, the fitted fra
 screen  = c + z (base - c - R D(u))           base: the fitted frame's px
 ```
 
-| path | D(u), x east, y south |
-|---|---|
-| `pull-out-east` | `((1 - cos th) / 2, 0.4 sin th / 2)` |
-| `pull-out-north` | `(0.4 sin th / 2, -(1 - cos th) / 2)` |
-| `pull-out-west` | `(-(1 - cos th) / 2, -0.4 sin th / 2)` |
-| `pull-out-south` | `(-0.4 sin th / 2, (1 - cos th) / 2)` |
-| `drift-orbit` | `(sin th / 2, -0.4 cos th)`, an ellipse round the core, clockwise |
-| `drift-sway` | `(sin th / 2, sin 2th / 4)`, a figure of eight across the core |
+| path | D(u), x east, y south | zoom, drift share |
+|---|---|---|
+| `pull-out-east` | `((1 - cos th) / 2, 0.4 sin th / 2)` | 1, 1 |
+| `pull-out-north` | `(0.4 sin th / 2, -(1 - cos th) / 2)` | 1, 1 |
+| `pull-out-west` | `(-(1 - cos th) / 2, -0.4 sin th / 2)` | 1, 1 |
+| `pull-out-south` | `(-0.4 sin th / 2, (1 - cos th) / 2)` | 1, 1 |
+| `drift-orbit` | `(sin th / 2, -0.4 cos th)`, an ellipse round the core, clockwise | 0.5, 1.5 |
+| `drift-sway` | `(sin th / 2, sin 2th / 4)`, a figure of eight across the core | 0.5, 1.5 |
 
-Every path but the orbit starts on the pivot, so frame 0 is the fitted frame pushed in about the
-city core (the orbit's core sits 0.4 R z, about 1% of the width, off it). The zoom eases in and out
+The share multiplies `CAMERA_ZOOM` and `CAMERA_DRIFT` for that path. With one share for all, every
+upload made the same push-in and pull-out in step and only the drift's direction told them apart;
+the drifts push in half as far and travel half as far again, so they read as pans (the city core
+travels 56 to 63 px over the loop, against 31 to 35 px on a pull-out) and the pull-outs as
+pull-outs. Every path but the orbit starts on the pivot, so frame 0 is the fitted frame pushed in
+about the city core (the orbit's core sits 0.4 R z, under 2% of the width, off it). The zoom eases in and out
 (zero zoom speed at u = 0 and 1/2) while the sideways part keeps moving, so the motion never stops,
 never runs at constant speed and is smooth to every derivative. `CAMERA_PATH 'auto'` picks
 `CAMERA_NAMES[fnv1a(meta.id) % 6]` in the order of the table; `make.py camera_path()` is the same
 function, and D3.8 passes the recipe's `variety.camera` or that pick as `CAMERA_PATH`, the same for
 day, rush and week.
 
-**Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width). Both are
+**Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width), each
+times the path's share. Both are
 scaled by one factor s <= 1, found by bisection, until the fastest point of the frame (the step of
 the four corners between sampled phases; the step is affine in the point, so the corners bound it)
 moves at most `CAMERA_MAX_SPEED` (0.6%) of the frame width a second over `N / 30` s; then both are
