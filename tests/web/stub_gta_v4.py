@@ -37,18 +37,19 @@ OUT = os.path.join(ROOT, "build", "stub_v4")
 ORIGIN = (-79.47, 43.80)
 KX = 111.32 * math.cos(math.radians(ORIGIN[1]))
 KY = 110.574
-# Spec E2 frames and spec 0.1.9 areas (subtype, km2) of the unnamed divisions.
+# E2 frames (D3.2 with cities/defaults.json fit_box) and spec 0.1.9 areas (subtype, km2) of the
+# unnamed divisions.
 CITY = {
-    "gta-toronto": ("county", 661.7, 99.0, [11.7, -15.1]),
-    "gta-mississauga": ("locality", 295.8, 60.5, [-13.9, -24.9]),
-    "gta-brampton": ("locality", 267.8, 57.5, [-20.9, -11.7]),
-    "gta-markham": ("locality", 211.4, 49.0, [15.7, 6.0]),
-    "gta-vaughan": ("locality", 272.4, 55.0, [-5.4, 0.8]),
-    "gta-oakville": ("locality", 153.5, 38.5, [-18.1, -41.4]),
-    "gta-richmond-hill": ("locality", 101.9, 35.0, [4.8, 9.3]),
-    "gta-burlington": ("locality", 198.7, 46.5, [-27.5, -49.1]),
-    "gta-oshawa": ("locality", 161.6, 50.5, [50.0, 12.4]),
-    "gta-whitby": ("locality", 167.0, 49.5, [43.0, 10.6]),
+    "gta-toronto": ("county", 661.7, 119.5, [12.5, -21.6]),
+    "gta-mississauga": ("locality", 295.8, 86.0, [-12.8, -30.2]),
+    "gta-brampton": ("locality", 267.8, 82.0, [-19.8, -16.8]),
+    "gta-markham": ("locality", 211.4, 59.0, [16.1, 2.8]),
+    "gta-vaughan": ("locality", 272.4, 66.0, [-4.9, -2.8]),
+    "gta-oakville": ("locality", 153.5, 54.5, [-17.4, -44.7]),
+    "gta-richmond-hill": ("locality", 101.9, 50.0, [5.4, 6.1]),
+    "gta-burlington": ("locality", 198.7, 63.5, [-26.8, -52.9]),
+    "gta-oshawa": ("locality", 161.6, 71.5, [50.9, 8.0]),
+    "gta-whitby": ("locality", 167.0, 70.5, [43.8, 6.3]),
 }
 TEMPLATES = {
     "day": [["Every {modes_singular} in {place}, 24 hours", "Busiest at {peak_time} with {peak_count} vehicles"],
@@ -352,8 +353,9 @@ def build_city(cid, recipe, net, pos, bnd, brands, week):
     sel = ins & (mi % 1440 == am)
     px = 540 + (xs[sel] - center[0]) * s
     py = 960 - (ys[sel] - center[1]) * s
-    under = {side: int(((px >= x0) & (px <= x0 + 560) & (py >= 1140) & (py <= 1500)).sum())
-             for side, x0 in (("left", 60), ("right", 320))}
+    # cities/defaults.json panel.rect and its right-hand position against SAFE.x1 800.
+    under = {side: int(((px >= x0) & (px <= x0 + 560) & (py >= 1080) & (py <= 1440)).sum())
+             for side, x0 in (("left", 120), ("right", 240))}
     side = "left" if under["left"] < under["right"] else "right"
     if abs(under["left"] - under["right"]) < 0.10 * max(under.values() or [0]) or under["left"] == under["right"]:
         side = recipe.get("variety", {}).get("panel_side", "left")

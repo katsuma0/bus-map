@@ -18,6 +18,11 @@ import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const NAMES = new Set(['title', 'subtitle', 'weekday', 'clock', 'count', 'count2', 'chips', 'axis', 'credit', 'credit2',
   'peak', 'card_title', 'card_title2', 'card_line0', 'card_line0b', 'card_line1', 'card_line1b']);
+// B9: the text safe zone of a tall phone, and the fit box and panel rectangle
+// make.py and trim_network read from cities/defaults.json, which must be the
+// page's own zones.
+const SAFE = { x0: 120, y0: 290, x1: 800, y1: 1440 };
+const DEFAULTS = JSON.parse(fs.readFileSync(path.join(ROOT, 'cities', 'defaults.json'), 'utf8'));
 const failures = [];
 const ok = (cond, what) => check(failures, cond, what);
 
@@ -53,7 +58,7 @@ async function api(h, query, variant, keys) {
     bm.setCard(true);
     const T5 = bm.renderFrame(5);
     return {
-      variant: bm.variant, window: bm.window, safe: bm.safe, totalFrames: bm.totalFrames, st, T, T5,
+      variant: bm.variant, window: bm.window, safe: bm.safe, zones: bm.zones, totalFrames: bm.totalFrames, st, T, T5,
       frameTime5: bm.frameTime(5), boxes, veh: Array.from(veh), isF32: veh instanceof Float32Array, count, full, notext, none,
       a0, a0off, brandMap: bm.brandMap, peak: bm.meta.variants[bm.variant].peak,
       countText: (boxes.find((b) => b.name === 'count') || {}).text,
@@ -62,7 +67,13 @@ async function api(h, query, variant, keys) {
   const tag = variant;
   ok(r.variant === variant, `${tag}: busmap.variant is ${r.variant}`);
   ok(r.window && r.window.start < r.window.end, `${tag}: busmap.window ${JSON.stringify(r.window)}`);
-  ok(JSON.stringify(r.safe) === JSON.stringify({ x0: 60, y0: 240, x1: 880, y1: 1500 }), `${tag}: busmap.safe ${JSON.stringify(r.safe)}`);
+  ok(JSON.stringify(r.safe) === JSON.stringify(SAFE), `${tag}: busmap.safe ${JSON.stringify(r.safe)}`);
+  const f = r.zones.fit, pz = r.zones.panel;
+  ok(JSON.stringify([f.x0, f.y0, f.x1, f.y1]) === JSON.stringify(DEFAULTS.fit_box),
+    `${tag}: busmap.zones.fit ${JSON.stringify(f)}, defaults.json fit_box ${JSON.stringify(DEFAULTS.fit_box)}`);
+  ok(JSON.stringify([pz.left, r.safe.y1 - pz.day, pz.left + pz.w, r.safe.y1]) === JSON.stringify(DEFAULTS.panel.rect)
+    && pz.left === r.safe.x0 && pz.right + pz.w === r.safe.x1,
+  `${tag}: busmap.zones.panel ${JSON.stringify(pz)}, defaults.json panel.rect ${JSON.stringify(DEFAULTS.panel.rect)}`);
   ok(JSON.stringify(Object.keys(r.st)) === JSON.stringify(keys), `${tag}: stillTimes keys ${Object.keys(r.st)}`);
   for (const [k, t] of Object.entries(r.st)) ok(t >= r.window.start && t < r.window.end, `${tag}: stillTimes.${k} ${t} outside the window`);
   ok(typeof r.T === 'number' && r.T === r.count.total, `${tag}: renderAt returns the count line's number (${r.T}, ${r.count.total})`);

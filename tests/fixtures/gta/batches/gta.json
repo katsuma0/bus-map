@@ -13,7 +13,7 @@
   "country": "CA",
   "region": "CA-ON",
   "holidays": "CA-ON",
-  "area_box": [-80.06, 43.06, -78.58, 44.25],
+  "area_box": [-80.12, 42.9, -78.48, 44.31],
   "feeds": [
    {"id": "ttc", "name": "TTC", "publisher": "Toronto Transit Commission", "licence_id": "ogl-toronto", "licence_text": "Open Government Licence - Toronto", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/ttc.zip"}},
    {"id": "go", "name": "GO Transit", "publisher": "Metrolinx", "licence_id": "metrolinx-open-data", "licence_text": "Metrolinx Open Data Licence", "source": {"tag": "feeds/gta-2026-10-09", "path": "gtfs/go.zip"}},

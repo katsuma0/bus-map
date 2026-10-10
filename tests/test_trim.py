@@ -396,16 +396,17 @@ class Units(unittest.TestCase):
         vy = np.concatenate([2 + rng.normal(0, 0.8, 80), rng.uniform(-20, 20, 20)])
         day = {"km_vertical": 44.0, "center_km": [0.0, 0.0]}
         box = [-15.0, -29.0, 15.0, 29.0]
-        r = tn.auto_rush_frame(vx, vy, day, box, [50, 390, 870, 1300], [1.4, 2.2], 0.6)
+        fit = list(U.FIT_BOX)
+        r = tn.auto_rush_frame(vx, vy, day, box, fit, [1.4, 2.2], 0.6)
         self.assertEqual(r["zoom"], 2.2)
         self.assertEqual(r["frame"]["km_vertical"], 20.0)
         self.assertGreaterEqual(r["count"], 78)
-        # the cluster centre lies well inside the fit box (screen x 50..870, y 390..1300)
+        # the cluster centre lies well inside the fit box, 100 px in from each side
         sx, sy = tn.to_screen(np.array([5.0]), np.array([2.0]), r["frame"])
-        self.assertTrue(150 <= sx[0] <= 770 and 490 <= sy[0] <= 1200, (sx, sy))
+        self.assertTrue(fit[0] + 100 <= sx[0] <= fit[2] - 100 and fit[1] + 100 <= sy[0] <= fit[3] - 100, (sx, sy))
         # spread out: no zoom holds 60%, so 1.4 with its best centre
         vx2, vy2 = rng.uniform(-12, 12, 100), rng.uniform(-20, 20, 100)
-        r2 = tn.auto_rush_frame(vx2, vy2, day, box, [50, 390, 870, 1300], [1.4, 2.2], 0.6)
+        r2 = tn.auto_rush_frame(vx2, vy2, day, box, fit, [1.4, 2.2], 0.6)
         self.assertEqual(r2["zoom"], 1.4)
         f = tn.frame_box(r2["frame"])
         self.assertTrue(tn.inside_box(f, box))
@@ -413,10 +414,11 @@ class Units(unittest.TestCase):
     def test_panel_side(self):
         frame = {"km_vertical": 40.0, "center_km": [0.0, 0.0]}
         s = 1920 / 40.0
-        # screen (200, 1300) is under the left panel, (700, 1300) under the right one
+        # screen (200, 1300) is under the left panel (x 120..680) only, (700, 1300)
+        # under the right one (x 240..800) only
         lx, ly = (200 - 540) / s, (960 - 1300) / s
         rx = (700 - 540) / s
-        panel = {"preferred": "right", "tie": 0.10, "rect": [60, 1140, 620, 1500]}
+        panel = {"preferred": "right", "tie": 0.10, "rect": list(U.PANEL_RECT)}
         p = tn.panel_side(np.array([lx] * 10 + [rx] * 3), np.array([ly] * 13), frame, panel)
         self.assertEqual(p["side"], "right")
         self.assertEqual(p["inside_under"], {"left": 10, "right": 3})

@@ -590,16 +590,16 @@ class Validation(unittest.TestCase):
 # ------------------------------------------------------------------ D-3 frames
 
 E2 = {  # id: (subtype, expected area, km_vertical, center_km)
-    "gta-toronto": ("county", 661.7, 99.0, [11.7, -15.1]),
-    "gta-mississauga": ("locality", 295.8, 60.5, [-13.9, -24.9]),
-    "gta-brampton": ("locality", 267.8, 57.5, [-20.9, -11.7]),
-    "gta-markham": ("locality", 211.4, 49.0, [15.7, 6.0]),
-    "gta-vaughan": ("locality", 272.4, 55.0, [-5.4, 0.8]),
-    "gta-oakville": ("locality", 153.5, 38.5, [-18.1, -41.4]),
-    "gta-richmond-hill": ("locality", 101.9, 35.0, [4.8, 9.3]),
-    "gta-burlington": ("locality", 198.7, 46.5, [-27.5, -49.1]),
-    "gta-oshawa": ("locality", 161.6, 50.5, [50.0, 12.4]),
-    "gta-whitby": ("locality", 167.0, 49.5, [43.0, 10.6]),
+    "gta-toronto": ("county", 661.7, 119.5, [12.5, -21.6]),
+    "gta-mississauga": ("locality", 295.8, 86.0, [-12.8, -30.2]),
+    "gta-brampton": ("locality", 267.8, 82.0, [-19.8, -16.8]),
+    "gta-markham": ("locality", 211.4, 59.0, [16.1, 2.8]),
+    "gta-vaughan": ("locality", 272.4, 66.0, [-4.9, -2.8]),
+    "gta-oakville": ("locality", 153.5, 54.5, [-17.4, -44.7]),
+    "gta-richmond-hill": ("locality", 101.9, 50.0, [5.4, 6.1]),
+    "gta-burlington": ("locality", 198.7, 63.5, [-26.8, -52.9]),
+    "gta-oshawa": ("locality", 161.6, 71.5, [50.9, 8.0]),
+    "gta-whitby": ("locality", 167.0, 70.5, [43.8, 6.3]),
 }
 
 
@@ -700,10 +700,40 @@ class Frames(unittest.TestCase):
             self.assertTrue(make.box_inside(pl.trim_box_deg(area, fr), area["area_box"]), rid)
 
     def test_fit_frame_rule(self):
-        fr = make.fit_frame([0, 0, 8, 8], [50, 390, 870, 1300])
+        # The defaults' fit box, 680 x 640 px about (460, 760): the 8 km square
+        # fills its height, and its centre lands on the box's centre.
+        fit = make.Pipeline(REPO).defaults()["fit_box"]
+        self.assertEqual(fit, [120, 440, 800, 1080])
+        fr = make.fit_frame([0, 0, 8, 8], fit)
         s = 1920 / fr["km_vertical"]
-        self.assertEqual(fr["km_vertical"], 19.0)
-        self.assertEqual(fr["center_km"], [round(4 + 80 / s, 1), round(4 - 115 / s, 1)])
+        self.assertEqual(fr["km_vertical"], 24.0)
+        self.assertEqual(fr["center_km"], [round(4 + 80 / s, 1), round(4 - 200 / s, 1)])
+
+    def test_safe_zone_copies_follow_the_page(self):
+        """web/app.js SAFE is the one source of the Shorts layout (B9); the Python copies follow it.
+
+        The fit box is as wide as SAFE and ends on the left panel's top, so no part
+        of the framed city sits under the panel; tests/web/v4_smoke.mjs holds both
+        to the page's busmap.zones to the pixel.
+        """
+        with open(os.path.join(REPO, "web", "app.js"), encoding="utf-8") as fh:
+            src = fh.read()
+        m = re.search(r"^const SAFE = \{ x0: (\d+), y0: (\d+), x1: (\d+), y1: (\d+) \};$", src, re.M)
+        safe = tuple(int(v) for v in m.groups())
+        panel_w = int(re.search(r"^const SHORTS_PANEL_W = (\d+);$", src, re.M).group(1))
+        pad = int(re.search(r"^const SHORTS_PAD = (\d+);$", src, re.M).group(1))
+        d = make.Pipeline(REPO).defaults()
+        fit, rect = d["fit_box"], d["panel"]["rect"]
+        self.assertEqual((fit[0], fit[2]), (safe[0], safe[2]))
+        self.assertTrue(safe[1] < fit[1] < fit[3] <= rect[1])
+        self.assertEqual(fit[3], rect[1])
+        self.assertEqual(rect, [safe[0], rect[1], safe[0] + panel_w, safe[3]])
+        import trim_network
+        import tune
+        self.assertEqual(trim_network.SAFE_X1, safe[2])
+        # The credit A wraps is the panel's text column (B9).
+        self.assertEqual(trim_network.CREDIT_WIDTH, panel_w - 2 * pad)
+        self.assertEqual((tune.SAFE, tune.PANEL_W), (safe, panel_w))
 
     def test_clip_rounds_outward(self):
         pl = make.Pipeline(REPO, "tests/fixtures/gta")
@@ -746,13 +776,13 @@ class Derivation(Scratch):
         self.assertEqual(f["valid"], ["2026-04-01", "2027-12-31"])
         self.assertEqual(f["feed_version"], "tsukubus_v1")
         b = lock["boundaries"]["test-centre"]
-        self.assertEqual(b["frame"], {"km_vertical": 19.0, "center_km": [3.0, -2.2]})
+        self.assertEqual(b["frame"], {"km_vertical": 24.5, "center_km": [3.3, -3.7]})
         self.assertEqual(b["area_km2"], 64.0)
         ov = lock["areas"]["tsukuba"]["overture"]
         self.assertEqual(ov["data_tag"], "overture/tsukuba-2026-09-23.1")
         # Both test boundaries are files, so no Overture divisions are fetched or pinned.
         self.assertEqual(lock["areas"]["tsukuba"]["divisions"], {"key": "JP-08-tsukuba", "sha256": None,
-                                                                 "bbox": [139.95, 35.88, 140.29, 36.33]})
+                                                                 "bbox": [139.93, 35.84, 140.32, 36.34]})
         self.assertFalse([c for c in self.repo.calls() if c.startswith("fetch_boundary")])
         clips = [lock["boundaries"][c]["clip"] for c in ("test-centre", "test-north")]
         self.assertTrue(all(make.box_inside(c, ov["bbox"]) for c in clips))
@@ -765,7 +795,7 @@ class Derivation(Scratch):
         """D-2: show prints the derived configs, the keys and the area_box suggestion."""
         info = self.repo.show("test")
         a = info["areas"]["tsukuba"]
-        self.assertEqual(a["area_box_suggestion"], [140.01, 35.93, 140.23, 36.28])
+        self.assertEqual(a["area_box_suggestion"], [139.99, 35.89, 140.26, 36.29])
         self.assertEqual(a["area_box_suggestion"], self.batch["areas"][0]["area_box"])
         self.assertEqual(set(a["keys"]), {"area_day", "area_week", "overture"})
         self.assertEqual(a["config_day"]["kind"], "area")
@@ -773,7 +803,7 @@ class Derivation(Scratch):
         self.assertEqual(info["publish_order"], ["test-centre-day", "test-north-day", "test-centre-rush",
                                                  "test-north-rush", "test-centre-week"])
         city = self.repo.show("test-north")
-        self.assertEqual(city["city.day.json"]["frame"], {"km_vertical": 14.5, "center_km": [2.0, 8.0]})
+        self.assertEqual(city["city.day.json"]["frame"], {"km_vertical": 18.0, "center_km": [2.1, 7.0]})
         self.assertNotIn("city.week.json", city)
         self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "FRAME_ZOOM": 1.05})
         self.assertEqual(len(city["keys"]["day"]["render_key"]), 64)
@@ -825,7 +855,7 @@ class Derivation(Scratch):
         self.assertEqual(cc["panel"]["preferred"], "right")
         bc = self.pl.basemap_config(self.batch, recipe, self.lock)
         self.assertEqual(set(bc), {"schema", "id", "origin", "clip", "basemap_dir", "basemap", "gzip", "boundary", "built_dir"})
-        p = 14.5 / 1920 / 1.1
+        p = 18.0 / 1920 / 1.1
         self.assertAlmostEqual(bc["basemap"]["min_road_km"], 1.2 * p, places=6)
         self.assertAlmostEqual(bc["basemap"]["min_water_area_km2"], 14 * p * p, places=6)
 

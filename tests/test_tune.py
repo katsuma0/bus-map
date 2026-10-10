@@ -25,10 +25,12 @@ import make  # noqa: E402
 import test_make as tm  # noqa: E402
 import tune  # noqa: E402
 
-PANEL_BOXES = [{"name": "title", "x0": 72, "y0": 260, "x1": 600, "y1": 330, "color": "#f2f6fb", "size": 64},
-               {"name": "clock", "x0": 88, "y0": 1168, "x1": 400, "y1": 1240, "color": "#ffffff", "size": 88},
-               {"name": "count", "x0": 88, "y0": 1250, "x1": 500, "y1": 1290, "color": "#a8d8ff", "size": 40},
-               {"name": "credit", "x0": 88, "y0": 1430, "x1": 560, "y1": 1480, "color": "#8e9bae", "size": 22}]
+# The left panel's boxes as the page lays them out (B9): text 28 px inside the
+# panel, the clock's cap top 28 px under the panel's top.
+PANEL_BOXES = [{"name": "title", "x0": 132, "y0": 320, "x1": 660, "y1": 370, "color": "#f2f6fb", "size": 64},
+               {"name": "clock", "x0": 148, "y0": 1108, "x1": 460, "y1": 1190, "color": "#ffffff", "size": 88},
+               {"name": "count", "x0": 148, "y0": 1191, "x1": 560, "y1": 1229, "color": "#a8d8ff", "size": 40},
+               {"name": "credit", "x0": 148, "y0": 1373, "x1": 620, "y1": 1421, "color": "#8e9bae", "size": 22}]
 
 
 class Scores(unittest.TestCase):
@@ -59,10 +61,10 @@ class Scores(unittest.TestCase):
 
     def test_vehicles_under_the_panel_give_zero(self):
         pr = tune.panel_rect(PANEL_BOXES)
-        self.assertEqual(pr, [60, 1140, 620, 1500])
+        self.assertEqual(pr, [120, 1080, 680, 1440])
         under = []
         for i in range(50):
-            under += [100 + i * 8, 1300 + (i % 10) * 15, 1]
+            under += [140 + i * 8, 1240 + (i % 10) * 15, 1]
         self.assertEqual(tune.safe_share(under, PANEL_BOXES), 0.0)
         clear = []
         for i in range(50):
