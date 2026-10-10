@@ -2688,6 +2688,9 @@ function buildBoundary() {
     g.fillStyle = rgba(cssToRGB(C.outside, bgRGB()), clamp01(CONFIG.OUTSIDE_DIM));
     g.fillRect(0, 0, W, H);
     g.globalCompositeOperation = 'destination-out';
+    // destination-out keeps dst * (1 - src alpha); the dim's own alpha would
+    // leave the inside a(1-a) dimmed, so the punch must be opaque.
+    g.fillStyle = '#000';
     g.fill(path, 'evenodd');
     g.globalCompositeOperation = 'source-over';
   }
