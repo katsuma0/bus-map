@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // B-7: every knob of spec 2.10 and G1 changes the frame when moved and leaves
 // it unchanged when given its effective value (the "v" of G1: the default
-// after the profile, the preset and the variant block).
+// after the profile, the preset and the variant block), the camera knobs of
+// B18 included.
 //
 // Each knob is read on the frame where it shows: map and HUD knobs on the
 // am-peak still, the sparkline knobs after the peak, the warp knobs at a
@@ -42,6 +43,10 @@ const KNOBS = [
   ['shoulder', 'TRAIL_SHOULDER_ALPHA', 0.3, STILL], ['trailalpha', 'TRAIL_ALPHA', 0.4, STILL], ['routealpha', 'ROUTE_ALPHA', 0.3, STILL],
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
+  // The camera (B18) mid loop, where the zoom and the drift both show.
+  ['camera', 'CAMERA', false, MID], ['campath', 'CAMERA_PATH', 'drift-orbit', MID], ['camzoom', 'CAMERA_ZOOM', 0.05, MID],
+  ['camdrift', 'CAMERA_DRIFT', 0.015, MID], ['camamp', 'CAMERA_AMP', 0.5, MID], ['camspeed', 'CAMERA_MAX_SPEED', 0.003, MID],
+  ['cambase', 'CAMERA_BASE', 'vector', MID],
 ];
 
 async function hashOf(h, query, where) {
