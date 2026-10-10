@@ -1,0 +1,11 @@
+{
+ "id": "gta-burlington",
+ "batch": "gta",
+ "place": "Burlington",
+ "boundary": {"name": "Burlington", "subtypes": ["locality"], "area_km2": 185.66},
+ "center": [-79.837, 43.382],
+ "variants": ["day", "rush"],
+ "rush": {"frame": null, "auto": true},
+ "variety": {"panel_side": "right", "card_line": 1, "zoom": 1.0},
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+}

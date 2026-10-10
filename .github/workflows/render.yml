@@ -1,0 +1,197 @@
+# Renders a Shorts batch on every push to batch/<name> (spec D6).
+#
+# plan decides everything once: it validates the batch, creates missing feed
+# tags, finds or creates the draft release shorts-<batch>, and keeps only the
+# (city, variant) renders whose MP4 and sidecars do not carry key:<render key>
+# in their asset labels ("<file> key:<16 hex>"). Area
+# stores and the Overture extract are cached by their step keys, so a one-line
+# override change goes straight to build (about a minute) and the render.
+# Inputs reach `run:` only through `env`.
+name: render
+on:
+  push:
+    branches: ["batch/**"]
+    paths: ["cities/**", "web/**", "scripts/**", "requirements.txt", "package.json", "package-lock.json",
+            ".github/workflows/render.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: render-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONHASHSEED: "0"
+
+# Every job runs on ubuntu-24.04, never ubuntu-latest: the lock's tools are this image's apt ffmpeg
+# and Playwright's ubuntu24.04 build, and D-8 and D-9 compare its outputs with the sandbox's.
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions: {contents: write}
+    outputs:
+      batch: ${{ steps.plan.outputs.batch }}
+      areas: ${{ steps.plan.outputs.areas }}              # {"include": [{"area", "timeline", "key"}]} for pending renders
+      overture: ${{ steps.plan.outputs.overture }}        # {"include": [{"area", "key"}]}
+      builds: ${{ steps.plan.outputs.builds }}            # {"include": [{"city", "area", "day_key", "week_key", "overture_key"}]}
+      renders: ${{ steps.plan.outputs.renders }}          # {"include": [{"city", "variant", "key"}]}
+      feed_refspecs: ${{ steps.plan.outputs.feed_refspecs }}
+      publish: ${{ steps.plan.outputs.publish }}          # "true" when any render is pending or a meta_key changed
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - run: pip install --require-hashes --no-deps -r requirements.txt
+      - id: plan
+        env: {GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}", REF_NAME: "${{ github.ref_name }}"}
+        # Validates the batch, recipes and lock; licence check by licence_id and allow_nc; creates missing
+        # feed tags (D4); finds or creates the draft release shorts-<batch>; lists its assets once; deletes
+        # leftover *.part assets; computes render_key per (city, variant) and keeps those whose MP4, .json
+        # or .netmeta.json label does not end in "key:<first 16 hex>"; computes area, overture and build
+        # keys for what those need.
+        run: python3 scripts/make.py plan --from-branch "$REF_NAME" --github-output "$GITHUB_OUTPUT"
+
+  overture:
+    needs: plan
+    if: needs.plan.outputs.overture != '{"include":[]}'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions: {contents: write}
+    strategy: {matrix: "${{ fromJSON(needs.plan.outputs.overture) }}"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        id: hit
+        with: {path: "cache/overture", key: "overture-${{ matrix.key }}", lookup-only: true}
+      - if: steps.hit.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - if: steps.hit.outputs.cache-hit != 'true'
+        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}"}
+        run: |
+          pip install --require-hashes --no-deps -r requirements.txt
+          python3 scripts/make.py fetch "$BATCH" --area "$AREA" --overture-only --frozen --push-data-tag
+      - if: steps.hit.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with: {path: "cache/overture", key: "overture-${{ matrix.key }}"}
+
+  area:
+    needs: plan
+    if: needs.plan.outputs.areas != '{"include":[]}'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy: {fail-fast: false, matrix: "${{ fromJSON(needs.plan.outputs.areas) }}"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        id: hit
+        with: {path: "build/areas/${{ matrix.area }}/${{ matrix.timeline }}", key: "area-${{ matrix.key }}", lookup-only: true}
+      - if: steps.hit.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - if: steps.hit.outputs.cache-hit != 'true' && needs.plan.outputs.feed_refspecs != ''
+        env: {REFSPECS: "${{ needs.plan.outputs.feed_refspecs }}"}
+        run: git fetch --no-tags --depth=1 origin $REFSPECS
+      # A {"secret": "ODPT_KEY"} feed source reads its key from the environment (2.2); only the fetch
+      # gets it, and an unset secret arrives empty, which make.py reports by name.
+      - if: steps.hit.outputs.cache-hit != 'true'
+        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}", ODPT_KEY: "${{ secrets.ODPT_KEY }}"}
+        run: |
+          pip install --require-hashes --no-deps -r requirements.txt
+          python3 scripts/make.py fetch "$BATCH" --area "$AREA" --feeds-only --frozen
+      - if: steps.hit.outputs.cache-hit != 'true'
+        env: {BATCH: "${{ needs.plan.outputs.batch }}", AREA: "${{ matrix.area }}", TL: "${{ matrix.timeline }}"}
+        run: python3 scripts/make.py build "$BATCH" --area "$AREA" --area-only --timeline "$TL" --frozen
+      - if: steps.hit.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with: {path: "build/areas/${{ matrix.area }}/${{ matrix.timeline }}", key: "area-${{ matrix.key }}"}
+
+  build:
+    needs: [plan, overture, area]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.builds != '{"include":[]}' && needs.overture.result != 'failure' && needs.area.result != 'failure' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy: {fail-fast: false, matrix: "${{ fromJSON(needs.plan.outputs.builds) }}"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - run: pip install --require-hashes --no-deps -r requirements.txt
+      - uses: actions/cache/restore@v4
+        with: {path: "cache/overture", key: "overture-${{ matrix.overture_key }}", fail-on-cache-miss: true}
+      - uses: actions/cache/restore@v4
+        with: {path: "build/areas/${{ matrix.area }}/day", key: "area-${{ matrix.day_key }}", fail-on-cache-miss: true}
+      - if: matrix.week_key != ''
+        uses: actions/cache/restore@v4
+        with: {path: "build/areas/${{ matrix.area }}/week", key: "area-${{ matrix.week_key }}", fail-on-cache-miss: true}
+      - env: {BATCH: "${{ needs.plan.outputs.batch }}", CITY: "${{ matrix.city }}"}
+        run: python3 scripts/make.py build "$BATCH" --city "$CITY" --frozen --no-upstream
+      - uses: actions/upload-artifact@v4
+        with: {name: "build-${{ matrix.city }}", path: "build/${{ matrix.city }}/", retention-days: 3, overwrite: true}
+
+  render:
+    needs: [plan, build]
+    # build is skipped, not failed, when plan, area or overture fails; every leg would then set up
+    # a runner only to find no build artifact. Renders need a successful build of this run.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.build.result == 'success' && needs.plan.outputs.renders != '{"include":[]}' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions: {contents: write}
+    strategy: {fail-fast: false, max-parallel: 20, matrix: "${{ fromJSON(needs.plan.outputs.renders) }}"}
+    steps:
+      # The upload uses gh with GH_TOKEN; nothing here runs git against origin, so the job's write
+      # token is not left in .git/config.
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      # First, so a missing build fails in seconds rather than after the tool setup.
+      - uses: actions/download-artifact@v4
+        with: {name: "build-${{ matrix.city }}", path: "build/${{ matrix.city }}/"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - run: pip install --require-hashes --no-deps -r requirements.txt
+      - uses: actions/setup-node@v4
+        with: {node-version: "22", cache: npm}
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/cache@v4
+        with: {path: "~/.cache/ms-playwright", key: "pw-${{ hashFiles('package-lock.json') }}"}
+      - run: npx playwright install --with-deps chromium
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - env:
+          BATCH: ${{ needs.plan.outputs.batch }}
+          CITY: ${{ matrix.city }}
+          VARIANT: ${{ matrix.variant }}
+        # Review files land in review/<city>-<variant>/, so the publish job can merge every artifact into one tree.
+        run: |
+          python3 scripts/make.py render "$CITY" --variant "$VARIANT" --tier final --no-upstream --review-dir review
+          python3 scripts/make.py meta "$BATCH" --only "$CITY-$VARIANT" --no-upstream --review-dir review
+      # The write token goes only to the upload: make.py hands its environment to every subprocess,
+      # which in the step above includes node and Chromium.
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BATCH: ${{ needs.plan.outputs.batch }}
+          CITY: ${{ matrix.city }}
+          VARIANT: ${{ matrix.variant }}
+        run: python3 scripts/make.py release "$BATCH" --upload "$CITY-$VARIANT"
+      - uses: actions/upload-artifact@v4
+        with: {name: "review-${{ matrix.city }}-${{ matrix.variant }}", path: review/, retention-days: 7, overwrite: true, if-no-files-found: ignore}
+
+  publish:
+    needs: [plan, render]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.publish == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions: {contents: write}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.13", cache: pip}
+      - run: pip install --require-hashes --no-deps -r requirements.txt
+      - uses: actions/download-artifact@v4
+        # A template-only change renders nothing, so there may be no review artifact at all.
+        continue-on-error: true
+        with: {pattern: "review-*", path: review/, merge-multiple: true}
+      - env: {GH_TOKEN: "${{ github.token }}", GH_REPO: "${{ github.repository }}", BATCH: "${{ needs.plan.outputs.batch }}"}
+        run: |
+          python3 scripts/make.py release "$BATCH" --publish
+          python3 scripts/make.py review-push "$BATCH" --from review

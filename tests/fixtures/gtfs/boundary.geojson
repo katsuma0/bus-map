@@ -1,0 +1,1 @@
+{"type":"Feature","properties":{"id":"fixture-square","name":"Fixture","subtype":"locality","area_km2":16.0,"source":"file tests/fixtures/gtfs/boundary.geojson"},"geometry":{"type":"Polygon","coordinates":[[[-79.379143,43.70685],[-79.329359,43.70685],[-79.329359,43.743025],[-79.379143,43.743025],[-79.379143,43.70685]]]}}

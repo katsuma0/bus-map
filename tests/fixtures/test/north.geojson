@@ -1,0 +1,1 @@
+{"type": "Feature", "properties": {"name": "Tsukuba north square", "note": "hand-made square for the test batch, not a real boundary"}, "geometry": {"type": "Polygon", "coordinates": [[[140.066617, 36.142869], [140.133383, 36.142869], [140.133383, 36.197131], [140.066617, 36.197131], [140.066617, 36.142869]]]}}
