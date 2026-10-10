@@ -1791,7 +1791,8 @@ const CAMERA_EDGE_SLACK = 10;
 const CAMERA_SUPERSAMPLE = 2;
 
 // FNV-1a of the id, the same function as make.py camera_path(), so every
-// variant of a city takes the same path and a batch spreads over all six.
+// variant of a city takes the same path. make.py starts from it to spread a
+// batch (camera_paths) and always passes the path it picked.
 function cameraPathFor(id) {
   let h = 2166136261;
   const s = String(id || '');

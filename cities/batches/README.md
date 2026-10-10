@@ -61,9 +61,13 @@ The page query of a video is `render=` with `CARD_LINES` from `variety.card_line
 and `CAMERA_PATH` from `variety.camera` (or `CAMERA: false` for `off`), then
 `override.render`, then `override.variant_render.<variant>`; for the day and the
 week, FRAME_ZOOM is then multiplied by `variety.zoom`. Without `variety.camera`
-the path is FNV-1a of the id over the six paths (`make.py camera_path`), so a
-batch's videos move differently; the amplitudes are CONFIG keys (`CAMERA_ZOOM`,
-`CAMERA_DRIFT`, `CAMERA_AMP`) and go in `override` like any other.
+make.py picks the path so the batch spreads over all six (`make.py camera_paths`):
+in the order of the batch's `cities`, each city takes FNV-1a of its id unless
+more cities before it already have that path than have the least used one.
+Appending a city never changes an earlier city's path; reordering the list or
+naming a path in an earlier recipe can change later ones. The amplitudes are
+CONFIG keys (`CAMERA_ZOOM`, `CAMERA_DRIFT`, `CAMERA_AMP`) and go in `override`
+like any other.
 
 ## Batch: `cities/batches/<batch>.json`
 

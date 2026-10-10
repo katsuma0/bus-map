@@ -517,7 +517,7 @@ does today).
 | `variety.panel_side` | `left` / `right` | no | `left` | preference; the side is chosen by A8.7 and this breaks ties within 10% |
 | `variety.card_line` | int 0..2 | no | 0 | index into the card templates; a `cardline` tuning pick writes here |
 | `variety.zoom` | float | no | 1.0 | multiplies FRAME_ZOOM (D3.8) |
-| `variety.camera` | one of the six B18 paths, or `off` | no | `camera_path(id)` | the camera move, the same in every variant; D3.8 passes it as `CAMERA_PATH` (`off`: `CAMERA: false`) |
+| `variety.camera` | one of the six B18 paths, or `off` | no | the batch pick (B18, `camera_paths`) | the camera move, the same in every variant; D3.8 passes it as `CAMERA_PATH` (`off`: `CAMERA: false`) |
 | `override.render` | obj of CONFIG keys | no | {} | for every variant; never a key that any `defaults.variants.*.render` block sets (validation error) |
 | `override.variant_render` | obj variant -> obj | no | {} | per variant, merged after `override.render` |
 | `override.brand_colors` | obj brand id -> hex | no | {} | passed as `brandhex=` |
@@ -1249,8 +1249,15 @@ about the city core (the orbit's core sits 0.4 R z, under 2% of the width, off i
 (zero zoom speed at u = 0 and 1/2) while the sideways part keeps moving, so the motion never stops,
 never runs at constant speed and is smooth to every derivative. `CAMERA_PATH 'auto'` picks
 `CAMERA_NAMES[fnv1a(meta.id) % 6]` in the order of the table; `make.py camera_path()` is the same
-function, and D3.8 passes the recipe's `variety.camera` or that pick as `CAMERA_PATH`, the same for
-day, rush and week.
+function. D3.8 passes the recipe's `variety.camera`, or else make.py's batch pick, as `CAMERA_PATH`,
+the same for day, rush and week. The batch pick (`make.py camera_paths()`) walks the batch's
+`cities` in order: each city keeps its `camera_path(id)` unless more cities before it have that path
+than have the least used one, and then takes the next least used path in table order; a recipe's
+own `variety.camera` is kept and counted. The id hash alone put three of the ten GTA cities on the
+sway and none on `pull-out-east`; the batch pick uses all six, none more than twice (Markham moves
+to `pull-out-east`, Oakville to `drift-orbit`). Appending a city never moves one before it;
+reordering the list, or naming a path in an earlier recipe, can move later ones. A recipe its batch
+does not list keeps `camera_path(id)`.
 
 **Amplitudes.** `Z0 = CAMERA_ZOOM` (0.08) and `R0 = CAMERA_DRIFT x 1080` (3% of the width), each
 times the path's share. Both are
@@ -1307,5 +1314,6 @@ line's keep rect at every frame (the fixture's frame on all six paths, a frame w
 cropped rush, and Markham and Toronto when built), the HUD and the counts with and without the
 camera, all six paths, `CAMERA_ZOOM` 0 and the sprite, scaled and bounded trail modes, and the
 cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMERA*`
-knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path` and the
+knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path`, the batch
+pick and the
 `camamp` knob.

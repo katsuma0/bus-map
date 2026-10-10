@@ -320,13 +320,37 @@ def r6(v):
 
 
 def camera_path(rid):
-    """The default camera path of a city (B18): FNV-1a of its id, as web/app.js cameraPathFor()
-    picks it for CAMERA_PATH 'auto', so a batch spreads over the paths and every variant of a
-    city moves the same way."""
+    """A city's own camera path (B18): FNV-1a of its id, as web/app.js cameraPathFor() picks it
+    for CAMERA_PATH 'auto'. camera_paths() starts from it to spread a batch."""
     h = 2166136261
     for ch in rid.encode("utf-8"):
         h = ((h ^ ch) * 16777619) & 0xFFFFFFFF
     return CAMERA_PATHS[h % len(CAMERA_PATHS)]
+
+
+def camera_paths(ids, chosen=None):
+    """The camera path of each city of a batch, walked in batch order (B18). A recipe's own
+    variety.camera (chosen) is kept; any other city takes camera_path(id) unless more cities
+    before it have that path than have the least used one, and then the next least used path in
+    CAMERA_PATHS order. The id hash alone put three of the ten GTA cities on the sway and none on
+    pull-out-east; this way every prefix of a batch is as even as it can be, and a city appended
+    to the batch never moves one before it."""
+    chosen = chosen or {}
+    count = dict.fromkeys(CAMERA_PATHS, 0)
+    n = len(CAMERA_PATHS)
+    out = {}
+    for rid in ids:
+        p = chosen.get(rid)
+        if p is None:
+            p = camera_path(rid)
+            low = min(count.values())
+            if count[p] > low:
+                i = CAMERA_PATHS.index(p)
+                p = next(CAMERA_PATHS[(i + k) % n] for k in range(1, n) if count[CAMERA_PATHS[(i + k) % n]] == low)
+        if p in count:
+            count[p] += 1
+        out[rid] = p
+    return out
 
 
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
@@ -1002,6 +1026,24 @@ class Pipeline:
             "built_dir": f"build/{recipe['id']}",
         }
 
+    def camera_pick(self, recipe):
+        """B18: the camera path of a recipe without variety.camera, camera_paths() over the cities
+        of its batch up to it; a recipe its batch does not list keeps camera_path(id). The other
+        recipes are read without validation, so a broken neighbour never stops this render."""
+        rid = recipe["id"]
+        p = self.batch_path(recipe.get("batch", ""))
+        ids = list(self.load(p).get("cities", [])) if os.path.exists(p) else []
+        if rid not in ids:
+            return camera_path(rid)
+        ids = ids[:ids.index(rid) + 1]
+        chosen = {}
+        for other in ids[:-1]:
+            rp = self.recipe_path(other)
+            cam = (self.load(rp).get("variety") or {}).get("camera") if os.path.exists(rp) else None
+            if cam in CAMERA_PATHS + ("off",):
+                chosen[other] = cam
+        return camera_paths(ids, chosen)[rid]
+
     def render_query(self, recipe, variant):
         """D3.8: the render= JSON and brandhex= string for one video."""
         variety = recipe.get("variety") or {}
@@ -1013,7 +1055,7 @@ class Pipeline:
         if cam == "off":
             rj["CAMERA"] = False
         else:
-            rj["CAMERA_PATH"] = cam or camera_path(recipe["id"])
+            rj["CAMERA_PATH"] = cam or self.camera_pick(recipe)
         rj.update(ov.get("render", {}))
         rj.update(ov.get("variant_render", {}).get(variant, {}))
         if variant in ("day", "week"):
