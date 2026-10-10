@@ -1047,6 +1047,10 @@ class Actions(Scratch):
         if d["capture"] != "raw":
             self.assertNotIn("--jobs", line)
         self.assertIn('"FRAME_ZOOM":1.05', line.replace(" ", "").replace('\\"', '"'))
+        res = self.repo.run("preview", "test-north", "--variant", "day")
+        line = next(ln for ln in res.stdout.splitlines() if "render_video.mjs" in ln)
+        for want in ["--tier preview"] + capture:
+            self.assertIn(want, line)
 
     def test_meta_and_csv(self):
         self.repo.run("meta", "test")

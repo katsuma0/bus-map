@@ -2180,6 +2180,12 @@ class Pipeline:
             say(f"sheet {self.rel(sheet)}")
         return sheets
 
+    def capture_args(self):
+        """defaults.json's capture method, and its page count for raw: render_video's own default is
+        min(3, CPUs - 1) pages, which oversubscribes the 4 vCPUs C3 measured 2 pages on."""
+        d = self.defaults()["render"]
+        return ["--capture", d["capture"]] + (["--jobs", d["jobs"]] if d["capture"] == "raw" else [])
+
     def cmd_preview(self, rid, variant):
         recipe = self.recipe(rid)
         batch = self.load_batch(recipe["batch"])
@@ -2192,7 +2198,7 @@ class Pipeline:
         out = os.path.join(self.out_dir(batch), f"{stem}.preview.mp4")
         os.makedirs(os.path.dirname(out), exist_ok=True)
         self.run_node(self.common_render_args(recipe, variant, meta) + ["--tier", "preview", "--out", self.rel(out),
-                                                                        "--name", stem])
+                                                                        "--name", stem] + self.capture_args())
         say(f"preview {self.rel(out)}")
         return out
 
@@ -2225,9 +2231,7 @@ class Pipeline:
         else:
             d = self.defaults()["render"]
             args = self.common_render_args(recipe, variant, meta) + [
-                "--tier", tier, "--out", self.rel(mp4), "--name", stem, "--key", key, "--capture", d["capture"]]
-            if d["capture"] == "raw":
-                args += ["--jobs", d["jobs"]]
+                "--tier", tier, "--out", self.rel(mp4), "--name", stem, "--key", key] + self.capture_args()
             args += ["--min-kbps", d["min_kbps"], "--crf-ladder", ",".join(str(c) for c in d["crf_ladder"]),
                      "--keep-frames", ",".join(str(f) for f in d["keep_frames"])]
             if rdir:
