@@ -456,7 +456,7 @@ Additions made while implementing (they extend, never change, the formats below)
   when every boundary of the area is a `boundary.file`);
 * `<stem>.netmeta.json` also carries `month`, `timeline`, `window`, `modes`, `frames` and
   `trips_total`, and `<stem>.meta.json` also carries `licence_flags` (the CSV column);
-* trims get the trim step key in `$SHORTS_BUILD_KEY` for `meta.build_key`.
+* make.py passes each step key to the builders as `--key` (the trim writes it to `meta.build_key`).
 
 ### 2. Shared interfaces
 

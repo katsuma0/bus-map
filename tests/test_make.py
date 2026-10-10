@@ -121,7 +121,7 @@ meta = {"schema": 4, "kind": "city", "id": cfg["id"], "batch": cfg["batch"], "ar
         "title": cfg["title"], "service_date": "2026-10", "origin": cfg["origin"], "frame": cfg["frame"],
         "trim": {"scale": cfg["trim_scale"], "box_km": [cx - hw, cy - hh, cx + hw, cy + hh]},
         "modes": [{"id": "bus", "label": "buses", "singular": "bus"}], "credit": "Data: Tsukubus · Map: Overture, OSM",
-        "build_key": os.environ.get("SHORTS_BUILD_KEY", ""), "feeds": feeds, "trips_total": 300,
+        "build_key": arg("--key", ""), "feeds": feeds, "trips_total": 300,
         "timeline": {"kind": "week" if week else "day", "period": P, "basis": "average-week" if week else "average-weekday",
                      "month": "2026-10", "month_label": "October", "fallback_feeds": []},
         "hist_period": H, "am_peak": am, "pm_peak": pm, "hist_by_mode": {"bus": hist},

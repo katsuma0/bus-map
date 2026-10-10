@@ -1760,7 +1760,7 @@ class Pipeline:
             if os.path.isdir(out):
                 shutil.rmtree(out)
             os.makedirs(out)
-            self.run_py("build_area.py", ["--config", self.rel(cfg_path), "--out", self.rel(out)])
+            self.run_py("build_area.py", ["--config", self.rel(cfg_path), "--out", self.rel(out), "--key", key])
 
         self.step(f"area {area['id']} {tl}", key, os.path.join(out, "stamp.json"), run, out_dir=out,
                   no_upstream=no_upstream)
@@ -1836,8 +1836,7 @@ class Pipeline:
             key = self.trim_key(batch, recipe, "day", lock, bsha)
             self.step(f"{rid} trim day", key, os.path.join(bdir, "stamps", "trim-day.json"),
                       lambda: (self.run_py("trim_network.py", ["--config", self.rel(cfg_path), "--area", store("day"),
-                                                               "--out", self.rel(day_net)],
-                                           env={"SHORTS_BUILD_KEY": key}), None)[1],
+                                                               "--out", self.rel(day_net), "--key", key]), None)[1],
                       outputs=[day_net])
         if trims["week"]:
             if not os.path.exists(day_net):
@@ -1850,8 +1849,9 @@ class Pipeline:
                 if os.path.exists(week_net):
                     os.remove(week_net)
                 res = self.run_py("trim_network.py", ["--config", self.rel(cfg_path), "--area", store("week"),
-                                                      "--day-network", self.rel(day_net), "--out", self.rel(week_net)],
-                                  env={"SHORTS_BUILD_KEY": key}, ok_codes=(0, 3), capture=True)
+                                                      "--day-network", self.rel(day_net), "--out", self.rel(week_net),
+                                                      "--key", key],
+                                  ok_codes=(0, 3), capture=True)
                 sys.stdout.write(res.stdout)
                 if res.returncode == 3:
                     line = [ln for ln in res.stdout.strip().split("\n") if ln.startswith("{")]
@@ -1869,7 +1869,8 @@ class Pipeline:
         key = self.basemap_key(batch, recipe, lock)
         out = os.path.join(bdir, "basemap.json.gz")
         self.step(f"{rid} basemap", key, os.path.join(bdir, "stamps", "basemap.json"),
-                  lambda: (self.run_py("basemap_v4.py", ["--config", self.rel(cfg_path)]), None)[1], outputs=[out])
+                  lambda: (self.run_py("basemap_v4.py", ["--config", self.rel(cfg_path), "--key", key]), None)[1],
+                  outputs=[out])
         write_text_if_changed(out + ".key", key + "\n")
         self.write_manifest(rid)
 
