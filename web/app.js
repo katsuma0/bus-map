@@ -1547,6 +1547,7 @@ let themeEnv = null;        // trail and line envelope of the active theme (B4)
 let brandMap = null;        // B6 result, busmap.brandMap
 let brandHexQuery = null;   // ?brandhex=, id -> rrggbb
 let groupColor = null;      // group id -> chip dot colour
+let chipMerged = new Set(); // groups the chips line folds into "other" (B9), drawn foreign (B6)
 // Occurrences (B7): one per trip, weekday and period shift that can be on
 // screen inside the window, sorted by start time.
 let occN = 0;
@@ -1786,22 +1787,28 @@ async function initV4(basemap, network) {
   finishFrame();
   totalFrames = CONFIG.HOLD_START + CONFIG.DURATION_FRAMES + CONFIG.HOLD_END;
 
-  buildModesV4(network);
-  const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
-  if (brand) buildColorsBrand(network);
-  else buildColors(network);
-  buildGroupsV4(network);
-
+  // Fonts come before the colours: the chips line is measured to know which
+  // groups keep their own colour (B6, B9).
   const F = fontsV4();
   const faces = CONFIG.HUD_LAYOUT === 'shorts'
     ? [`700 ${CONFIG.TITLE_SIZE}px ${F.mont}`, `400 36px ${F.mont}`, `800 80px ${F.mont}`, `500 26px ${F.mont}`,
       `700 26px ${F.mont}`, `800 132px ${F.mont}`, `800 88px ${F.tnum}`, `600 40px ${F.tnum}`, `500 26px ${F.tnum}`,
-      `600 26px ${F.tnum}`, `400 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
+      `500 24px ${F.tnum}`, `600 26px ${F.tnum}`, `400 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
     : ['600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum', '600 32px Montserrat',
       '500 24px Montserrat', '600 32px MontserratTnum', '500 24px MontserratTnum', '500 20px Montserrat', '400 18px Inter',
       `800 132px ${F.mont}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`];
   await Promise.all(faces.map((f) => document.fonts.load(f).catch(() => null)));
   await document.fonts.ready;
+
+  buildModesV4(network);
+  chipMerged = new Set();
+  if (CONFIG.HUD_LAYOUT === 'shorts' && CONFIG.MODE_CHIPS && Array.isArray(meta.groups) && meta.groups.length) {
+    chipMerged = new Set(fitChips(chipParts(meta.groups, () => null), F).merged);
+  }
+  const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
+  if (brand) buildColorsBrand(network);
+  else buildColors(network);
+  buildGroupsV4(network);
 
   baseCanvas = buildBaseV4(basemap, network);
   buildSpritesV4();
@@ -1864,7 +1871,9 @@ function buildColorsBrand(network) {
   const bg = bgRGB();
   const env = themeEnv;
   const brands = Array.isArray(meta.brands) ? meta.brands : [];
-  const shown = new Set((meta.groups || []).map((g) => g.id).filter((id) => id !== 'other'));
+  // A group the chips line folds into "other" is drawn like "other", so every
+  // trail colour on the map has its chip.
+  const shown = new Set((meta.groups || []).map((g) => g.id).filter((id) => id !== 'other' && !chipMerged.has(id)));
   const groupOf = (b) => (b.kind === 'gtfs' || b.kind === 'mode' ? b.id : b.entry || b.id);
   const firstMode = new Map();
   for (const r of network.routes) if (Number.isInteger(r.brand) && !firstMode.has(r.brand)) firstMode.set(r.brand, r.mode);
@@ -2443,12 +2452,7 @@ function buildShortsLayout() {
     const C = CONFIG.COLORS;
     let parts;
     if (groups) {
-      const byGroup = meta.hist_by_group || {};
-      parts = groups.map((g) => ({
-        id: g.id, label: g.label, share: g.share, other: g.id === 'other',
-        color: (groupColor && groupColor.get(g.id)) || (g.id === 'other' ? C.foreign : C.breakdown),
-        series: Array.isArray(byGroup[g.id]) ? byGroup[g.id] : new Array(histN).fill(0),
-      }));
+      parts = chipParts(groups, (g) => (groupColor && groupColor.get(g.id)) || (g.id === 'other' ? C.foreign : C.breakdown));
     } else {
       const byMode = meta.hist_by_mode || {};
       parts = modes.map((m) => ({
@@ -2456,37 +2460,8 @@ function buildShortsLayout() {
         series: Array.isArray(byMode[m.id]) ? byMode[m.id] : new Array(histN).fill(0),
       }));
     }
-    const maxOver = (series) => {
-      let p = 0;
-      for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
-      return roundHalfEven(p);
-    };
-    const widthAt = (list, size) => list.reduce((sum, p, k) => sum + (k ? 20 : 0) + 26
-      + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
-    let list = parts;
-    let size = 26;
-    const merged = [];
-    // The smallest shown group joins "other" until the line fits, then 24 px.
-    while (widthAt(list, size) > L.textW) {
-      const real = list.filter((p) => !p.other);
-      if (real.length > 1) {
-        const smallest = real.reduce((a, b) => (b.share < a.share || (b.share === a.share && list.indexOf(b) > list.indexOf(a)) ? b : a));
-        let other = list.find((p) => p.other);
-        if (!other) {
-          other = { id: 'other', label: 'other', share: 0, other: true, color: CONFIG.COLORS.foreign, series: new Array(histN).fill(0) };
-          list = list.concat([other]);
-        }
-        const sum = other.series.map((v, i) => v + (smallest.series[i] || 0));
-        const joined = { ...other, share: other.share + smallest.share, series: sum };
-        list = list.filter((p) => p !== smallest && p !== other).concat([joined]);
-        merged.push(smallest.id);
-      } else if (size > 24) {
-        size = 24;
-      } else {
-        break;
-      }
-    }
-    if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails keep their colours`);
+    const { list, size, merged } = fitChips(parts, F, L.textW);
+    if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
     L.chips = { parts: list, size, font: `500 ${size}px ${F.tnum}`, y: 1320, merged };
   }
   L.spark = { x0: 88 + dx, x1: 592 + dx, y0: 1334, y1: 1386 };
@@ -2519,6 +2494,47 @@ function countNoun(L, n) {
 
 function chipLabel(p, n) {
   return p.singular && n === 1 ? p.singular : p.label;
+}
+
+// Chip parts of the groups, with each group's mean series.
+function chipParts(list, colorOf) {
+  const byGroup = meta.hist_by_group || {};
+  return list.map((g) => ({
+    id: g.id, label: g.label || g.id, share: Number(g.share) || 0, other: g.id === 'other', color: colorOf(g),
+    series: Array.isArray(byGroup[g.id]) ? byGroup[g.id] : new Array(histN).fill(0),
+  }));
+}
+
+// The chips line (B9), fitted once at each part's maximum over the window
+// into textW px (504). Each set of parts tries 26 px, then 24 px, before the
+// smallest group joins "other", so a city keeps as many coloured groups as the
+// minimum size allows. Returns the parts, the size and the merged group ids.
+function fitChips(parts, F, textW = 504) {
+  const W0 = meta.day_start, W1 = meta.day_end;
+  const maxOver = (series) => {
+    let p = 0;
+    for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
+    return roundHalfEven(p);
+  };
+  const widthAt = (list, size) => list.reduce((sum, p, k) => sum + (k ? 20 : 0) + 26
+    + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
+  let list = parts;
+  const merged = [];
+  for (;;) {
+    for (const size of [26, 24]) if (widthAt(list, size) <= textW) return { list, size, merged };
+    const real = list.filter((p) => !p.other);
+    if (real.length <= 1) return { list, size: 24, merged };
+    const smallest = real.reduce((a, b) => (b.share < a.share || (b.share === a.share && list.indexOf(b) > list.indexOf(a)) ? b : a));
+    let other = list.find((p) => p.other);
+    if (!other) {
+      other = { id: 'other', label: 'other', share: 0, other: true, color: CONFIG.COLORS.foreign, series: new Array(histN).fill(0) };
+      list = list.concat([other]);
+    }
+    const sum = other.series.map((v, i) => v + (smallest.series[i] || 0));
+    const joined = { ...other, share: other.share + smallest.share, series: sum };
+    list = list.filter((p) => p !== smallest && p !== other).concat([joined]);
+    merged.push(smallest.id);
+  }
 }
 
 // buildSparkline over the window with circular smoothing, for either HUD. The
