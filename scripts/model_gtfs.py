@@ -58,13 +58,15 @@ RAIL_PUBLISHER = "Modelled from gtfs-gis.jp weekday train counts 2026 (A. Nishiz
 BUS_PUBLISHER = "Modelled from MLIT N07 bus routes 2010 (non-commercial) by scripts/model_gtfs.py"
 
 # Speeds by kind of line (contract): stops carry no dwell, so these are
-# average speeds including stops, not top speeds.
-# 36 km/h for JR and private lines puts the Yamanote at about 45 trains in the
-# morning peak, close to the real line; 42 left it at 35.
-SPEED_KMH = {"subway": 30.0, "rail": 36.0, "guideway": 27.0, "streetcar": 13.0}
+# average speeds including stops, not top speeds. Streetcars default to the
+# Arakawa line's 13 km/h; cities/japan_model.json "streetcar_speeds" sets the
+# faster ones per line.
+# Measured in model_rail.zip at 34 km/h: the Yamanote (JR東日本:山手線)
+# peaks at 43 trains running (08:15).
+SPEED_KMH = {"subway": 30.0, "rail": 34.0, "guideway": 27.0, "streetcar": 13.0}
 # Last modelled arrival. The Toei profile ends near 24:54 and a long pattern
 # leaving then would still be running at 2 am; real last trains are in by
-# about 1:15, so late departures are squeezed to fit.
+# about 1:15, so a long pattern's day is cut short to fit.
 LAST_ARRIVAL_S = 25 * 3600 + 15 * 60
 ROUTE_TYPE = {"streetcar": 0, "subway": 1, "rail": 2, "guideway": 2}
 BUS_SPEED_KMH = 13.0
@@ -326,20 +328,25 @@ class Profile:
         frac = (target - self.cum[i]) / self.per_min[i] if self.per_min[i] > 0 else 0.0
         return (i + min(max(frac, 0.0), 1.0)) * 60.0
 
+    def share_at(self, t):
+        """Cumulative share of the day's departures by t seconds since midnight;
+        takes an array too."""
+        x = np.clip(np.asarray(t, dtype=float) / 60.0, 0.0, float(len(self.per_min)))
+        return np.interp(x, np.arange(len(self.cum)), self.cum) / self.total
+
+    def cut_share(self, duration_s):
+        """The share of the profile a pattern of this running time can use: a
+        train leaving after LAST_ARRIVAL_S - duration_s would arrive too late.
+        Cutting the profile there and spreading the n trains over what is left
+        scales the whole day evenly; squeezing only the evening made a false
+        second peak where the squeeze began."""
+        if not duration_s:
+            return 1.0
+        return min(1.0, float(self.share_at(LAST_ARRIVAL_S - duration_s)))
+
     def departures(self, n, phase, duration_s=0):
-        times = [self.time_at((k + phase) / n) for k in range(n)]
-        latest = LAST_ARRIVAL_S - duration_s
-        start = self.time_at(0.0)
-        end = self.time_at(1.0 - 1e-9)
-        if duration_s and end > latest > start:
-            # Compress the evening tail linearly so the last train arrives on
-            # time while the morning and midday shape stays as measured.
-            knee = start + 0.75 * (end - start)
-            if latest > knee:
-                times = [t if t <= knee else knee + (t - knee) * (latest - knee) / (end - knee) for t in times]
-            else:
-                times = [start + (t - start) * (latest - start) / (end - start) for t in times]
-        return [int(round(t)) for t in times]
+        q = self.cut_share(duration_s)
+        return [int(round(self.time_at(q * (k + phase) / n))) for k in range(n)]
 
     def span(self):
         nz = np.flatnonzero(self.raw)
@@ -350,7 +357,7 @@ class Profile:
 
 
 class Section:
-    __slots__ = ("op", "opc", "line", "lnc", "code", "a", "b", "lonlat", "km", "fwd", "rev", "reoriented")
+    __slots__ = ("op", "opc", "line", "lnc", "code", "a", "b", "lonlat", "km", "fwd", "rev", "reoriented", "half")
 
 
 def load_sections(path):
@@ -368,6 +375,7 @@ def load_sections(path):
             s.fwd = int(r["順方向運行本数2024"] or 0)
             s.rev = int(r["逆方向運行本数2024"] or 0)
             s.reoriented = False
+            s.half = 0
             out.append(s)
     return out
 
@@ -436,6 +444,77 @@ def decompose(counts):
     return out
 
 
+def split_section(s):
+    """The two halves of a section, cut at the vertex nearest half its length.
+    Both keep the section's code and counts; the cut becomes a timing point
+    that is not a station (half 1 ends there, half 2 starts there)."""
+    ll = s.lonlat
+    if len(ll) < 3:
+        ll = np.vstack([ll[:1], (ll[0] + ll[-1]) / 2, ll[-1:]])
+    cum = cumulative(to_xy(ll, float(ll[:, 1].mean())))
+    k = int(np.clip(np.argmin(np.abs(cum - cum[-1] / 2)), 1, len(ll) - 2))
+    mid = f"{s.a}～{s.b} 中間点"
+    halves = []
+    for h, (a, b, part) in enumerate(((s.a, mid, ll[:k + 1]), (mid, s.b, ll[k:])), start=1):
+        x = Section()
+        for f in Section.__slots__:
+            setattr(x, f, getattr(s, f))
+        x.a, x.b, x.lonlat, x.km, x.half = a, b, part.copy(), polyline_km(part), h
+        halves.append(x)
+    return halves
+
+
+def interleaved_departures(profile, group, phase, fixed=()):
+    """Origin departures for patterns that share one leg, so that their trains
+    take turns on it.
+
+    group is [(n, pre_s, run_s)], pre_s being the running time from the
+    pattern's origin to the shared leg. With no dwell and one speed, two
+    patterns timed apart keep whatever gap they start with along all the
+    track they share, so independent phases leave some trains running in
+    pairs all day. Here every train is placed where its own pattern's profile
+    quantile would bring it onto the shared leg, and the trains in that order
+    take the evenly spaced quantiles of all the patterns' arrivals there
+    together. fixed are the times trains timed earlier enter the leg: those
+    stay, and the new trains share out the gaps between them instead.
+    Returns one sorted list per pattern."""
+    shares = [max(profile.cut_share(run), 1e-9) for _n, _pre, run in group]
+    order = sorted((profile.time_at(q * (k + 0.5) / n) + pre, p, k)
+                   for p, ((n, pre, _run), q) in enumerate(zip(group, shares)) for k in range(n))
+    if fixed:
+        # Before the first and after the last fixed train there is no gap to
+        # share, so those trains keep their own quantile.
+        slots = [t for t, _p, _k in order]
+        merged = sorted([(t, 1, x) for x, (t, _p, _k) in enumerate(order)] + [(float(f), 0, -1) for f in fixed])
+        prev, run_of = None, []
+        for t, is_new, x in merged:
+            if is_new:
+                run_of.append(x)
+                continue
+            if prev is not None:
+                for r, y in enumerate(run_of):
+                    slots[y] = prev + (r + 1) / (len(run_of) + 1) * (t - prev)
+            prev, run_of = t, []
+    else:
+        grid = np.arange(0.0, PROFILE_MINUTES * 60.0 + 1.0)
+        arrivals = np.zeros_like(grid)
+        for (n, pre, _run), q in zip(group, shares):
+            arrivals += n * np.minimum(profile.share_at(grid - pre) / q, 1.0)
+        targets = np.arange(len(order)) + phase
+        hi = np.clip(np.searchsorted(arrivals, targets, side="left"), 1, len(grid) - 1)
+        a0, a1 = arrivals[hi - 1], arrivals[hi]
+        slots = grid[hi - 1] + np.where(a1 > a0, (targets - a0) / np.where(a1 > a0, a1 - a0, 1.0), 0.0)
+    start = profile.time_at(0.0)
+    out = [[] for _ in group]
+    for slot, (_t, p, _k) in zip(slots, order):
+        _n, pre, run = group[p]
+        # The order can put a pattern's first or last train a little outside
+        # its own day; holding it at the edge keeps first departures after
+        # the profile's start and last arrivals by LAST_ARRIVAL_S.
+        out[p].append(int(round(min(max(float(slot) - pre, start), LAST_ARRIVAL_S - run))))
+    return out
+
+
 def line_kind(op, line, streetcars):
     key = f"{op}:{line}"
     if key in streetcars or key in KNOWN_STREETCARS:
@@ -457,18 +536,24 @@ class RailModel:
         self.shapes = {}
         self.trips = []        # (trip_id, route_id, shape_id, [(stop_id, t)], direction)
         self.section_use = {}  # (op, line, code, dir) -> (expected, modelled)
+        self.via_stops = set()  # timing points inside a section, not stations
         self.line_stats = []
 
-    def add_line(self, op, opc, line, lnc, secs, kind, color, profile):
+    def add_line(self, op, opc, line, lnc, secs, kind, color, profile, speed):
         route_id = f"{opc}_{lnc}"
         self.agencies[opc] = op
         self.routes[route_id] = (opc, line, ROUTE_TYPE[kind], color)
-        speed = SPEED_KMH[kind]
         n_trains = 0
         n_patterns = 0
         for ci, chain in enumerate(chain_sections(secs)):
-            m = len(chain)
             closed = chain[0].a == chain[-1].b
+            if closed and len(chain) < 3:
+                # A one-section loop (舞浜リゾートライン) gives trips that start
+                # and end at one stop, and the builder pins those trains at the
+                # station; halving the sections of a short loop gives every
+                # trip a timing point partway round.
+                chain = [h for s in chain for h in split_section(s)]
+            m = len(chain)
 
             def node_id(k):
                 return f"{route_id}_{ci}_{k % m if closed else k}"
@@ -479,6 +564,8 @@ class RailModel:
                 pt = chain[k].lonlat[0] if k < m else chain[m - 1].lonlat[-1]
                 name = chain[k].a if k < m else chain[m - 1].b
                 self.stops[node_id(k)] = (name, float(pt[1]), float(pt[0]))
+                if k > 0 and chain[k - 1].half == 1:
+                    self.via_stops.add(node_id(k))
             for direction in (0, 1):
                 # Travel legs: (section, from node, to node, geometry in travel
                 # order, from station, to station, trains in this direction).
@@ -491,26 +578,43 @@ class RailModel:
                     # Start a loop just after its least served section, so no run
                     # above the base level is cut in two where the list wraps.
                     r = (int(np.argmin(counts)) + 1) % m
+                    # Both halves of a split section share its count, so r can
+                    # land on a timing point; a run has to start at a station.
+                    while node_id(legs[r][1]) in self.via_stops:
+                        r = (r + 1) % m
                     legs, counts = legs[r:] + legs[:r], counts[r:] + counts[:r]
                 served = [0] * len(legs)
-                for (i, j), n in sorted(decompose(counts).items()):
-                    run = legs[i:j + 1]
-                    shape_id = f"{route_id}_{ci}_{direction}_{run[0][1]}_{run[-1][2]}_{i}_{j}"
-                    self.shapes[shape_id] = concat_lines([leg[3] for leg in run])
-                    cum = np.concatenate([[0.0], np.cumsum([leg[0].km for leg in run])])
-                    stop_ids = [node_id(run[0][1])] + [node_id(leg[2]) for leg in run]
-                    phase = stable_phase(op, line, ci, i, j, run[0][4], run[-1][5], direction)
-                    run_s = int(round(cum[-1] / speed * 3600))
-                    for k, t0 in enumerate(profile.departures(n, phase, run_s)):
-                        times = [t0 + int(round(c / speed * 3600)) for c in cum]
-                        self.trips.append((f"{shape_id}_{k:03d}", route_id, shape_id, list(zip(stop_ids, times)), direction))
-                    for x in range(i, j + 1):
-                        served[x] += n
-                    n_trains += n
-                    n_patterns += 1
+                left = decompose(counts)
+                timed = []  # (i, j, cum, departures) of the patterns done so far
+                while left:
+                    # The patterns through the busiest leg still unscheduled are
+                    # timed together there; the rest wait for a later round.
+                    load = [sum(n for (i, j), n in left.items() if i <= x <= j) for x in range(len(legs))]
+                    ref = int(np.argmax(load))
+                    group = sorted(ij for ij in left if ij[0] <= ref <= ij[1])
+                    cums = [np.concatenate([[0.0], np.cumsum([leg[0].km for leg in legs[i:j + 1]])]) for i, j in group]
+                    spec = [(left[(i, j)], int(round(c[ref - i] / speed * 3600)), int(round(c[-1] / speed * 3600)))
+                            for (i, j), c in zip(group, cums)]
+                    fixed = sorted(t0 + int(round(c[ref - i] / speed * 3600))
+                                   for i, j, c, t0s in timed if i <= ref <= j for t0 in t0s)
+                    deps = interleaved_departures(profile, spec, stable_phase(op, line, ci, direction, ref), fixed)
+                    for (i, j), cum, t0s in zip(group, cums, deps):
+                        timed.append((i, j, cum, t0s))
+                        n = left.pop((i, j))
+                        run = legs[i:j + 1]
+                        shape_id = f"{route_id}_{ci}_{direction}_{run[0][1]}_{run[-1][2]}_{i}_{j}"
+                        self.shapes[shape_id] = concat_lines([leg[3] for leg in run])
+                        stop_ids = [node_id(run[0][1])] + [node_id(leg[2]) for leg in run]
+                        for k, t0 in enumerate(t0s):
+                            times = [t0 + int(round(c / speed * 3600)) for c in cum]
+                            self.trips.append((f"{shape_id}_{k:03d}", route_id, shape_id, list(zip(stop_ids, times)), direction))
+                        for x in range(i, j + 1):
+                            served[x] += n
+                        n_trains += n
+                        n_patterns += 1
                 for leg, c, got in zip(legs, counts, served):
                     self.section_use[(op, line, leg[0].code, direction)] = (c, got)
-        self.line_stats.append({"op": op, "line": line, "kind": kind, "sections": len(secs),
+        self.line_stats.append({"op": op, "line": line, "kind": kind, "sections": len(secs), "speed": speed,
                                 "chains": len(chain_sections(secs)), "patterns": n_patterns, "trains": n_trains})
 
     def tables(self, publisher, version):
@@ -1131,19 +1235,24 @@ def model_bus(spec, bbox, profile):
         if op in excluded_ops:
             stats["excluded_operator"] += 1
             continue
-        # N07 files are cut at the prefecture line, so a Takamatsu to Kyoto
-        # coach shows up as a short in-prefecture leg and slips past the
-        # length test; at city-bus speed it would crawl along the expressway
-        # for hours. Names and coach operators catch them.
-        if highway_name.search(name) or highway_op.search(op):
-            stats["highway_or_airport"] += 1
-            continue
         if not any(shapely.intersects(shapely.linestrings(p), area) for p in parts if len(p) >= 2):
             stats["outside_bbox"] += 1
             continue
         km = sum(polyline_km(p) for p in parts)
         if km > BUS_MAX_KM:
             stats["over_60km"] += 1
+            continue
+        # N07 files are cut at the prefecture line, so a Takamatsu to Kyoto
+        # coach shows up as a short in-prefecture leg and slips past the
+        # length test; at city-bus speed it would crawl along the expressway
+        # for hours. Names and coach operators catch them. Tested after the
+        # area and length so the summary counts only coaches that would
+        # otherwise have been modelled.
+        if highway_name.search(name) or highway_op.search(op):
+            stats["highway_or_airport"] += 1
+            continue
+        if row.get("N07_004") == 0:
+            stats["no_weekday_trips"] += 1
             continue
         keep.append((idx, row, parts, km))
 
@@ -1179,16 +1288,17 @@ def model_bus(spec, bbox, profile):
             sid = f"{base}_{k}"
             stops[sid] = (f"{name} {k + 1}", float(walk[vi, 1]), float(walk[vi, 0]))
             stop_ids.append(sid)
+        # N07_004 is one direction's weekday trips (the mean of the two):
+        # N07's Toei routes match one direction of Toei's own GTFS, overnight
+        # coaches read 1.0 and many values end in .5.
         raw = row.get("N07_004")
         if raw is None or raw >= N07_UNKNOWN:
             unknown.append((op, name, raw))
             n = 1
         else:
             n = max(1, int(math.floor(raw + 0.5)))
-        per_dir = (n - n // 2, n // 2)
+        per_dir = (n, n)
         for direction in (0, 1):
-            if per_dir[direction] == 0:
-                continue
             if direction == 0:
                 shape_pts, seq, d = walk, stop_ids, [float(cum[v]) for v in vidx]
             else:
@@ -1241,11 +1351,14 @@ def read_feed(path):
     return tables
 
 
-def verify_model(path, sections_by_key, label):
+def verify_model(path, sections_by_key, label, via_stops=()):
     """Checks on the written zip itself, independent of the model's own bookkeeping:
     (1) per line section and direction, trips crossing it equal its count;
     (2) every shape starts at its trip's first stop and ends at its last (50 m);
-    (4) trip ids are unique."""
+    (4) trip ids are unique;
+    (5) no trip stops twice in a row at one stop: the builder would put both
+    on the same point of the shape and the vehicle would never move.
+    via_stops are the timing points inside a section, which (1) skips."""
     t = read_feed(path)
     agency = {a["agency_id"]: a["agency_name"] for a in t["agency"]}
     route_line = {r["route_id"]: (agency[r["agency_id"]], r["route_long_name"]) for r in t["routes"]}
@@ -1262,8 +1375,11 @@ def verify_model(path, sections_by_key, label):
     worst_end = 0.0
     counted = Counter()
     unmapped = 0
+    repeats = []
     for tr in t["trips"]:
         seq = [s for _k, s in sorted(seqs[tr["trip_id"]])]
+        if any(a == b for a, b in zip(seq, seq[1:])):
+            repeats.append(tr["trip_id"])
         sh = shapes[tr["shape_id"]]
         lat0 = float(sh[:, 1].mean())
         for stop, pt in ((seq[0], sh[0]), (seq[-1], sh[-1])):
@@ -1272,6 +1388,7 @@ def verify_model(path, sections_by_key, label):
         if sections_by_key is None:
             continue
         op, line = route_line[tr["route_id"]]
+        seq = [s for s in seq if s not in via_stops]
         for a, b in zip(seq, seq[1:]):
             na, nb = stops[a][0], stops[b][0]
             if (op, line, na, nb) in sections_by_key:
@@ -1281,7 +1398,7 @@ def verify_model(path, sections_by_key, label):
             else:
                 unmapped += 1
     return {"label": label, "trips": len(trip_ids), "dup_ids": dup_ids, "worst_end_m": worst_end * 1000,
-            "counted": counted, "unmapped": unmapped}
+            "counted": counted, "unmapped": unmapped, "repeats": repeats}
 
 
 def verify_shaped(path):
@@ -1352,6 +1469,7 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
     rail_cfg = area.get("rail") or {}
     exclude = set(rail_cfg.get("exclude_operators") or [])
     streetcars = set(rail_cfg.get("streetcar_lines") or [])
+    tram_speeds = cfg.get("streetcar_speeds") or {}
     rail, tram = RailModel(), RailModel()
     used_lines, uncoloured, grey, skipped_ops = [], [], [], Counter()
     sections_by_key = {}
@@ -1377,8 +1495,9 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
                 ambiguous.append((op, line, s.a, s.b))
             sections_by_key[(op, line, s.a, s.b)] = s.code
         kind = line_kind(op, line, streetcars)
+        speed = float(tram_speeds.get(key, SPEED_KMH[kind])) if kind == "streetcar" else SPEED_KMH[kind]
         model = tram if key in streetcars else rail
-        model.add_line(op, secs[0].opc, line, secs[0].lnc, secs, kind, color, profiles["rail"])
+        model.add_line(op, secs[0].opc, line, secs[0].lnc, secs, kind, color, profiles["rail"], speed)
         used_lines.append((op, line, len(secs), len(by_line[(op, line)])))
 
     files = {}
@@ -1418,7 +1537,7 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
               f"{len(model.trips)} trains per weekday, peak {pk} running at {fmt_hm(at)}; by kind {dict(sorted(kinds.items()))}")
         if label == "streetcar":
             for st in model.line_stats:
-                print(f"    {st['op']}:{st['line']}  {st['sections']} sections, {st['patterns']} patterns, {st['trains']} trains")
+                print(f"    {st['op']}:{st['line']}  {st['sections']} sections, {st['patterns']} patterns, {st['trains']} trains, {st['speed']:.0f} km/h")
         else:
             print("    trains per weekday by operator: " + ", ".join(f"{op} {n}" for op, n in sorted(by_op.items(), key=lambda kv: -kv[1])))
     for feed, res in shaped.items():
@@ -1435,10 +1554,11 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
         wr = np.array(b["walk_ratio"]) if b["walk_ratio"] else np.ones(1)
         print(f"bus: {b['features_in_file']} N07 routes in file; kept {b['routes']} routes ({b['features']} features) of {b['operators']} operators, "
               f"{b['trips']} trips per weekday, peak {pk} running at {fmt_hm(at)}")
-        print(f"    dropped: {b['drops'].get('demand', 0)} demand (class 4), {b['drops'].get('over_60km', 0)} over {BUS_MAX_KM:.0f} km, "
-              f"{b['drops'].get('outside_bbox', 0)} outside the bbox, {b['drops'].get('excluded_operator', 0)} excluded operator, "
-              f"{b['drops'].get('degenerate', 0)} degenerate")
-        print(f"    unknown frequency (999.9) read as 1 trip: {len(b['unknown'])}" + (f" ({', '.join(f'{o} {n}' for o, n, _ in b['unknown'][:4])}{'...' if len(b['unknown']) > 4 else ''})" if b["unknown"] else ""))
+        print(f"    dropped: {b['drops'].get('demand', 0)} demand (class 4), {b['drops'].get('excluded_operator', 0)} excluded operator, "
+              f"{b['drops'].get('outside_bbox', 0)} outside the bbox, {b['drops'].get('over_60km', 0)} over {BUS_MAX_KM:.0f} km, "
+              f"{b['drops'].get('highway_or_airport', 0)} highway/airport by name or operator, "
+              f"{b['drops'].get('no_weekday_trips', 0)} with no weekday trips (N07_004 = 0), {b['drops'].get('degenerate', 0)} degenerate")
+        print(f"    unknown frequency (999.9) read as 1 trip each way: {len(b['unknown'])}" + (f" ({', '.join(f'{o} {n}' for o, n, _ in b['unknown'][:4])}{'...' if len(b['unknown']) > 4 else ''})" if b["unknown"] else ""))
         print(f"    walk length / geometry length: median {np.median(wr):.2f}, 90th pct {np.percentile(wr, 90):.2f}, max {wr.max():.2f}; "
               f"{b['crossings']} separate parts joined where they cross, {b['joins']} gaps up to {BUS_JOIN_KM:.0f} km bridged, "
               f"{b['dropped_km']:.1f} km of parts farther away dropped")
@@ -1451,13 +1571,21 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
         print(f"    {os.path.relpath(p, ROOT):<40s} {os.path.getsize(p) / 1e6:8.2f} MB")
 
     if verify:
+        failed = []
         for label in ("model_rail", "model_tram", "model_bus"):
             if label not in files:
                 continue
-            res = verify_model(files[label], sections_by_key if label != "model_bus" else None, label)
-            line = f"verify {label}: {res['trips']} trips, duplicate ids {res['dup_ids']}, worst shape end vs stop {res['worst_end_m']:.1f} m"
-            if label != "model_bus":
-                model = rail if label == "model_rail" else tram
+            model = {"model_rail": rail, "model_tram": tram}.get(label)
+            res = verify_model(files[label], sections_by_key if model else None, label, model.via_stops if model else ())
+            line = (f"verify {label}: {res['trips']} trips, duplicate ids {res['dup_ids']}, worst shape end vs stop {res['worst_end_m']:.1f} m, "
+                    f"trips stopping twice in a row at one stop {len(res['repeats'])}")
+            if res["dup_ids"]:
+                failed.append(f"{label}: {res['dup_ids']} duplicate trip ids")
+            if res["worst_end_m"] > 50:
+                failed.append(f"{label}: a shape end lies {res['worst_end_m']:.0f} m from its stop")
+            if res["repeats"]:
+                failed.append(f"{label}: {len(res['repeats'])} trips repeat a stop, e.g. {res['repeats'][:3]}")
+            if model:
                 bad = []
                 checked = 0
                 for key, (exp, _got) in model.section_use.items():
@@ -1471,12 +1599,18 @@ def run_area(name, area, cfg, sections, stations, colors, profiles, verify):
                     line += f"; 山手線 {'matches' if ok else 'DIFFERS'} on {len(yam)} section-directions"
                 for b_ in bad[:5]:
                     line += f"\n    mismatch {b_}"
+                if bad or res["unmapped"]:
+                    failed.append(f"{label}: {len(bad)} section count mismatches, {res['unmapped']} unmapped stop pairs")
             print(line)
         for feed, res in shaped.items():
             v = verify_shaped(res["out"])
             print(f"verify {os.path.basename(res['out'])}: {v['trips']} trips, without shape {v['missing_shape']}, "
                   f"worst stop distance to its shape {v['worst_stop_m']:.1f} m, worst shape end vs stop {v['worst_end_m']:.1f} m, "
                   f"duplicate ids {v['dup_ids']}")
+            if v["missing_shape"] or v["dup_ids"] or v["worst_stop_m"] > 150 or v["worst_end_m"] > 50:
+                failed.append(f"{os.path.basename(res['out'])}: shape check failed")
+        if failed:
+            sys.exit(f"{name}: verification FAILED\n    " + "\n    ".join(failed))
     print(f"{name} done in {time.time() - t_start:.0f}s")
 
 
