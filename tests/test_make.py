@@ -571,6 +571,20 @@ class Validation(unittest.TestCase):
         b["areas"][0]["feeds"][3]["licence_id"] = "ogl-yorkshire"
         self.assertTrue(any("unknown licence id 'ogl-yorkshire'" in e for e in self.batch_errors(b)))
 
+    def test_camera_variety(self):
+        """B18: variety.camera names one of the page's paths, or off."""
+        r = json.loads(json.dumps(self.recipe))
+        for ok in make.CAMERA_PATHS + ("off",):
+            r["variety"]["camera"] = ok
+            self.assertEqual(self.recipe_errors(r), [], ok)
+        for bad in ("pull-out", "auto", "", 1, None):
+            r["variety"]["camera"] = bad
+            errs = self.recipe_errors(r)
+            if bad is None:
+                self.assertEqual(errs, [], "null is the default")
+            else:
+                self.assertTrue(any("variety.camera: must be off or one of" in e for e in errs), bad)
+
     def test_other_errors(self):
         r = json.loads(json.dumps(self.recipe))
         r["variants"] = ["day", "night"]
@@ -775,7 +789,7 @@ class Derivation(Scratch):
         city = self.repo.show("test-north")
         self.assertEqual(city["city.day.json"]["frame"], {"km_vertical": 14.5, "center_km": [2.0, 8.0]})
         self.assertNotIn("city.week.json", city)
-        self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "FRAME_ZOOM": 1.05})
+        self.assertEqual(city["queries"]["day"]["render"], {"CARD_LINES": 1, "CAMERA_PATH": "drift-sway", "FRAME_ZOOM": 1.05})
         self.assertEqual(len(city["keys"]["day"]["render_key"]), 64)
 
     def test_no_brands_file_yet(self):
@@ -836,10 +850,44 @@ class Derivation(Scratch):
         r["override"]["variant_render"] = {"day": {"FRAME_ZOOM": 0.9, "TRAIL_MINUTES": 10}, "rush": {"FRAME_ZOOM": 1.2}}
         r["override"]["brand_colors"] = {"brampton:zum": "#E31837", "yrt": "0058a9"}
         rj, bh = self.pl.render_query(r, "day")
-        self.assertEqual(rj, {"CARD_LINES": 1, "BUS_HALO_R": 12, "FRAME_ZOOM": 0.945, "TRAIL_MINUTES": 10})
+        self.assertEqual(rj, {"CARD_LINES": 1, "CAMERA_PATH": "drift-sway", "BUS_HALO_R": 12, "FRAME_ZOOM": 0.945,
+                              "TRAIL_MINUTES": 10})
         rj, _ = self.pl.render_query(r, "rush")
         self.assertEqual(rj["FRAME_ZOOM"], 1.2)
         self.assertEqual(bh, "brampton:zum:e31837;yrt:0058a9")
+
+    def test_camera_query(self):
+        """B18: one camera path per city, the same in every variant: variety.camera, else the
+        id's FNV-1a pick; off turns the preset's camera off; the amplitudes ride in override."""
+        r = json.loads(json.dumps(self.pl.recipe("test-north", self.batch)))
+        derived = make.camera_path("test-north")
+        for v in ("day", "rush", "week"):
+            self.assertEqual(self.pl.render_query(r, v)[0]["CAMERA_PATH"], derived, v)
+        r["variety"]["camera"] = "pull-out-east"
+        r["override"]["render"] = {"CAMERA_ZOOM": 0.06}
+        r["override"]["variant_render"] = {"rush": {"CAMERA_AMP": 0.8}}
+        for v in ("day", "rush", "week"):
+            rj = self.pl.render_query(r, v)[0]
+            self.assertEqual((rj["CAMERA_PATH"], rj["CAMERA_ZOOM"]), ("pull-out-east", 0.06), v)
+            self.assertNotIn("CAMERA", rj, "the preset turns the camera on, not the recipe")
+        self.assertEqual(self.pl.render_query(r, "rush")[0]["CAMERA_AMP"], 0.8)
+        r["variety"]["camera"] = "off"
+        rj = self.pl.render_query(r, "day")[0]
+        self.assertIs(rj["CAMERA"], False)
+        self.assertNotIn("CAMERA_PATH", rj)
+
+    def test_camera_path(self):
+        """The page's cameraPathFor() is the same FNV-1a (tests/web/v4_camera.mjs: test-tiny is
+        pull-out-west), and the ten GTA cities spread so neighbours rarely share a move."""
+        self.assertEqual(make.camera_path("test-tiny"), "pull-out-west")
+        self.assertEqual(len(make.CAMERA_PATHS), 6)
+        with open(os.path.join(REPO, "tests/fixtures/gta/batches/gta.json")) as fh:
+            gta = {rid: make.camera_path(rid) for rid in json.load(fh)["cities"]}
+        self.assertEqual(len(gta), 10)
+        self.assertEqual((gta["gta-toronto"], gta["gta-markham"], gta["gta-oshawa"]),
+                         ("pull-out-north", "drift-sway", "pull-out-south"))
+        self.assertGreaterEqual(len(set(gta.values())), 5)
+        self.assertLessEqual(max(list(gta.values()).count(p) for p in make.CAMERA_PATHS), 3)
 
     def test_render_key_scope(self):
         recipe = self.pl.recipe("test-centre", self.batch)

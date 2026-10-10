@@ -51,14 +51,19 @@ recipe, and only inside `override` and `variety.card_line`.
 | `variety.panel_side` | `left`, `right` | no | `left` | breaks a tie when both panel sides hide about as many vehicles |
 | `variety.card_line` | 0, 1, 2 | no | 0 | which card text the video opens with |
 | `variety.zoom` | 0.5 to 2 | no | 1.0 | multiplies FRAME_ZOOM of the day and week |
+| `variety.camera` | `pull-out-east`, `pull-out-north`, `pull-out-west`, `pull-out-south`, `drift-orbit`, `drift-sway`, `off` | no | picked from the id | the slow camera move over the map, the same in every variant; `off` keeps the map still |
 | `override.render` | CONFIG keys | no | {} | for every variant; a key that a `defaults.variants.*.render` block sets is an error |
 | `override.variant_render` | variant to CONFIG keys | no | {} | per variant, after `override.render` |
 | `override.brand_colors` | brand id to `#rrggbb` | no | {} | pins a brand colour (`brandhex=`) |
 | `override._why` | `KEY` or `<variant>.KEY` to one line | no | {} | why a tuned value was picked; changes no render key |
 
-The page query of a video is `render=` with `CARD_LINES` from `variety.card_line`,
-then `override.render`, then `override.variant_render.<variant>`; for the day and
-the week, FRAME_ZOOM is then multiplied by `variety.zoom`.
+The page query of a video is `render=` with `CARD_LINES` from `variety.card_line`
+and `CAMERA_PATH` from `variety.camera` (or `CAMERA: false` for `off`), then
+`override.render`, then `override.variant_render.<variant>`; for the day and the
+week, FRAME_ZOOM is then multiplied by `variety.zoom`. Without `variety.camera`
+the path is FNV-1a of the id over the six paths (`make.py camera_path`), so a
+batch's videos move differently; the amplitudes are CONFIG keys (`CAMERA_ZOOM`,
+`CAMERA_DRIFT`, `CAMERA_AMP`) and go in `override` like any other.
 
 ## Batch: `cities/batches/<batch>.json`
 

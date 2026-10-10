@@ -319,13 +319,26 @@ def r6(v):
     return round(float(v), 6)
 
 
+def camera_path(rid):
+    """The default camera path of a city (B18): FNV-1a of its id, as web/app.js cameraPathFor()
+    picks it for CAMERA_PATH 'auto', so a batch spreads over the paths and every variant of a
+    city moves the same way."""
+    h = 2166136261
+    for ch in rid.encode("utf-8"):
+        h = ((h ^ ch) * 16777619) & 0xFFFFFFFF
+    return CAMERA_PATHS[h % len(CAMERA_PATHS)]
+
+
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
 RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "center", "frame", "variants", "rush", "variety", "override"}
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
-VARIETY_KEYS = {"panel_side", "card_line", "zoom"}
+VARIETY_KEYS = {"panel_side", "card_line", "zoom", "camera"}
+# The camera paths of the page (B18), in the order camera_path() picks from:
+# web/app.js CAMERA_NAMES lists the same names in the same order.
+CAMERA_PATHS = ("pull-out-east", "pull-out-north", "pull-out-west", "pull-out-south", "drift-orbit", "drift-sway")
 OVERRIDE_KEYS = {"render", "variant_render", "brand_colors", "_why"}
 BATCH_KEYS = {"batch", "title", "theme", "month", "overture_release", "render_epoch", "review_videos", "areas", "modes",
               "cities", "variants_default", "hashtags", "category", "release"}
@@ -474,6 +487,9 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         z = var.get("zoom", 1.0)
         if not (is_num(z) and 0.5 <= z <= 2.0):
             errors.append(f"{where}.variety.zoom: must be a number between 0.5 and 2")
+        cam = var.get("camera")
+        if cam is not None and cam not in CAMERA_PATHS + ("off",):
+            errors.append(f"{where}.variety.camera: must be off or one of {', '.join(CAMERA_PATHS)}")
     ov = recipe.get("override", {})
     if not isinstance(ov, dict):
         errors.append(f"{where}.override: must be an object")
@@ -991,6 +1007,13 @@ class Pipeline:
         variety = recipe.get("variety") or {}
         ov = recipe.get("override") or {}
         rj = {"CARD_LINES": variety.get("card_line", 0)}
+        # The preset turns the camera on; the recipe only names the path (or turns it off), the
+        # same for every variant, so the rush close-up and the week move like the day.
+        cam = variety.get("camera")
+        if cam == "off":
+            rj["CAMERA"] = False
+        else:
+            rj["CAMERA_PATH"] = cam or camera_path(recipe["id"])
         rj.update(ov.get("render", {}))
         rj.update(ov.get("variant_render", {}).get(variant, {}))
         if variant in ("day", "week"):
