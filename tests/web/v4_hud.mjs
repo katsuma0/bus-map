@@ -14,7 +14,8 @@
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
 //  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart, and
 //       no card line pair splits the place name
-//  B-9  a group the chips line folds into "other" was tried at 24 px first,
+//  B-9  a group the chips line folds into "other" was tried at 24 px with
+//       the 8 px gap first,
 //       and (B6) its brands are drawn foreign, not placed
 //
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
@@ -201,8 +202,8 @@ async function run(h, name, query, variant) {
     // fold comes right after a 24 px try.
     const t = r.chips.tried, W = r.chips.width;
     const order = t.every((x, k) => (k === t.length - 1 ? x.w <= W + 1e-6 || x.n <= 2 : x.w > W)
-      && (k + 1 >= t.length || t[k + 1].n === x.n || x.size === 24));
-    ok(order && t[t.length - 1].size === r.chips.size, `${tag} B-9: chip fit order ${JSON.stringify(t)} for ${W} px`);
+      && (k + 1 >= t.length || t[k + 1].n === x.n || (x.size === 24 && x.gap === 8)));
+    ok(order && t[t.length - 1].size === r.chips.size && t[t.length - 1].gap === r.chips.gap, `${tag} B-9: chip fit order ${JSON.stringify(t)} for ${W} px`);
     ok(!r.foldedPlaced.length, `${tag} B-6: brands of folded groups keep their colour: ${r.foldedPlaced.join(', ')}`);
   }
   ok(r.atPeak.total === r.peakCount, `${tag} B-6: count ${r.atPeak.total} at the peak ${r.peakT}, V.peak.count ${r.peakCount}`);

@@ -2472,9 +2472,9 @@ function buildShortsLayout() {
         series: Array.isArray(byMode[m.id]) ? byMode[m.id] : new Array(histN).fill(0),
       }));
     }
-    const { list, size, merged, tried } = fitChips(parts, F, L.textW);
+    const { list, size, gap, merged, tried } = fitChips(parts, F, L.textW);
     if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
-    L.chips = { parts: list, size, font: `500 ${size}px ${F.tnum}`, y: 1320, merged, tried };
+    L.chips = { parts: list, size, gap, font: `500 ${size}px ${F.tnum}`, y: 1320, merged, tried };
   }
   L.spark = { x0: 88 + dx, x1: 592 + dx, y0: 1334, y1: 1386 };
   L.axisY = 1416;
@@ -2528,19 +2528,21 @@ function fitChips(parts, F, textW = 504) {
     for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
     return roundHalfEven(p);
   };
-  const widthAt = (list, size) => list.reduce((sum, p, k) => sum + (k ? 20 : 0) + 26
+  const widthAt = (list, size, gap) => list.reduce((sum, p, k) => sum + (k ? gap : 0) + 26
     + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
   let list = parts;
   const merged = [];
   const tried = [];
   for (;;) {
-    for (const size of [26, 24]) {
-      const w = widthAt(list, size);
-      tried.push({ n: list.length, size, w });
-      if (w <= textW) return { list, size, merged, tried };
+    // The tight gap comes last: the dots still part the chips, and keeping a
+    // group's chip (TTC in Vaughan) beats a grey trail.
+    for (const [size, gap] of [[26, 20], [24, 20], [24, 8]]) {
+      const w = widthAt(list, size, gap);
+      tried.push({ n: list.length, size, gap, w });
+      if (w <= textW) return { list, size, gap, merged, tried };
     }
     const real = list.filter((p) => !p.other);
-    if (real.length <= 1) return { list, size: 24, merged, tried };
+    if (real.length <= 1) return { list, size: 24, gap: 8, merged, tried };
     const smallest = real.reduce((a, b) => (b.share < a.share || (b.share === a.share && list.indexOf(b) > list.indexOf(a)) ? b : a));
     let other = list.find((p) => p.other);
     if (!other) {
@@ -2976,7 +2978,7 @@ function drawHudShorts(T, a) {
     const y = L.chips.y;
     const start = lastBoxes.length;
     L.chips.parts.forEach((p, k) => {
-      if (k) cx += 20;
+      if (k) cx += L.chips.gap;
       if (text && a > 0) {
         ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
@@ -3376,7 +3378,7 @@ function checkLayoutV4() {
     L.chips.parts.forEach((p, k) => {
       let mx = 0;
       for (let m = Math.floor(meta.day_start / 60); m <= Math.ceil(meta.day_end / 60); m++) mx = Math.max(mx, p.series[mod(m, histN)] || 0);
-      w += (k ? 20 : 0) + 26 + textWidth(`${withCommas(roundHalfEven(mx))} ${chipLabel(p, roundHalfEven(mx))}`, F);
+      w += (k ? L.chips.gap : 0) + 26 + textWidth(`${withCommas(roundHalfEven(mx))} ${chipLabel(p, roundHalfEven(mx))}`, F);
     });
     probe.push({ name: 'chips', x0: L.textX, x1: L.textX + w, y0: L.chips.y - 18, y1: L.chips.y, size: L.chips.size });
   }
@@ -3447,7 +3449,7 @@ const busmap = {
   // draws in the foreign colour.
   get chips() {
     const c = shorts && shorts.chips;
-    return c ? { ids: c.parts.map((p) => p.id), size: c.size, merged: c.merged.slice(), width: shorts.textW,
+    return c ? { ids: c.parts.map((p) => p.id), size: c.size, gap: c.gap, merged: c.merged.slice(), width: shorts.textW,
       tried: c.tried.map((t) => ({ ...t })) } : null;
   },
 };
