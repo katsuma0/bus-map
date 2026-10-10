@@ -222,6 +222,15 @@ def feed_summary(fid, rec, kinds):
     log(f"  {fid}: {rec['classes']} classes, stored {rec['stored']}; excluded {excl}")
     for p in parts:
         log(f"      {p}")
+    for k in kinds:
+        r = rec["by_class"][k]
+        if not r["dates"]:
+            log(f"      warning: {fid} has no {k} date in the month or its fallback window; it contributes nothing to {k}")
+        elif r["rule"] == "median-date":
+            why = f"ratio {r['ratio_half']:.3f}" if len(r["dates"]) >= 3 else f"{len(r['dates'])} dates"
+            log(f"      warning: {fid} {k} uses the median-date rule ({why}): drawn as on {r['median_date']}")
+        if r["fallback"] and r["dates"]:
+            log(f"      warning: {fid} {k} has no usable date in the month; it uses {r['month_used']}")
 
 
 def main():
