@@ -1898,7 +1898,19 @@ async function main() {
   return renderTier(opts, playwright(), tools);
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_FILE) {
+// import.meta.url is the real path, so a call through a symlinked directory
+// must be compared by real path too, or main() would never run and the
+// process would exit 0 having rendered nothing.
+function invokedPath() {
+  if (!process.argv[1]) return null;
+  try {
+    return fs.realpathSync(process.argv[1]);
+  } catch {
+    return path.resolve(process.argv[1]);
+  }
+}
+
+if (invokedPath() === SCRIPT_FILE) {
   main().catch((err) => {
     console.error(`\nerror: ${err.message}`);
     // Cleanup has run by now; exit outright so a leaked handle can never turn

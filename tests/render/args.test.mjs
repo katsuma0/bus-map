@@ -5,6 +5,7 @@
 //   node --test tests/render/args.test.mjs
 
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -338,4 +339,16 @@ test('--dry-run prints the URL and the final arguments, renders nothing', () => 
   assert.equal(r.dryrun.query, 'record=1&city=gta');
   assert.deepEqual(r.dryrun.ffmpeg.slice(1), legacyFfmpegArgs(parseArgs(['--city', 'gta'])));
   assert.equal(runScript(['--tier', 'final', '--sheet']).code, 2);
+});
+
+test('a call through a symlinked directory still runs the script', () => {
+  const link = path.join(tmp, 'repolink');
+  fs.symlinkSync(REPO, link);
+  const script = path.join(link, 'scripts', 'render_video.mjs');
+  let r = spawnSync(process.execPath, [script, '--capture', 'bogus'], { encoding: 'utf8' });
+  assert.equal(r.status, 2, r.stderr);
+  assert.match(r.stderr, /--capture must be/);
+  r = spawnSync(process.execPath, [script, '--dry-run', '--city', 'gta'], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /^DRYRUN /m);
 });
