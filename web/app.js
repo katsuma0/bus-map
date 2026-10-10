@@ -2483,6 +2483,9 @@ function buildShortsLayout() {
   L.axisFont = `500 26px ${F.mont}`;
   L.axisBold = `700 26px ${F.mont}`;
   L.peakFont = `600 26px ${F.tnum}`;
+  // Constant over the video, so measured once rather than on every frame after the peak.
+  const peakLabel = `peak ${withCommas(variantV.peak ? variantV.peak.count : 0)}`;
+  L.peakLabel = { label: peakLabel, w: textWidth(peakLabel, L.peakFont) };
   L.creditFont = `400 22px ${F.inter}`;
   const credit = meta.credit || (Array.isArray(meta.attribution) ? meta.attribution.join(' ') : '');
   L.credit = wrapText(credit, L.creditFont, L.textW, 2, 'greedy');
@@ -2642,7 +2645,10 @@ function buildShortsStatics() {
   st.panel.height = p.y1 - p.y0 + 2 * pad;
   const pg = st.panel.getContext('2d');
   pg.filter = 'blur(28px)';
-  pg.fillStyle = rgba(cssToRGB(C.panel, [8, 13, 21]), alpha);
+  const panelRGB = cssToRGB(C.panel, [8, 13, 21]);
+  // The peak label's outline (drawSparkShorts) is the panel colour at full alpha.
+  st.panelOpaque = rgba(panelRGB, 1);
+  pg.fillStyle = rgba(panelRGB, alpha);
   pg.beginPath();
   pg.roundRect(pad, pad, p.x1 - p.x0, p.y1 - p.y0, 24);
   pg.fill();
@@ -3067,8 +3073,7 @@ function drawSparkShorts(T, a, text) {
         ctx.arc(px, py, 5, 0, Math.PI * 2);
         ctx.fill();
       }
-      const label = `peak ${withCommas(variantV.peak.count)}`;
-      const w = textWidth(label, L.peakFont);
+      const { label, w } = L.peakLabel;
       const right = px + 11 + w <= L.rightX;
       const by = Math.min(1386, Math.max(1353, py + 9));
       const lx = right ? px + 11 : px - 11;
@@ -3080,7 +3085,7 @@ function drawSparkShorts(T, a, text) {
         ctx.textAlign = right ? 'left' : 'right';
         ctx.lineJoin = 'round';
         ctx.lineWidth = 6;
-        ctx.strokeStyle = rgba(cssToRGB(C.panel, [8, 13, 21]), 1);
+        ctx.strokeStyle = shortsStatics.panelOpaque;
         ctx.strokeText(label, lx, by);
       }
       hudText('peak', label, lx, by, L.peakFont, C.accent, 26, a, right ? 'left' : 'right');
