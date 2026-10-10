@@ -187,7 +187,9 @@ class GTA(unittest.TestCase):
                       "Thanksgiving (October 12).", d)
         self.assertIn("Burlington Transit has no October timetable, so it uses November 2 to 27.", d)
         self.assertIn("on an average November weekday", d)
-        self.assertIn("I took the November 2026 timetables", d)
+        # The subtitle month follows Burlington's fallback; the timetables are mostly October's.
+        self.assertIn("I took the October 2026 timetables", d)
+        self.assertIn("The timetables are from October 2026.", self.metas["gta-burlington-rush"]["description"])
         w = self.metas["gta-toronto-week"]["description"]
         self.assertIn("October 31 is left out because the clocks change that night.", w)
         self.assertIn("GO Transit ran a reduced timetable on October 10, so that Saturday is left out.", w)

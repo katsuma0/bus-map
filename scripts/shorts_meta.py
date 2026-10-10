@@ -261,6 +261,10 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         "peak_time": clock_text(peak["time"]), "peak_count": with_commas(round(peak["count"])),
         "peak_day": DAYS[int(peak["time"] // 86400) % 7],
         "month": mlabel, "year": year, "seconds": netmeta.get("seconds"),
+        # Most feeds still use the batch month when the label follows a fallback,
+        # so a sentence about the timetables names that month, as the dates
+        # sentence does.
+        "timetable_month": month_name(month), "timetable_year": month[:4],
         "trips": with_commas(netmeta.get("trips_total") or 0),
         "dates_sentence": dates_sentence(netmeta, templates, variant == "week"),
         "credits": "\n".join(credits), "author": defaults.get("author", ""),

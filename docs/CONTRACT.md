@@ -666,7 +666,9 @@ error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; 
 `cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
 filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
 `{peak_count}` (the variant's peak, 2.9), `{trips}`, `{month}`. D adds in metadata `{agencies}`,
-`{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}`, `{peak_day}`.
+`{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
+and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
+major fallback feed sets the label (Burlington: November), for sentences about the timetables.
 
 #### 2.7 Derived configs (D writes, A reads)
 
