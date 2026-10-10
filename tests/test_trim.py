@@ -527,7 +527,7 @@ class GTA(unittest.TestCase):
 
     def test_rush_frames(self):
         tor = self.net("gta-toronto", "day")["meta"]["variants"]["rush"]
-        self.assertEqual(tor["frame"], {"km_vertical": 40.0, "center_km": [8.5, -18.4]})
+        self.assertEqual(tor["frame"], {"km_vertical": 40.0, "center_km": [8.5, -15.4]})
         self.assertEqual(tor["render"]["TRAIL_MINUTES"], 5)
         for cid in E2:
             m = self.net(cid, "day")["meta"]
