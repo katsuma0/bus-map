@@ -3,20 +3,158 @@
  "batch": "usa",
  "area": "nyc",
  "place": "New York City",
- "boundary": {"name": "New York", "subtypes": ["locality"], "area_km2": 1223.59},
- "modes": ["rail"],
- "center": [-73.94, 40.71],
- "variants": ["day", "rush", "week"],
- "rush": {"frame": null, "auto": true},
- "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}},
-  "colors": {"scheme": "line", "legend": false, "groups": [
-   {"id": "bdfm", "label": "B/D/F/M", "hex": "#eb6800", "match": [{"feed": "subway", "short": "^(B|D|F|FX|M)$"}], "verified": true, "source": "subway.zip routes.txt route_color EB6800 on B D F FX M"},
-   {"id": "456", "label": "4/5/6", "hex": "#009952", "match": [{"feed": "subway", "short": "^(4|5|6|6X)$"}], "verified": true, "source": "subway.zip routes.txt route_color 009952 on 4 5 6 6X"},
-   {"id": "123", "label": "1/2/3", "hex": "#d82233", "match": [{"feed": "subway", "short": "^(1|2|3)$"}], "verified": true, "source": "subway.zip routes.txt route_color D82233 on 1 2 3; the B6 ladder draws it at dL -0.12 (#dc6562, a deeper red) because at the source step it is 0.059 from B/D/F/M"},
-   {"id": "nqrw", "label": "N/Q/R/W", "hex": "#f6bc26", "dL": 0.1, "match": [{"feed": "subway", "short": "^(N|Q|R|W)$"}], "verified": true, "source": "subway.zip routes.txt route_color F6BC26 on N Q R W; pinned at dL +0.10 (trail #ffcc5b, a true yellow) to clear B/D/F/M (0.096 at the source step) and the amber city line (0.054)"},
-   {"id": "ace", "label": "A/C/E", "hex": "#0062cf", "match": [{"feed": "subway", "short": "^(A|C|E)$"}], "verified": true, "source": "subway.zip routes.txt route_color 0062CF on A C E"},
-   {"id": "7", "label": "7", "hex": "#9a38a1", "match": [{"feed": "subway", "short": "^(7|7X)$"}], "verified": true, "source": "subway.zip routes.txt route_color 9A38A1 on 7 7X"},
-   {"id": "other", "label": "Other", "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
-  ]}
+ "boundary": {
+  "name": "New York",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1223.59
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -73.94,
+  40.71
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "BASE_ROADS_GAIN": 0.75,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "rush": {
+    "TITLE_SCRIM": 1.5,
+    "PANEL_ALPHA": 1.2,
+    "BUS_CORE_R": 1.4,
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9
+   },
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1",
+   "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1",
+   "day.TRAIL_MINUTES": "18 min joins the Queens lines into thin trails, strobe 0.0059 to 0.0057, Manhattan no whiter (whiteout 0.0044)",
+   "TRAIL_SHOULDER_W": "8 px keeps the Manhattan trunks apart with less haze, line colours still read; strobe flat at 0.0058",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp and Manhattan stops fusing; strobe 0.0058 to 0.0037, whiteout halves",
+   "BASE_ROADS_GAIN": "0.75 quiets the Queens and Brooklyn street grid so the thin subway lines read first; streets still show after RT",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes to 0.6 min a frame against 0.8 at midday, strobe 0.0037 to 0.0035; night 6 s, no jump",
+   "OUTSIDE_DIM": "0.75 darkens New Jersey and Long Island so the five boroughs read first; their roads still give context",
+   "rush.BUS_CORE_R": "the rush pass has no dot knob; 1.4 with the 9 min trail takes rush strobe 0.0068 to 0.0037, dots still read",
+   "rush.FRAME_ZOOM": "0.9 lifts the trains clear of the HUD from 0.92 to 0.95 and keeps Manhattan off the left edge",
+   "rush.TRAIL_MINUTES": "9 min draws the rush lines as thin continuous colour, corridors stay apart; strobe 0.0043 to 0.0042"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "bdfm",
+    "label": "B/D/F/M",
+    "hex": "#eb6800",
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(B|D|F|FX|M)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color EB6800 on B D F FX M"
+   },
+   {
+    "id": "456",
+    "label": "4/5/6",
+    "hex": "#009952",
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(4|5|6|6X)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color 009952 on 4 5 6 6X"
+   },
+   {
+    "id": "123",
+    "label": "1/2/3",
+    "hex": "#d82233",
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(1|2|3)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color D82233 on 1 2 3; the B6 ladder draws it at dL -0.12 (#dc6562, a deeper red) because at the source step it is 0.059 from B/D/F/M"
+   },
+   {
+    "id": "nqrw",
+    "label": "N/Q/R/W",
+    "hex": "#f6bc26",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(N|Q|R|W)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color F6BC26 on N Q R W; pinned at dL +0.10 (trail #ffcc5b, a true yellow) to clear B/D/F/M (0.096 at the source step) and the amber city line (0.054)"
+   },
+   {
+    "id": "ace",
+    "label": "A/C/E",
+    "hex": "#0062cf",
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(A|C|E)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color 0062CF on A C E"
+   },
+   {
+    "id": "7",
+    "label": "7",
+    "hex": "#9a38a1",
+    "match": [
+     {
+      "feed": "subway",
+      "short": "^(7|7X)$"
+     }
+    ],
+    "verified": true,
+    "source": "subway.zip routes.txt route_color 9A38A1 on 7 7X"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"
+   }
+  ]
+ }
 }

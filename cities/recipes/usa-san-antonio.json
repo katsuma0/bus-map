@@ -3,14 +3,79 @@
  "batch": "usa",
  "area": "san-antonio",
  "place": "San Antonio",
- "boundary": {"name": "San Antonio", "subtypes": ["locality"], "area_km2": 1307.0},
- "center": [-98.49, 29.47],
- "variants": ["day", "rush", "week"],
- "rush": {"frame": null, "auto": true},
- "variety": {"panel_side": "right", "card_line": 1, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}},
-  "colors": {"scheme": "type", "legend": true, "groups": [
-   {"id": "standard", "label": "Standard", "brand": "via", "rest": true, "verified": true, "source": "via.zip routes.txt route_color 2D5DA2 on 33 routes (VIA blue)"},
-   {"id": "frequent", "label": "Frequent", "hex": "#cb2128", "match": [{"feed": "via", "short": "^(2|3|4|10|14|20|21|24|25|28|34|68|75|76|77|82|88|93|95|96|100|102|103|524|534|552)$"}], "verified": true, "source": "via.zip routes.txt route_color CB2128 on 26 routes (Frequent, Skip, Primo, 93)", "why": "Primo 100, 102 and 103 ride with Frequent: VIA paints them the same CB2128, and one step deeper read the same as Frequent on a phone (judged on stills)"}
-  ]}
+ "boundary": {
+  "name": "San Antonio",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1307.0
+ },
+ "center": [
+  -98.49,
+  29.47
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "PANEL_ALPHA": 1.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min joins the radial corridors without fusing downtown and takes strobe under 0.004",
+   "day.BUS_CORE_R": "1.6 px dots still read as buses on a phone, sharper downtown, and strobe drops from 0.0039 to 0.0024",
+   "rush.FRAME_ZOOM": "0.9 pulls the south trails out from under the clock (contrast 5.5 to 6.1) and the east side off the buttons",
+   "rush.TRAIL_MINUTES": "9 min links the downtown radials into lines without fusing them and trims strobe to 0.00328",
+   "rush.PANEL_ALPHA": "1.15 dims the city outline where it crosses the legend and credit; contrast 3.6 to 4.3 at P99"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "standard",
+    "label": "Standard",
+    "brand": "via",
+    "rest": true,
+    "verified": true,
+    "source": "via.zip routes.txt route_color 2D5DA2 on 33 routes (VIA blue)"
+   },
+   {
+    "id": "frequent",
+    "label": "Frequent",
+    "hex": "#cb2128",
+    "match": [
+     {
+      "feed": "via",
+      "short": "^(2|3|4|10|14|20|21|24|25|28|34|68|75|76|77|82|88|93|95|96|100|102|103|524|534|552)$"
+     }
+    ],
+    "verified": true,
+    "source": "via.zip routes.txt route_color CB2128 on 26 routes (Frequent, Skip, Primo, 93)",
+    "why": "Primo 100, 102 and 103 ride with Frequent: VIA paints them the same CB2128, and one step deeper read the same as Frequent on a phone (judged on stills)"
+   }
+  ]
+ }
 }
