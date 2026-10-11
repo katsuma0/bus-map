@@ -374,7 +374,11 @@ elif m := re.fullmatch(r"repos/[^/]+/[^/]+/releases/assets/(\d+)", p):
         sys.stdout.buffer.write(open(os.path.join(store, str(aid)), "rb").read())
 elif m := re.fullmatch(r"repos/[^/]+/[^/]+/releases/(\d+)", p):
     r = next(r for r in st["releases"] if r["id"] == int(m.group(1)))
-    r["body"] = json.load(open(inp))["body"]; save(); out(r)
+    patch = json.load(open(inp))
+    r["body"] = patch["body"]
+    # GitHub detaches a draft from a tag that does not exist yet when an edit leaves tag_name out.
+    r["tag_name"] = patch.get("tag_name") or f"untagged-{r['id']:020x}"
+    save(); out(r)
 elif re.fullmatch(r"repos/[^/]+/[^/]+/git/refs", p):
     st["refs"].append({"ref": fields["ref"], "sha": fields["sha"]}); save(); out({"ref": fields["ref"]})
 else:
