@@ -1,0 +1,28 @@
+{
+ "release": "2026-09-23.1",
+ "area": "nyc",
+ "files": {
+  "2026-09-23.1/divisions/US-NY-nyc.geojson": {
+   "sha256": "98a53ff20584bf48274df40f4da2201ddc1881f49da5af67d1eefec06143ac20",
+   "bytes": 1353759,
+   "parts": [
+    "2026-09-23.1/divisions/US-NY-nyc.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/nyc/segments.geojson": {
+   "sha256": "a54fed6a647f690cc9949805cc18777db0291cc70bbb1f59ef30c156460d087d",
+   "bytes": 516723848,
+   "parts": [
+    "2026-09-23.1/nyc/segments.geojson.gz.000",
+    "2026-09-23.1/nyc/segments.geojson.gz.001"
+   ]
+  },
+  "2026-09-23.1/nyc/water.geojson": {
+   "sha256": "531cd2d481df45a84478481403590192ea40e270c33acdc45bce47ffaf1f5aa7",
+   "bytes": 81088693,
+   "parts": [
+    "2026-09-23.1/nyc/water.geojson.gz.000"
+   ]
+  }
+ }
+}
