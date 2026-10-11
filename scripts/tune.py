@@ -616,7 +616,11 @@ class Tuner:
         return sig
 
     def render_arm(self, out, query, bh, times, frames, clip):
-        os.makedirs(out, exist_ok=True)
+        # New files rather than writes into the old ones: reuse_previous hard-links a picked arm's files
+        # into the next knob's b, and the renderer rewrites a file in place, through every link to it.
+        if os.path.isdir(out):
+            shutil.rmtree(out)
+        os.makedirs(out)
         args = ["--data", self.pl.rel(self.net), "--basemap", self.pl.rel(self.basemap), "--variant", self.variant,
                 "--render-json", json.dumps(query, sort_keys=True, separators=(",", ":"))]
         if bh:
@@ -671,6 +675,9 @@ class Tuner:
                 return False
             if not self.arm_whole(src, times, frames, clip):
                 return False
+            if os.path.abspath(src) == os.path.abspath(out):
+                # A re-run of the knob picked last, at b: its b is that arm already.
+                return True
             if os.path.isdir(out):
                 shutil.rmtree(out)
             os.makedirs(out)

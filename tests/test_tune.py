@@ -459,6 +459,30 @@ class EndToEnd(tm.Scratch):
         self.assertIsNotNone(tm.load(os.path.join(k2, "scores.json"))["arms"][1]["scores"]["whiteout"])
         self.assertTrue(os.path.exists(os.path.join(k2, "sheet.jpg")))
 
+    def test_rerun_keeps_linked_arms(self):
+        """A knob run again renders into new files, so the arms linked to its old ones keep their pictures."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day")
+        run = lambda *a: self.repo.run("tune", rid, *a)
+        zoom_of = lambda *p: tm.load(os.path.join(d, *p, "config.json"))["FRAME_ZOOM"]
+        still = lambda *p: tm.read_bytes(os.path.join(d, *p, "still-0800.png"))
+        run("--next")
+        run("--pick", "zoom=c", "--why", "the city fills the space above the panel")
+        run("--next")
+        cx_b = still("02-cx", "b")
+        self.assertEqual(cx_b, still("01-zoom", "c"))
+        # Arm b of the re-run is the old c, linked; c is rendered again at 1.28.
+        run("--knob", "zoom")
+        self.assertEqual([zoom_of("01-zoom", x) for x in "abc"], [1.04, 1.16, 1.28])
+        self.assertEqual(still("01-zoom", "b"), cx_b)
+        self.assertEqual((zoom_of("02-cx", "b"), still("02-cx", "b")), (1.16, cx_b))
+        # Run again with b picked last: b is that arm already, kept rather than emptied.
+        run("--pick", "zoom=b", "--why", "1.16 still fills the space")
+        self.repo.clear_calls()
+        run("--knob", "zoom")
+        self.assertEqual(len([c for c in self.repo.calls() if c.startswith("render tune")]), 2)
+        self.assertEqual((zoom_of("01-zoom", "b"), still("01-zoom", "b")), (1.16, cx_b))
+
     def test_pick_after_a_rerun(self):
         """--apply compares a pick with what the recipe renders, not with arm b of the knob's latest run."""
         rid = "test-centre"

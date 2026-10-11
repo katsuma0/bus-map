@@ -470,6 +470,8 @@ Additions made while implementing (they extend, never change, the formats below)
   its scores and sheets read (`config.json`, each still with its `bg-` and the am-peak `rt-still-`,
   each frame with its `bgframe-`, and the clip's round trip); a pick whose PNGs were deleted to save
   disk is rendered again, and a sheet tile whose image is missing is a red outline, never an error;
+  an arm renders into an emptied directory, so the files a later knob's b links to are replaced,
+  never written through, and a re-run of the knob picked last, at b, keeps that b;
 * the rush pass also runs `dotcore` (10, BUS_CORE_R), after `trailmin`: BUS_CORE_R is a variant
   block key (the week's 0), so a day pick goes to `override.variant_render.day` alone and the rush
   kept the preset's 2.2 px dots; the rush picks its own on its close-up clip, where its strobe is
