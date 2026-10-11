@@ -422,6 +422,46 @@ class Review(unittest.TestCase):
         self.assertIn("inside the Felicity city limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
         self.assertIn("inside the Markham city limits.", self.meta("gta-markham", "day")["description"])
 
+    def split_netmeta(self, rid, variant, modes, drawn, inside):
+        """A netmeta of a video that keeps `modes`, with window_trips per feed and inside shares."""
+        recipe = dict(self.pl.recipe(rid, self.batch), modes=modes)
+        nm = netmeta(self.batch, recipe, variant)
+        for f in nm["feeds"]:
+            f["window_trips"] = drawn.get(f["id"], 0)
+            f["inside_share"] = inside.get(f["id"], 0.0)
+            f["inside_vehicle_minutes"] = f["inside_share"] * 1e5
+        nm.update(modes=[m for m in self.batch["modes"] if m["id"] in modes], modes_present=modes)
+        return recipe, nm
+
+    def test_flags_follow_the_feeds_the_video_draws(self):
+        # Buses: GO's buses are drawn, UP Express (a train) is not, and MiWay runs only outside the city.
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["bus", "streetcar"],
+                                        {"ttc": 30000, "go": 900, "miway": 400}, {"ttc": 0.97, "go": 0.03})
+        m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe)
+        self.assertEqual([e["feed"] for e in m["licences"]], ["ttc", "go", "miway"])
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit"])
+        self.assertEqual(m["flags"], m["licence_flags"])
+        self.assertEqual([c.split(" (")[0] for c in m["credits"]], ["TTC", "GO Transit", "MiWay"])
+        self.assertNotIn("UP Express", m["description"])
+        # Trains: UP Express is drawn, so its flag is back, and the buses' feeds are gone.
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["rail"], {"ttc": 2700, "go": 350, "upx": 160},
+                                        {"ttc": 0.85, "go": 0.12, "upx": 0.03})
+        m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe)
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit", "UP Express"])
+        self.assertEqual([e["feed"] for e in m["licences"]], ["ttc", "go", "upx"])
+        # A non-commercial feed the video does not draw no longer stops it.
+        b = json.loads(json.dumps(self.batch))
+        next(f for f in b["areas"][0]["feeds"] if f["id"] == "milton")["licence_id"] = "cc-by-nc-4.0"
+        next(f for f in nm["feeds"] if f["id"] == "milton")["licence_id"] = "cc-by-nc-4.0"
+        self.meta("gta-toronto", "day", nm=nm, recipe=recipe, batch=b)
+        # A rush window can leave out a feed the day draws.
+        recipe, nm = self.split_netmeta("gta-toronto", "rush", ["rail"], {"ttc": 600, "go": 99}, {"ttc": 0.85, "go": 0.15})
+        m = self.meta("gta-toronto", "rush", nm=nm, recipe=recipe)
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit"])
+        # A netmeta of an older make.py has only the inside counts, as before.
+        nm = netmeta(self.batch, self.pl.recipe("gta-toronto", self.batch), "day")
+        self.assertEqual([f["id"] for f in sm.drawn_feeds(nm)], ["ttc", "go", "miway", "yrt", "upx"])
+
 
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):

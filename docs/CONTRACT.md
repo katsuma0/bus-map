@@ -1073,6 +1073,13 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 window, over the recipe's modes), "groups", "color_by" (the meta's, `"group"` for colour groups), "credit", "seconds",
 "build_key"}`. The sidecar's `query` holds `paint=` as it holds `brandhex=`. `make.py meta` needs only this, the
 batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
+The netmeta also carries `netmeta_version` (2) and, from the network's trips, `window_trips` on each
+feed and colour group (the trips the video draws in its window by the page's rule, B7, inside the
+boundary or faded outside) and `window_modes` on each group (those trips by mode). A video's
+credits, licence flags and licence checks cover the feeds with `window_trips`, those with vehicles
+inside first, so a split city's buses leave out its trains' feeds and a neighbour drawn faded outside
+is credited; a netmeta without them falls back to the feeds with vehicles inside, and `make.py meta`
+rewrites an older netmeta from the network when the network is there.
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
 "credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],

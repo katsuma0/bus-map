@@ -164,7 +164,9 @@ non-commercial licence through), and `source`, one of:
 
 Licences are matched on `licence_id` only. `commercial: no` stops `plan` and
 `meta` unless the feed has `allow_nc`; `check` is printed in the release notes and
-the CSV's `licence_flags`.
+the CSV's `licence_flags`. A video's credits and licence flags cover the feeds it
+draws, inside the boundary or faded outside, so a split city's buses leave out its
+trains' feeds.
 
 ## Lock: `cities/locks/<batch>.lock.json`
 

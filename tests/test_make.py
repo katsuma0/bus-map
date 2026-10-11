@@ -1864,6 +1864,71 @@ class Actions(Scratch):
         self.assertIn(f"pushed {ov['data_tag']}", res.stdout)
         self.assertEqual(git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip(), plain)
 
+    def test_netmeta_records_what_the_video_draws(self):
+        pl = make.Pipeline(self.repo.root)
+        batch = pl.load_batch("test")
+        recipe = pl.recipe("test-centre", batch)
+        meta = pl.network_meta(os.path.join(self.repo.root, "build/test-centre/day/network.json.gz"))
+        nm = pl.netmeta(batch, recipe, "day", meta, "k", draws=({"tsukubus": 12}, {"tsukubus": {"bus": 12}}))
+        self.assertEqual({f["id"]: f["window_trips"] for f in nm["feeds"]}, {"tsukubus": 12, "tsukubane": 0})
+        self.assertEqual({g["id"]: (g["window_trips"], g["window_modes"]) for g in nm["groups"]},
+                         {"tsukubus": (12, {"bus": 12}), "other": (0, {})})
+        self.assertNotIn("window_trips", meta["groups"][0], "the network's own meta is left as it was")
+        # The stub trim's network has no trips, so its netmeta says nothing either way.
+        p, _meta = pl.write_netmeta(batch, recipe, "day", out_dir=os.path.join(self.tmp, "nm"))
+        nm = load(p)
+        self.assertEqual(nm["netmeta_version"], make.NETMETA_VERSION)
+        self.assertFalse([x for x in nm["feeds"] + nm["groups"] if "window_trips" in x])
+
+    def test_meta_rewrites_an_older_netmeta(self):
+        self.repo.run("meta", "test", "--only", "test-centre-day")
+        p = os.path.join(self.repo.root, "out/shorts/test/test-centre-day.netmeta.json")
+        nm = load(p)
+        self.assertEqual(nm["netmeta_version"], make.NETMETA_VERSION)
+        del nm["netmeta_version"]
+        self.repo.write_json(os.path.relpath(p, self.repo.root), nm)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day")
+        self.assertIn("test-centre-day: rewrote a netmeta of an older make.py", res.stdout)
+        self.assertEqual(load(p)["netmeta_version"], make.NETMETA_VERSION)
+        # A release's netmeta comes without its network: the metadata is made as before, with a warning.
+        src = os.path.join(self.tmp, "release")
+        os.makedirs(src)
+        with open(os.path.join(src, "test-centre-day.netmeta.json"), "w") as fh:
+            json.dump(nm, fh)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day", "--from-netmeta", src)
+        self.assertIn("test-centre-day: netmeta of an older make.py", res.stderr)
+
+
+class Draws(unittest.TestCase):
+    """What a video draws in its window (window_draws)."""
+
+    @staticmethod
+    def network(kind, trips):
+        routes = [{"feed": "cta", "group": "red", "mode": "rail"}, {"feed": "metra", "group": "other", "mode": "rail"},
+                  {"feed": "cta", "group": "other", "mode": "bus"}]
+        return {"meta": {"timeline": {"kind": kind, "period": 604800 if kind == "week" else 86400}},
+                "routes": routes, "trips": [{"r": r, "t": t, **({"w": w} if w is not None else {})} for r, t, w in trips]}
+
+    def test_day_window(self):
+        net = self.network("day", [(0, [30000, 32000], None), (1, [3600, 5400], None), (2, [86000, 87000], None)])
+        # The day video starts at the morning peak and runs 24 hours: the 1 am Metra trip comes round at its end.
+        feeds, groups = make.window_draws(net, 28800, 115200)
+        self.assertEqual(feeds, {"cta": 2, "metra": 1})
+        self.assertEqual(groups, {"red": {"rail": 1}, "other": {"rail": 1, "bus": 1}})
+        # The rush, 6:30 to 9:30, draws the morning train alone.
+        feeds, groups = make.window_draws(net, 23400, 34200)
+        self.assertEqual((feeds, groups), ({"cta": 1}, {"red": {"rail": 1}}))
+        # A trip that ends as the window starts is still on the map.
+        self.assertEqual(make.window_draws(net, 32000, 34200)[0], {"cta": 1})
+
+    def test_week_mask(self):
+        # Monday only, Tuesday only, and a trip without a mask, which the page draws every day.
+        net = self.network("week", [(0, [30000, 32000], 1), (1, [30000, 32000], 2), (2, [30000, 32000], None)])
+        tuesday = (86400 + 28800, 86400 + 34200)
+        self.assertEqual(make.window_draws(net, *tuesday), ({"metra": 1, "cta": 1}, {"other": {"rail": 1, "bus": 1}}))
+        self.assertEqual(make.window_draws(net, 28800, 28800 + 604800)[0], {"cta": 2, "metra": 1})
+        self.assertIsNone(make.window_draws(dict(net, trips=[]), 0, 86400))
+
 
 if __name__ == "__main__":
     unittest.main()

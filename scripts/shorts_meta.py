@@ -111,6 +111,19 @@ def inside_feeds(netmeta):
     return sorted(feeds, key=lambda f: (-(f.get("inside_share") or 0), -ivm(f), f["id"]))
 
 
+def drawn_feeds(netmeta):
+    """Feeds whose trips the video draws in its window, for the credits and the licence flags: a
+    neighbour's buses faded outside the boundary are its data too. Those with vehicles inside come
+    first, busiest first, then the rest by trips drawn. A netmeta without window_trips (written
+    before make.py recorded them) has only the inside counts to go on."""
+    feeds = netmeta.get("feeds", [])
+    if not any("window_trips" in f for f in feeds):
+        return inside_feeds(netmeta)
+    drawn = [f for f in feeds if (f.get("window_trips") or 0) > 0]
+    return sorted(drawn, key=lambda f: (-(f.get("inside_share") or 0), -(f.get("inside_vehicle_minutes") or 0),
+                                        -f["window_trips"], f["id"]))
+
+
 def present_modes(netmeta, modes):
     """B9's modes of the window, else every mode (as the page's modesInWindow)."""
     present = set(netmeta.get("modes_present") or [])
@@ -240,7 +253,7 @@ def licence_flags(entries, names):
 def credit_lines(netmeta, licences, templates):
     lines = []
     s = templates["sentences"]
-    for f in inside_feeds(netmeta):
+    for f in drawn_feeds(netmeta):
         lic = licences.get("licences", {}).get(f.get("licence_id"), {})
         name, publisher = clean(f.get("name")), clean(f.get("publisher"))
         # An agency that publishes its own feed under its own name would read
@@ -352,7 +365,8 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         raise MetaError(f"{stem} description is {len(description)} characters, the limit is {DESCRIPTION_MAX}")
     batch_feeds = {f["id"]: f for a in batch["areas"] for f in a["feeds"]}
     entries, errors, names = [], [], {}
-    for f in netmeta.get("feeds", []):
+    # The feeds this video draws, as the credits: a split video's flags leave out the other modes' feeds.
+    for f in drawn_feeds(netmeta):
         bf = dict(batch_feeds.get(f["id"], {}), **{k: f[k] for k in ("id", "licence_id") if k in f})
         bf.setdefault("allow_nc", batch_feeds.get(f["id"], {}).get("allow_nc"))
         names[f["id"]] = clean(f.get("name") or bf.get("name") or f["id"])
