@@ -181,13 +181,16 @@ const CONFIG = {
   // Shorts HUD text (B9): one scale for every size and gap of the HUD, each
   // size stopping at its MIN_SIZE floor, and the weights of the title, the
   // clock (the weekday too), the body (the count line, the week's clock, the
-  // chips and the peak label) and the small print (the subtitle, the credit
-  // and the axis). The sparkline's labels are its window ends, midnight, the
-  // hours of the rush and the week's day letters.
+  // chips and the peak label), the subtitle and the small print (the credit
+  // and the axis). The subtitle has its own: the credit, the smallest text,
+  // can need more weight to survive the transcode than a 30 px line does.
+  // The sparkline's labels are its window ends, midnight, the hours of the
+  // rush and the week's day letters.
   TEXT_SCALE: 1,
   TITLE_WEIGHT: 700,
   CLOCK_WEIGHT: 800,
   BODY_WEIGHT: 600,
+  SUBTITLE_WEIGHT: 400,
   SMALL_WEIGHT: 400,
   SPARK_LABELS: true,
   // Camera (B18): a slow drone move over the map layers only, periodic over
@@ -1710,7 +1713,8 @@ const V4_KNOBS = [
   ['camdrift', 'CAMERA_DRIFT', 'num'], ['camamp', 'CAMERA_AMP', 'num'], ['camspeed', 'CAMERA_MAX_SPEED', 'num'],
   ['cambase', 'CAMERA_BASE', 'enum'], ['cambound', 'CAMERA_BOUND_MIN', 'num'],
   ['textscale', 'TEXT_SCALE', 'num'], ['titleweight', 'TITLE_WEIGHT', 'num'], ['clockweight', 'CLOCK_WEIGHT', 'num'],
-  ['bodyweight', 'BODY_WEIGHT', 'num'], ['smallweight', 'SMALL_WEIGHT', 'num'], ['sparklabels', 'SPARK_LABELS', 'bool'],
+  ['bodyweight', 'BODY_WEIGHT', 'num'], ['subweight', 'SUBTITLE_WEIGHT', 'num'], ['smallweight', 'SMALL_WEIGHT', 'num'],
+  ['sparklabels', 'SPARK_LABELS', 'bool'],
   ['weekend', 'WEEKEND_BAND', 'bool'],
 ];
 // Brand distinctness ladder (B6): [name, lightness shift, hue rotation in
@@ -1807,7 +1811,7 @@ function checkV4Config() {
   }
   // Every face is variable from 100 to 900 (web/fonts), so any weight in that
   // range draws as asked; one outside it would draw as the nearest end.
-  for (const key of ['TITLE_WEIGHT', 'CLOCK_WEIGHT', 'BODY_WEIGHT', 'SMALL_WEIGHT']) {
+  for (const key of ['TITLE_WEIGHT', 'CLOCK_WEIGHT', 'BODY_WEIGHT', 'SUBTITLE_WEIGHT', 'SMALL_WEIGHT']) {
     const v = Math.min(900, Math.max(100, Math.round(CONFIG[key])));
     if (v !== CONFIG[key]) {
       console.warn(`${key} = ${CONFIG[key]} drawn as ${v}: weights run 100 to 900`);
@@ -2259,9 +2263,9 @@ async function initV4(basemap, network) {
   const F = fontsV4();
   // Every face is variable, so one weight loads a family's whole file; the
   // list names the weights the HUD draws anyway.
-  const wt = { t: CONFIG.TITLE_WEIGHT, c: CONFIG.CLOCK_WEIGHT, b: CONFIG.BODY_WEIGHT, s: CONFIG.SMALL_WEIGHT };
+  const wt = { t: CONFIG.TITLE_WEIGHT, c: CONFIG.CLOCK_WEIGHT, b: CONFIG.BODY_WEIGHT, u: CONFIG.SUBTITLE_WEIGHT, s: CONFIG.SMALL_WEIGHT };
   const faces = CONFIG.HUD_LAYOUT === 'shorts'
-    ? [`${wt.t} ${CONFIG.TITLE_SIZE}px ${F.mont}`, `${wt.s} 36px ${F.mont}`, `${wt.c} 80px ${F.mont}`, `${wt.s} 26px ${F.mont}`,
+    ? [`${wt.t} ${CONFIG.TITLE_SIZE}px ${F.mont}`, `${wt.u} 36px ${F.mont}`, `${wt.c} 80px ${F.mont}`, `${wt.s} 26px ${F.mont}`,
       `800 132px ${F.mont}`, `${wt.c} 88px ${F.tnum}`, `${wt.b} 40px ${F.tnum}`, `500 24px ${F.tnum}`,
       `${wt.s} 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
     : ['600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum', '600 32px Montserrat',
@@ -2969,7 +2973,8 @@ function buildShortsLayout() {
   const dx = side === 'right' ? SAFE.x1 - SAFE.x0 - SHORTS_PANEL_W : 0;
   const px0 = SAFE.x0 + dx;
   const L = { F, k, week, side, dx, textX: px0 + SHORTS_PAD, rightX: px0 + SHORTS_PANEL_W - SHORTS_PAD, textW: SHORTS_TEXT_W };
-  const wt = { title: CONFIG.TITLE_WEIGHT, clock: CONFIG.CLOCK_WEIGHT, body: CONFIG.BODY_WEIGHT, small: CONFIG.SMALL_WEIGHT };
+  const wt = { title: CONFIG.TITLE_WEIGHT, clock: CONFIG.CLOCK_WEIGHT, body: CONFIG.BODY_WEIGHT, sub: CONFIG.SUBTITLE_WEIGHT,
+    small: CONFIG.SMALL_WEIGHT };
 
   const title = meta.title || '';
   const titleFont = (px) => `${wt.title} ${px}px ${F.mont}`;
@@ -2980,7 +2985,7 @@ function buildShortsLayout() {
   const titleY = SAFE.y0 + at(k * ZONES.titleTop + 0.72 * t0);
   L.title = { text: title, size: ts, font: titleFont(ts), spacing: 0.12 * ts, x: ZONES.textX, y: titleY };
   const subtitle = variantV.label || meta.subtitle || '';
-  const subFont = (px) => `${wt.small} ${px}px ${F.mont}`;
+  const subFont = (px) => `${wt.sub} ${px}px ${F.mont}`;
   const s0 = hudPx(36, 'subtitle'), s1 = hudPx(32, 'subtitle');
   let ss = sizesDown(s0, s1, 1).find((px) => textWidth(subtitle, subFont(px)) <= ZONES.textW) || s1;
   let subLines = [subtitle];

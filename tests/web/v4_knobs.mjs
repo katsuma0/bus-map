@@ -47,10 +47,11 @@ const KNOBS = [
   ['shoulder', 'TRAIL_SHOULDER_ALPHA', 0.3, STILL], ['trailalpha', 'TRAIL_ALPHA', 0.4, STILL], ['routealpha', 'ROUTE_ALPHA', 0.3, STILL],
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
-  // The HUD's text (B9): its scale, its four weights and the sparkline's labels.
+  // The HUD's text (B9): its scale, its five weights and the sparkline's labels.
   ['textscale', 'TEXT_SCALE', 0.75, STILL], ['titleweight', 'TITLE_WEIGHT', 700, STILL],
   ['clockweight', 'CLOCK_WEIGHT', 800, STILL], ['bodyweight', 'BODY_WEIGHT', 600, STILL],
-  ['smallweight', 'SMALL_WEIGHT', 300, STILL], ['sparklabels', 'SPARK_LABELS', true, STILL],
+  ['subweight', 'SUBTITLE_WEIGHT', 600, STILL], ['smallweight', 'SMALL_WEIGHT', 300, STILL],
+  ['sparklabels', 'SPARK_LABELS', true, STILL],
   ['weekend', 'WEEKEND_BAND', false, SUNDAY, 'week'],
   // The camera (B18) mid loop, where the zoom and the drift both show, on a
   // frame that leaves the city line room for the whole move, so the line's cap

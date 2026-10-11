@@ -924,7 +924,8 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `TITLE_WEIGHT` | int 100..900 | 700 | 500 | `titleweight` |
 | `CLOCK_WEIGHT` | int 100..900, the clock and the weekday | 800 | 500 | `clockweight` |
 | `BODY_WEIGHT` | int 100..900, the count line, the week's clock, the chips (at most 500) and the peak label | 600 | 400 | `bodyweight` |
-| `SMALL_WEIGHT` | int 100..900, the subtitle, the credit and the axis | 400 | 500 | `smallweight` |
+| `SUBTITLE_WEIGHT` | int 100..900, the subtitle | 400 | 400 | `subweight` |
+| `SMALL_WEIGHT` | int 100..900, the credit and the axis | 400 | 500: the credit's contrast after the transcode | `smallweight` |
 | `SPARK_LABELS` | bool, the sparkline's axis labels (and the day's and the rush's ticks) | true | false | `sparklabels` (0/1) |
 | `CAMERA` | bool | false | true | `camera` (0/1) |
 | `CAMERA_PATH` | `'auto'` or a B18 path | `'auto'` (FNV-1a of `meta.id`) | from `variety.camera` (D3.8) | `campath` |
@@ -1253,7 +1254,7 @@ is exact. Numbers in brackets are the preset's.
 |---|---|---|---|---|---|
 | title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, one subtitle line spacing more under a wrapped subtitle): alpha S from y 0 down to F = the last subtitle baseline + ceil(0.3 x its size), 0.55 S at F + 0.55 (h - F) for the sprite's height h, 0 at h; S = `TITLE_SCRIM`. At half strength the rush's second line read 2.2:1 over dense trails |
 | title (`meta.title`) | MontserratX `TITLE_WEIGHT` [500], `TITLE_SIZE` 64 x k [54.4], letter-spacing 0.12 em | title | 132 | `SAFE.y0 + round(30k + 0.72 x 64k)` [355], from the unfitted size, so a long name keeps the baseline | width <= 656: shrink by 2 down to 48k (at least 44) |
-| subtitle (variant label) | MontserratX `SMALL_WEIGHT` [500] 36k [30.6] | subtitle | 132 | title + round(54k) [401] | width <= 656: 36k down to 32k (at least 26) by 1; past that two lines round(42k) apart from 36k down, broken after the comma when both halves fit, else balanced. The preset's rush label fits one line at 29.6 px |
+| subtitle (variant label) | MontserratX `SUBTITLE_WEIGHT` [400] 36k [30.6] | subtitle | 132 | title + round(54k) [401] | width <= 656: 36k down to 32k (at least 26) by 1; past that two lines round(42k) apart from 36k down, broken after the comma when both halves fit, else balanced. The preset's rush label fits one line at 29.6 px |
 | panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95; 0 hides it) | 120+dx..680+dx | | y `PANEL_TOP`..1440 |
 | weekday (week only) | MontserratX `CLOCK_WEIGHT` [500], fitted once on `WEDNESDAY` from 80k down to 64k (at least 48) by 2 [68] | clock | 148+dx | clock - round(50k) | |
 | clock | day and rush: MontserratXTnum `CLOCK_WEIGHT` [500] 88k [74.8]; week: MontserratXTnum `BODY_WEIGHT` [400] 40k [34] | clock | 148+dx | count line - 50k (week: 44k) | |
