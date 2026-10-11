@@ -69,13 +69,14 @@ SAFE = (120, 290, 800, 1440)
 PANEL_W = 560
 MAP_TOP = SAFE[1] + 140
 CLIP_FRAMES = 90
-HUD_TEXT = ("title", "subtitle", "weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2")
+HUD_TEXT = ("title", "subtitle", "weekday", "clock", "count", "count2", "chips", "legend", "legend2", "axis", "credit",
+            "credit2")
 CARD_TEXT = ("card_title", "card_title2", "card_line0", "card_line0b", "card_line1", "card_line1b")
-PANEL_TEXT = ("weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2", "peak")
+PANEL_TEXT = ("weekday", "clock", "count", "count2", "chips", "legend", "legend2", "axis", "credit", "credit2", "peak")
 # B9 and B10 minimum sizes in px (web/app.js MIN_SIZE).
 MIN_SIZES = {"title": 44, "subtitle": 26, "weekday": 48, "clock": 30, "count": 28, "count2": 28, "chips": 20,
              "peak": 20, "axis": 20, "credit": 18, "credit2": 18, "card_title": 72, "card_title2": 72,
-             "card_line0": 40, "card_line0b": 40, "card_line1": 30, "card_line1b": 30}
+             "card_line0": 40, "card_line0b": 40, "card_line1": 30, "card_line1b": 30, "legend": 18, "legend2": 18}
 LIMITS = {"whiteout": 0.03, "contrast": 4.5, "safe_share": 0.85, "strobe": 0.004, "card_cover": 0.4}
 # The card band reaches 60 px past the card text (B10), feathers included.
 CARD_BAND_PAD = 60
@@ -591,12 +592,29 @@ class Tuner:
             return [], [0, 15, 45], False
         return times, frames, clip
 
+    def paint(self):
+        """The colour groups' paint= of the recipe (make.py group_paint), None without colours."""
+        p = self.pl.group_paint(self.recipe)
+        return None if p is None else json.dumps(p, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+    def arm_sig(self, query, bh, times, frames, clip):
+        """What an arm rendered, kept in its arm.json; a colour-group recipe's paint is in it, so an arm
+        is reused only with the same colours (and an arm of a brand recipe keeps its old signature)."""
+        sig = {"query": query, "brandhex": bh, "times": times, "frames": frames, "clip": clip}
+        paint = self.paint()
+        if paint is not None:
+            sig["paint"] = paint
+        return sig
+
     def render_arm(self, out, query, bh, times, frames, clip):
         os.makedirs(out, exist_ok=True)
         args = ["--data", self.pl.rel(self.net), "--basemap", self.pl.rel(self.basemap), "--variant", self.variant,
                 "--render-json", json.dumps(query, sort_keys=True, separators=(",", ":"))]
         if bh:
             args += ["--brandhex", bh]
+        paint = self.paint()
+        if paint is not None:
+            args += ["--paint", paint]
         args += ["--tier", "tune", "--roundtrip", "--out-dir", self.pl.rel(out),
                  "--times", ",".join(str(t) for t in times) if times else "none"]
         if frames:
@@ -607,7 +625,7 @@ class Tuner:
             args += ["--clip-frames", "0"]
         self.pl.run_node(args)
         with open(os.path.join(out, "arm.json"), "w", encoding="utf-8") as fh:
-            json.dump({"query": query, "brandhex": bh, "times": times, "frames": frames, "clip": clip}, fh, sort_keys=True)
+            json.dump(self.arm_sig(query, bh, times, frames, clip), fh, sort_keys=True)
 
     def reuse_previous(self, out, query, bh, times, frames, clip):
         """Arm b is the previous knob's chosen arm when that arm rendered the same query and files."""
@@ -620,7 +638,7 @@ class Tuner:
                     sig = json.load(fh)
             except (FileNotFoundError, ValueError):
                 return False
-            want = {"query": query, "brandhex": bh, "times": times, "frames": frames, "clip": clip}
+            want = self.arm_sig(query, bh, times, frames, clip)
             if json.loads(json.dumps(sig, sort_keys=True)) != json.loads(json.dumps(want, sort_keys=True)):
                 return False
             if os.path.isdir(out):

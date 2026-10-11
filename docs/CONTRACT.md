@@ -476,7 +476,13 @@ Additions made while implementing (they extend, never change, the formats below)
   `variety.camera`, the busmap members `camera`, `cameraAt(u)` and `setCamera(u)`, and a 24th
   tuning knob `camamp` (`CAMERA_AMP`, right after the frame knobs in every pass, arms v x 0.75 and
   v x 1.25 capped at 1.5, with a clip, `motion.jpg` and `camera.jpg` of frames 0, N/4, N/2 and
-  3N/4; auto pick b unless an arm strobes less by more than 0.0005).
+  3N/4; auto pick b unless an arm strobes less by more than 0.0005);
+* colour groups (2.16, B19): a recipe's `colors` block names its video's 1 to 7 colours (by line, by
+  kind of service or by operator) with rules on the store's route fields; the trim writes them as
+  `meta.groups` with `meta.color_by "group"`, make.py passes their colours as `paint=` (never in the
+  network, so a colour edit re-renders without a re-trim), brands.json entries and rules may carry a
+  lightness pin `dL`, and the page draws a quiet legend row (`LEGEND`, dot and word, no counts) in the
+  chips' place.
 
 ### 2. Shared interfaces
 
@@ -532,6 +538,7 @@ does today).
 | `override.variant_render` | obj variant -> obj | no | {} | per variant, merged after `override.render` |
 | `override.brand_colors` | obj brand id -> hex | no | {} | passed as `brandhex=` |
 | `override._why` | obj | no | {} | `KEY` or `<variant>.KEY` -> one line from the judge |
+| `colors` | obj | no | | the video's colour groups and legend flag (2.16); with it `override.brand_colors` must be empty |
 
 #### 2.2 Batch file: `cities/batches/<batch>.json`
 
@@ -656,6 +663,10 @@ A union boundary (2.15) has `"id": "union:<16 hex>"`, `"division_id": null`, `"s
 | `alt` | `#rrggbb` or null | second candidate of the distinctness ladder (B6) |
 | `credit` | str or absent | the agency's name in the on-screen credit when `label` (the chip word) is not one, e.g. label `Bus`, credit `MTA Bus`; absent = `label` |
 | `rules[]` | list | `short` (regex on `route_short_name`) or `route_ids` ([str]) to a sub-brand |
+| `dL` | number -0.30..0.14, or absent | on an entry or a rule: the batch-wide lightness pin of that brand; a colour group naming it inherits it (B19), so the brand is one colour in every video of the batch. The trim never reads it, so it is left out of the trim key |
+
+`alt` serves the brand ladder of brand networks only: a colour group never reads it, since a brand's
+second colour (MiWay Express blue, DRT PULSE orange) is another group's colour there.
 
 #### 2.5 Holidays: `cities/holidays.json` (A owns)
 
@@ -762,6 +773,7 @@ only by the untouched legacy scripts).
 | `panel` | obj | `{"preferred": "right", "tie": 0.10, "rect": [120, 1080, 680, 1440]}` | A8.7: the left day panel; its right-hand position ends on the safe zone's x 800 |
 | `card` | obj | `{"title": "MARKHAM", "templates": {...}}` | copied |
 | `major_share` | float | 0.05 | a feed is major in this city at this share of inside vehicle-minutes |
+| `colors` | obj or absent | `{"groups": [{"id", "label", "brand", "match", "rest", "legend"}]}` | only for a recipe with `colors` (2.16): its groups in recipe order with the defaults filled (match from brand, rest false, legend true, false for other) and no paint, scheme or documentation; without it the key is absent and the city config is what it was |
 
 **Basemap config** `build/<id>/basemap.config.json`: exactly the dict that the unmodified
 `build_basemap.build(city)` reads: `id`, `origin`, `clip`, `basemap_dir`, `basemap`,
@@ -831,6 +843,8 @@ meta.am_peak           {"count": 431, "time": 28860}   first argmax of raw hist 
 meta.pm_peak           {"count", "time"}               same, 870..1170
 meta.hist_by_mode      {mode: [hist_period floats]}  (the kept modes only)
 meta.groups            [{"id": "yrt", "label": "YRT", "brand": "yrt", "share": 0.77}, ..., {"id": "other", "label": "other", "brand": null, "share": 0.02}]
+                       a group network (2.16): the declared groups with a used route in recipe order, then other
+                       when any used route is in it, each with "legend" (true, false or the shared word)
 meta.hist_by_group     {group: [hist_period floats]}
 meta.boundary          {"name", "rings": [[x,y,...]], "holes": [[x,y,...]], "area_km2", "bbox_km": [x0,y0,x1,y1],
                         "source": "Overture 2026-09-23.1 division_area <id>" (a union: "... division_area <id> + <id> + ..."),
@@ -838,7 +852,7 @@ meta.boundary          {"name", "rings": [[x,y,...]], "holes": [[x,y,...]], "are
 meta.panel             {"side": "right", "inside_under": {"left": 31, "right": 12}, "why": "fewer inside vehicles under the panel"}
 meta.brands            [{"id": "yrt", "label": "YRT", "hex": "0058a9", "kind": "agency"|"rule"|"line"|"gtfs"|"mode",
                          "entry": "yrt", "rail": false, "share": 0.81, "verified": false, "alt": null, "source": "..."}]
-meta.color_by          "brand"
+meta.color_by          "brand", or "group" for a recipe with colour groups (2.16)
 meta.preset            "shorts"
 meta.theme             {"batch": "lake"}
 meta.render            {...} base values from the city config
@@ -846,7 +860,7 @@ meta.variants          {"day": V, "rush": V}  (day network)  |  {"week": V}  (we
 meta.card              {"title": "MARKHAM", "templates": {"day": [[line0, line1], [..], [..]], "rush": [...], "week": [...]}}
 routes[i].agency, type, color_raw   agency_name, route_type int, route_color as in routes.txt ('' when blank)
 routes[i].brand        index into meta.brands
-routes[i].group        group id
+routes[i].group        group id (a group network: the route's colour group, exactly one per route)
 trips[i]               {"r","s","t","d"} plus "w" (7-bit mask, bit 0 = Monday) in week files
 hist                   [hist_period floats, 2 decimals]: mean vehicles running inside the boundary,
                        index = minute of the period (day: 0 = 00:00; week: 0 = Monday 00:00)
@@ -909,6 +923,7 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `CARD_LINES` | int | 0 | from `variety.card_line` | `cardline` |
 | `PEAK_MARKER` | bool | false | false | `peak` |
 | `MODE_CHIPS` | bool | false | false | `chips` |
+| `LEGEND` | bool | false | (per video: make.py's render JSON from `colors.legend`) | `legend` (0/1) |
 | `OUTSIDE_DIM` | float 0..1 | 0 | 0.55 | `outside` |
 | `CITY_LINE_W` / `CITY_LINE_ALPHA` | float | 2 / 0.8 | | |
 | `PANEL_ALPHA` | float | 1 | 1 | `panelalpha` |
@@ -950,7 +965,12 @@ New non-CONFIG query parameters:
 | `brandhex` | `id:rrggbb;id:rrggbb` | replaces `meta.brands[].hex` before normalisation; carries `override.brand_colors` |
 | `hud` | `left`, `right` (today), `none`, `notext` | `none` skips HUD and card; `notext` draws every scrim, band and panel backdrop but no text |
 | `safe` | `1` | draws the text safe zone, the zones YouTube and a tall phone cover, the tall-phone crops and the fit box (B9; judge only) |
+| `paint` | URI-encoded JSON `{group id: {hex, dL, neutral}}`, repeatable | a group network's colours (B19): make.py's `group_paint`; several are merged in order per group and key, so a still can try one pin over make.py's |
+| `colorkey` | `1` | draws each colour's placement over the fit box (B19; judge only, never set by make.py renders) |
 | `data`, `basemap` | URLs (today) | `../build/<id>/day/network.json.gz` etc. |
+
+A network whose `meta.color_by` is `"group"` is drawn by colour group whatever `COLOR_BY` says
+(B19); `COLOR_BY` keeps its meaning for every other network.
 
 Precedence, lowest first: CONFIG default, LARGE_FRAME profile (frames of 60 km and up, as today),
 preset (`web/presets/<name>.json` `render`), theme tokens, `meta.theme` keys, `meta.render`,
@@ -973,13 +993,15 @@ Every existing member stays. Added:
 | `window` | `{start, end}` | seconds |
 | `safe` | `{x0: 120, y0: 290, x1: 800, y1: 1440}` | the text safe zone (B9) |
 | `zones` | `{fit, panel: {w, pad, left, right, day, week, split}, card: {y0, y1}, phone: {crops, buttons}}` | the layout's other zones, all derived from `safe` (B9): `fit` is `defaults.json` `fit_box`, `panel` its widths and heights |
-| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle` (one box per line), `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
+| `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle` (one box per line), `weekday`, `clock`, `count`, `count2`, `chips`, `legend`, `legend2` (one box per legend row, B19), `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
 | `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
 | `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
 | `setCard(on)` | fn | turns the card on or off without reload; no card shows unless `CARD` is on (the shorts preset has it off; `card=1`) |
 | `cardAlpha(i)` | fn | card alpha a(i) at frame i (B10), 0 on every frame with `CARD` off; the card draws at c(i), the HUD at u(i) |
 | `stillTimes()` | fn | `{am, noon, pm, late, night}` absolute seconds inside the window (B15) |
-| `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
+| `brandMap` | `[{id, hex, trail, line, how, placed}]` or null | result of B6 (`how` = ladder step); null on a group network |
+| `groupMap` | `[{id, label, source, dL, neutral, trail, line, how, order, dmin, near, dCity}]` or null | B19 on a group network, in `meta.groups` order: `how` is `foreign`, `neutral`, `pin dL-0.12` or a ladder step, `order` the placement position (-1: not placed), `dmin` the distance to the nearest colour placed before it (`near` its label), `dCity` to the theme's city line |
+| `legend` | `{entries: [{label, ids}], rows, base, size, gap, width, limit, dropped, tried: [{rows, base, gap, w}]}` or null | B19: the legend's fit, or null when none is drawn |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
 | `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null (`MODE_CHIPS` off) | the chips fit (B9): parts shown, size and gap at `TEXT_SCALE` 1 (drawn scaled), the width limit, groups folded into `other`, and every width tried in order |
 | `camera` | `{path, zoom, drift, scale, amp, bound, box, keep, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the city line's factor, the line's fitted bbox and keep rect (`[x0, y0, x1, y1]` px; `keep` null when the frame crops the line), the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
@@ -994,6 +1016,8 @@ Every existing member stays. Added:
 --variant NAME         adds variant=NAME
 --render-json JSON     adds render=<encodeURIComponent(JSON)>
 --brandhex STR         adds brandhex=STR
+--paint JSON           adds paint=<encodeURIComponent(JSON)> right after brandhex=: a JSON object of group id to
+                       {hex, dL, neutral} (B19); anything else is a usage error. Without it the query is today's
 --tier T               stills | preview | final | tune  (absent = today's behaviour exactly)
 --out PATH             tiers: the MP4 (final, preview); default out/shorts/<batch>/<name>.mp4
 --name STEM            output stem, default from --out
@@ -1027,7 +1051,8 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 `{"id", "variant", "place", "title", "label", "month_label", "peak", "am_peak", "pm_peak", "feeds"
 (id, name, publisher, licence_id, licence_text, dates, rule, excluded, inside_share, major),
 "modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
-window, over the recipe's modes), "groups", "credit", "seconds", "build_key"}`. `make.py meta` needs only this, the
+window, over the recipe's modes), "groups", "color_by" (the meta's, `"group"` for colour groups), "credit", "seconds",
+"build_key"}`. The sidecar's `query` holds `paint=` as it holds `brandhex=`. `make.py meta` needs only this, the
 batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
@@ -1132,6 +1157,102 @@ see **Copy without `modes`** below. The additions:
   map`, `train map`; Markham: `bus map`, `train map`). Titles, the other description lines and
   the hashtags are as before. The page code and the templates are in the render and meta keys, so
   a published video takes the new copy at its next render and `make.py meta`.
+
+#### 2.16 Colour groups (`colors` in a recipe)
+
+A recipe declares what its video's colours explain: its lines (the Toronto subway, the L), its kinds
+of service (Toronto's buses, Express and streetcars; Houston's Park & Ride) or its operators
+(Vaughan's YRT, GO, TTC and Züm). Without the block a video is coloured by agency (A10, B6) as
+before, byte for byte.
+
+```json
+"colors": {"scheme": "type", "legend": true, "groups": [
+  {"id": "bus", "label": "Bus", "brand": "ttc", "rest": true, "verified": true, "source": "ttc.zip route_color ED1C24"},
+  {"id": "express", "label": "Express", "hex": "#00a651", "match": [{"feed": "ttc", "short": "^9\\d\\d$"}]},
+  {"id": "streetcar", "label": "Streetcar", "hex": "#9a7bd1", "match": [{"feed": "ttc", "mode": ["streetcar"]}]},
+  {"id": "other", "label": "Other"}
+]}
+```
+
+Block: `scheme` (`line`, `type` or `agency`; documentation for the stills sheet and `make.py show`,
+in no key), `legend` (bool, default false: the `LEGEND` default of this video's renders, B19) and
+`groups` (1 to 7, `other` counted; recipe order is the legend order, the `meta.groups` order and the
+placement order).
+
+| group key | type | required | default | meaning |
+|---|---|---|---|---|
+| `id` | `^[a-z0-9][a-z0-9_]{0,23}$` | yes | | unique; `other` is the reserved remainder |
+| `label` | 1 to 16 characters, no `·` | yes | | the legend's word, `meta.groups[].label`, the description; unique |
+| `brand` | an entry id (`ttc`) or `entry:rule` (`brampton:zum`) of `brands_for(area)` | one of brand, hex, neutral | | default colour (the entry's or rule's `color`), pin (its `dL`) and routes |
+| `hex` | `#rrggbb` | | | the colour; beats the brand's |
+| `dL` | number -0.30..0.14, or null | no | the brand's `dL` | a lightness pin (B19); null unpins a group whose brand is pinned |
+| `neutral` | `#rrggbb` or true | no | | drawn as given, outside the envelope; true is the theme's foreign grey; never with `dL` |
+| `match` | [clause] | unless `brand` | `[{"brand": <brand>}]` | the routes it takes |
+| `rest` | bool | no | false | takes its routes after every group without `rest` took theirs |
+| `legend` | bool or a word (1 to 16 characters) | no | true; false for `other` | false leaves it out of the legend; a word makes the groups that share it one entry with one dot each (at most 3) |
+| `source`, `verified`, `why` | str, bool, str | no | | documentation as in brands.json; in no key |
+
+`other` takes only `id`, `label`, `legend` and the documentation keys, must be last, takes every
+route no other group takes and is drawn in the theme's foreign grey (lake `#8a93a0`, sodium
+`#a0927f`). A block without it still has one for unmatched routes (label `Other`, no legend).
+
+A clause matches a route when every key it gives matches; the clauses of a group are
+alternatives. Keys: `feed` (an id or a list; each a feed of the recipe's area), `agency`
+(`agency_name` list, exact), `mode` (the route's batch mode after the route rules of 2.15; each one
+of the recipe's modes), `route_type` (integers as stored), `short` (`re.search` on the store's
+`route_short_name`, the builder's short name as brands.json `short` sees it), `route_ids` (without
+the feed prefix) and `brand` (the routes A10 gives that entry, its rules and line brands too, or
+exactly that rule). `{}` matches every route and is allowed only in a `rest` group.
+
+**Match semantics.** For every route the trim counts or draws, in this order: the first group in
+recipe order, among those without `rest`, with a matching clause; else the first `rest` group with
+one; else `other`. A catch-all can so stand first in the legend (Toronto's Bus, Houston's Local)
+without the other groups' rules written again as negations. A10 runs first, so a `brand` clause sees
+the ids `meta.brands` lists. Every route is in exactly one group.
+
+**Validation** (`make.py` `validate_colors`, run by `Pipeline.recipe()` after `validate_recipe`,
+since it needs brands.json; every error is prefixed `recipe <id>.colors`): an unknown key (the
+message lists the allowed keys and, for `route_desc`, `route_color`, `route_long_name` and
+`trips`, the reason below); a scheme other than the three or a non-bool `legend`; no group or more
+than 7; an id off the pattern or used twice; `other` not last or with a key it does not take; a
+label empty, over 16 characters, with `·` or used twice; a legend word with the same faults, shared
+by more than 3 groups or equal to the label of a group that does not carry it; a group with none of
+`brand`, `hex`, `neutral`; a `hex` or `neutral` that is not `#rrggbb` (or true); a `brand` that is
+not an entry or `entry:rule` of `brands_for(area)`; a colour without hue and no `neutral`
+(`group line6: #808080 has OKLCH chroma 0.000, under B5's 0.03; give it "neutral": "#rrggbb" or
+true`); a `dL` out of -0.30..0.14 or next to `neutral`; a brands.json entry or rule of the area whose
+`dL` is out of range; a `match` that is not a non-empty list of clauses, or none without `brand`;
+`{}` outside a `rest` group; a feed not in the area, a mode not in the recipe's, a `route_type` not a
+list of integers, a `route_ids` not a list of strings, a `short` that does not compile, an unknown
+clause `brand`; and `override.brand_colors` not empty (`brand_colors paints meta.brands, which a
+colour-group video does not draw; put the hex on the group`). A rule that takes no route is the
+trim's warning (`group <id> takes no route in <city>`), not an error.
+
+**Not supported, and why.** `route_desc`: the area store does not carry it, and carrying it changes
+build_area.py, so every area store of every batch would rebuild. `route_color` is what a group
+replaces, and `route_long_name` is split by the builder (`Red Line` into `Red` / `Line`); routes
+are named by `short` or `route_ids`. Trips-per-day thresholds would move routes between colours
+whenever a timetable changes. Automatic groups beyond agency-auto's 3 do not exist: a recipe
+without `colors` keeps `defaults.json` `group_by`.
+
+**Trim.** After A10 and the used routes, `assign_groups` gives every used route its group; each
+group's folded mean series and its share at the am peak follow. Listed: the declared groups with a
+used route, in recipe order, then `other` when a used route is in it. While more than 7 are listed
+(7 declared groups plus a route none takes), the declared group with the smallest share (a tie: the
+later one) joins `other` with a warning (`group <id> joined other: 8 colours, the limit is 7`).
+Output: `meta.groups` `{id, label, brand, share, legend}`, `meta.hist_by_group`, `routes[i].group`,
+`meta.color_by "group"`; `meta.brands` and `routes[i].brand` stay A10's. The log's `groups:` line
+names each group's share, routes, trips and count at the am peak, and other's routes by feed.
+
+**Paint and keys.** `make.py group_paint` gives the page each group's colour as `paint=`
+(`{"go": {"dL": -0.12, "hex": "00853e"}, "line6": {"hex": "808080", "neutral": "b4bac4"}}`): the
+group's `hex`, else its brand's `color`, plus the group's `dL` (null unpins), else the brand's, or
+the `neutral`. The render JSON gains `LEGEND` from `colors.legend`. The trim key holds the city
+config's `colors` (structure only) and `brands_for(area)` without any `dL`; the render key holds the
+recipe without `colors.scheme` and each group's `source`, `verified` and `why`, and brands with
+their pins, under `DERIVE_VERSION` 2. So a group's `hex`, `dL` or `neutral`, `colors.legend` or a
+brands.json `dL` re-renders without a re-trim; a rule, label, order, `rest`, a group's `legend` or a
+brands.json `color` re-trims; the documentation changes nothing.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 
@@ -1260,6 +1381,7 @@ is exact. Numbers in brackets are the preset's.
 | clock | day and rush: MontserratXTnum `CLOCK_WEIGHT` [500] 88k [74.8]; week: MontserratXTnum `BODY_WEIGHT` [400] 40k [34] | clock | 148+dx | count line - 50k (week: 44k) | |
 | count | MontserratXTnum `BODY_WEIGHT` [400] 40k [34] | accent | 148+dx | sparkline top - 30k (chips - 38k with the chips) | fitted once on the widest text from 40k down to 36k (at least 28); then split (below) |
 | chips (`MODE_CHIPS`, off) | MontserratXTnum min(500, `BODY_WEIGHT`), the fitted 26 or 24 times k, dots r 9k | breakdown | 148+dx | sparkline top - 14k | chips rule below |
+| legend (`LEGEND`, a group network only; per video) | MontserratX min(500, `BODY_WEIGHT`) [400], 24k [20.4] (22k in the tight steps, at least 18), dots r 8f | breakdown | 148+dx | the chips' row; a second row 30f over it | B19 |
 | sparkline | area + 3k px accent stroke, neither drawn under 1 px of curve (frame 0, the cover, shows the floor line alone, not a round cap's lone dot) | accent | 148+dx..652+dx | 52k tall; its floor 30k over the axis, else 38k over the first credit line; floor line 1 px `floor` | curve height `y1 - y0 - 6` |
 | peak marker (`PEAK_MARKER`, off) | dot r 5k; label MontserratXTnum `BODY_WEIGHT` 26k `peak 3,951`, outline 6k | accent | 11k right of the dot (left when it would pass 652+dx) | dot y + 9k, inside sparkline top + 19k..floor | |
 | axis (`SPARK_LABELS`, off) | MontserratX `SMALL_WEIGHT` 26k (the week's current day `SMALL_WEIGHT` + 300) | axis | 148+dx left, 652+dx right-aligned | first credit line - 34k | |
@@ -1269,7 +1391,9 @@ is exact. Numbers in brackets are the preset's.
   size)`, the clock, or the weekday in the week) minus 28 px, so the panel is as tall as what it
   shows. At scale 1 with every row on that is 1080 for day and rush (`SAFE.y1 - 360`), about 1050
   for the week, 44 px higher again when the count splits; at the preset 1172 for the day and the
-  rush with a two-line credit (1194 with one) and 1140 for the week.
+  rush with a two-line credit (1194 with one) and 1140 for the week. One legend row (B19) lifts the
+  panel by 22k (19 px in the preset: about 1153 with a two-line credit, 1175 with one, 1121 for the
+  week), a second row 30k more; the fit box does not move.
 * **Count line**: `${withCommas(n)} ${noun} in ${meta.place}` with `n = round(histRaw(T / 60))`;
   noun = the mode label (singular when n is 1) when only one mode has at least 0.5 inside
   vehicles in some minute of `[start, end)` (the minutes `V.peak` is taken over), else
@@ -1309,7 +1433,7 @@ is exact. Numbers in brackets are the preset's.
 * **Asserts.** After layout, every box above and, with the card on, every card box (B10) is
   checked against `SAFE` (x 120..800, y 290..1440) with `measureText` widths, and every text size
   against its minimum (title 44, subtitle 26, weekday 48, clock 30, count 28, chips, peak and axis
-  20, credit 18, card title 72, card line 0 40, card line 1 30; `web/app.js` `MIN_SIZE`,
+  20, credit and legend 18, card title 72, card line 0 40, card line 1 30; `web/app.js` `MIN_SIZE`,
   `tests/web/v4_hud.mjs`, `scripts/tune.py` `MIN_SIZES`); any failure is a `console.error`, which
   fails a render (C). `hudBoxes()` reports `size`. A 1080 px frame is about 390 pt wide on a
   phone, so 1 pt is about 2.8 px: the 18 px credit is 6.4 pt, the 26 px subtitle 9.3 pt.
@@ -1545,3 +1669,97 @@ cache against `CAMERA_BASE 'vector'`. `tests/web/v4_knobs.mjs` moves each `CAMER
 knob; `tests/test_make.py` and `tests/test_tune.py` cover `variety.camera`, `camera_path`, the batch
 pick and the
 `camamp` knob.
+
+### B19. Colour groups and the quiet legend
+
+A network whose `meta.color_by` is `"group"` (2.16) is drawn by group whatever `COLOR_BY` says:
+`initV4` calls `buildColorsGroup` in place of `buildColorsBrand`, and the two share the colour
+classes (one per trail and dormant line pair, with the trip and shape lists the ribbons and the
+dots' halos draw from). The chips and legend dots take `groupColor`. `busmap.brandMap` is null.
+
+**Paint.** `paint=` (repeatable, merged per group and key) gives each group `hex`, and `dL` or
+`neutral`. A group without paint (a page opened by hand) takes the hex of the `meta.brands` entry
+its `brand` names, else of the brand most of its trips have, else its main mode's `MODE_SOURCES`
+colour, unpinned, with one warning naming such groups. `brandhex=` is ignored on a group network
+with a warning; make.py never sends both.
+
+**Pins.** `normalise(source, env, bg, dL)`: the B5 envelope with both lightnesses shifted (trail at
+`trailL + dL`, dormant line at `lineL + dL`), chroma clamped as always, then lifted until it keeps
+`minContrast`. A pin is relative to the batch theme, so one value gives one colour in every video of
+the batch: GO `#00853e` at -0.12 is trail `#3fab61`, line `#006e32` in all eleven GTA videos with GO;
+TTC `#ed1c24` at -0.12 is `#df695e`, `#a04038`; `dL` 0 pins the source step (YRT `#83bbff`, Züm
+`#ff9592`). `trailL + dL` is clamped to 0.92 (the ladder's ceiling) with a warning.
+
+**Neutrals.** `neutral: "#rrggbb"` is drawn as given (trail = the hex, dormant line = the hex over
+the background at 0.5, the foreign grey's rule), never through `normalise`, which returns null for a
+colour without hue. TTC Line 6 is `#808080` in ttc.zip, so it would fall back to TTC red; its group
+draws the neutral silver `#b4bac4`. `neutral: true` is the theme's foreign grey. A neutral is never
+pinned or laddered; a contrast under 3 against the background is a warning.
+
+**Placement order.** 1. `other`, when a route of the network has group `other`: the foreign grey,
+`how` `foreign`. 2. Neutral groups in recipe order (`neutral`). 3. Pinned groups in recipe order
+(`pin dL-0.12`, `pin dL+0.10`, `pin dL0`). 4. Free groups in recipe order through `BRAND_LADDER`
+without its `alt` step (a brand's alt is another group's colour here), each step measured against
+every colour placed so far: the first step at least `BRAND_MIN_DE` (0.08) from all of them with
+contrast 3, else the farthest with a warning. The greys are placed first, so no ladder step lands on
+them. Recipe order, not share order, so a feed refresh that swaps two shares never repaints a city.
+A pin or neutral under 0.08 from a colour before it is a warning naming both, never an error. The
+theme's city line is measured, not placed: each trail's `dCity` under 0.08 is a warning (placing it
+would move New York's B/D/F/M off its checked source step, 0.069 from the amber line). In the 22
+checked plans every pair of trails is at least 0.098 apart.
+
+**Draw order.** Rail classes after bus, then the trips ascending (busiest on top), with `other`'s
+class first within bus and within rail, so the grey never covers a city's own colours. A group is
+rail when most of its routes are not mode `bus`.
+
+**Legend** (`LEGEND`, query `legend`; drawn only with `HUD_LAYOUT 'shorts'` on a group network,
+else a warning). Entries from `meta.groups` in order: a group with `legend` false is left out (`other`
+by default), a legend word is one entry at its first group's place with that word and one dot per
+group (San Diego `Bus · Rapid · Trolley`, Trolley with the Blue, Green and Orange Line dots), any
+other group one entry with its label; at most 7, no numbers, nothing that moves. Geometry, every
+length times f (k, or the size over its base when held at its floor): the chips' row (baseline 14f
+over the sparkline's top, the count line `38 x max(f, kCount)` over the top row); a dot r 8f centred
+at (x + 8f, baseline - 0.36 size), a further dot of a shared entry 20f right; the word 24f after the
+first dot's left edge (plus 20f per further dot); 20f to the next entry (12f in the tight steps). A
+second row sits 30f under the first (`ZONES.gap.legendRow`): the bottom row keeps the chips'
+baseline and everything above moves up. Drawn with the title and the credit, not with the moving
+rows, so the loop frame and the xfade seam are unaffected; `hud=notext` draws neither dots nor words.
+
+**Fit**, once at init with `measureText` at the drawn size and weight, against the 504 px column:
+one row at 24k with 20f gaps, one row at 22k, one row at 22k with 12f gaps, two rows at 24k, two rows
+at 22k with 12f gaps (two rows break between entries where the wider row is narrowest, a tie the
+earlier break). If none fits, the last entry is dropped with a `console.error` (which fails a render)
+and the steps run again; the legend never overflows its column, never goes under 18 px and never
+takes a third row, and dropping never repaints a trail. Its sizes decide no colour (unlike the
+chips', which stay as B9 has them). In the preset every checked legend fits one row at 20.4 px, from
+230 px (Brampton, `Local · Züm · GO`) to 419 px (Houston, `Local · Park & Ride · Express · Rail`); at
+`TEXT_SCALE` 1 and weight 500 Houston takes 499 of the 504 px.
+
+**With the other parts.** `MODE_CHIPS` and `LEGEND` both on: the legend takes the row and the chips
+are not drawn, with a warning (`busmap.chips` null). On a group network the chips never fold a group
+for colour (`fitChips` is not called at init); with `chips=1` they still fit for display and may merge
+parts into `other` on screen only. The card (off in the preset) is unaffected. Only `TEXT_SCALE`,
+`BODY_WEIGHT` and `LEGEND` change the legend.
+
+**API.** `busmap.groupMap` and `busmap.legend` (2.11); `hudBoxes()` names `legend` and `legend2`,
+one box per row (x0 the text x, x1 the row's end, y0 the higher of the cap top and the dot top, y1
+the descender line), checked against `SAFE` and `MIN_SIZE` (18) like every box. `?colorkey=1` (judge
+only) draws each colour's placement over the fit box: dot, label, `how`, source and trail, the
+distance to the nearest colour before it, and the trails near the city line. The stills sheet
+(`make.py stills`) adds that tile and the am peak through the Machado 2009 deuteranopia matrix
+(severity 1.0, linear RGB) to a colour-group video's day sheet, under a header naming the scheme and
+the legend.
+
+**Description.** `{colors}` in the day, rush and week descriptions is one plain sentence for a group
+network (`Colours: Bus, Express and Streetcar, with everything else in grey.`; `Colours: Frequent
+and Express, with Local in grey.`; `Colours: Bus, Rapid and Trolley.`), a shared legend word once in
+place of its groups; for a brand network it is empty, so that description is byte for byte what it
+was. Tags do not change.
+
+**Tests.** `tests/web/v4_groups.mjs` draws every checked plan (`tests/fixtures/colours/plans.json`)
+on a group copy of the fixture and holds each trail and dormant line to the plan's exactly, with the
+placement order, the free groups' distances, Line 6's neutral, the legend's entries, fit steps and
+drops, the chips and two merged `paint=`; `tests/web/color_vectors.mjs` holds the pins;
+`tests/test_make.py`, `tests/test_trim.py`, `tests/test_meta.py` and `tests/test_tune.py` cover
+validation, the city config, the keys, the paint, the match rules, the fold to 7, the sentence and the
+tune arms.

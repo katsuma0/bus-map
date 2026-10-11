@@ -142,6 +142,29 @@ def limits_words(recipe, place, templates):
             fmt(s["the_city_one"], {"place": place}, "the_city_one"))
 
 
+def colors_sentence(netmeta, templates):
+    """{colors}: one plain sentence naming a colour-group video's colours (2.16), with its leading space,
+    or empty for a brand network, so that video's description is what it was. A shared legend word
+    stands once for its groups; other reads "everything else" unless the recipe named it."""
+    if netmeta.get("color_by") != "group":
+        return ""
+    s = templates["sentences"]
+    words, other = [], None
+    for g in netmeta.get("groups") or []:
+        if g["id"] == "other":
+            other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
+            continue
+        lg = g.get("legend")
+        w = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])
+        if w not in words:
+            words.append(w)
+    if not words:
+        return ""
+    if other:
+        return " " + fmt(s["colors_other"], {"groups": join_words(words), "other": other}, "sentences")
+    return " " + fmt(s["colors"], {"groups": join_words(words)}, "sentences")
+
+
 def dates_sentence(netmeta, templates, week):
     s = templates["sentences"]
     month = netmeta.get("month") or ""
@@ -310,6 +333,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         "timetable_month": month_name(month), "timetable_year": month[:4],
         "trips": with_commas(netmeta.get("trips_total") or 0),
         "dates_sentence": dates_sentence(netmeta, templates, variant == "week"),
+        "colors": colors_sentence(netmeta, templates),
         "credits": "\n".join(credits), "author": defaults.get("author", ""),
         "hashtags": " ".join(hashtag_list(batch, place)),
     }

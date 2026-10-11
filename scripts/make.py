@@ -69,8 +69,9 @@ HEX_RE = re.compile(r"^#?[0-9a-fA-F]{6}$")
 MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 # Bumped when a derivation rule in this file changes what a video looks like,
-# because render keys are computed from inputs and would not notice.
-DERIVE_VERSION = 1
+# because render keys are computed from inputs and would not notice. 2: the
+# render query carries the colour groups' paint= and the legend's LEGEND.
+DERIVE_VERSION = 2
 KY = 110.574
 FPS = 30
 WIDTH, HEIGHT = 1080, 1920
@@ -364,7 +365,7 @@ def camera_paths(ids, chosen=None):
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
 RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "frame", "variants", "rush", "variety",
-               "override"}
+               "override", "colors"}
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
@@ -373,6 +374,30 @@ VARIETY_KEYS = {"panel_side", "card_line", "zoom", "camera"}
 # web/app.js CAMERA_NAMES lists the same names in the same order.
 CAMERA_PATHS = ("pull-out-east", "pull-out-north", "pull-out-west", "pull-out-south", "drift-orbit", "drift-sway")
 OVERRIDE_KEYS = {"render", "variant_render", "brand_colors", "_why"}
+# A recipe's colour groups (2.16): what its trails, dots, legend and description colour by.
+COLORS_KEYS = {"scheme", "legend", "groups"}
+COLOR_SCHEMES = ("line", "type", "agency")
+GROUP_KEYS = {"id", "label", "brand", "hex", "dL", "neutral", "match", "rest", "legend", "source", "verified", "why"}
+OTHER_KEYS = {"id", "label", "legend", "source", "verified", "why"}
+CLAUSE_KEYS = {"feed", "agency", "mode", "route_type", "short", "route_ids", "brand"}
+# Documentation only: a reason line changes no pixel, so no key holds them.
+GROUP_DOC_KEYS = ("source", "verified", "why")
+# Rule fields a plan might reach for that the store or the series cannot support.
+NOT_RULE_FIELDS = {
+    "route_desc": "the area store keeps no route_desc; carrying it changes build_area.py, so every area store "
+                  "of every batch would rebuild",
+    "route_color": "route_color is what a colour group replaces; name the routes by short or route_ids",
+    "route_long_name": "the builder splits long names (CTA 'Red Line' into short 'Red', long 'Line'); name the "
+                       "routes by short or route_ids",
+    "trips": "a trips-per-day threshold would move routes between colours whenever a timetable changes",
+}
+MAX_COLOR_GROUPS = 7
+COLOR_LABEL_MAX = 16
+GROUP_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_]{0,23}$")
+STRICT_HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+# A lightness pin's range: 0.14 is 0.92 less the lake trail lightness 0.78, the B6 ladder's own
+# ceiling (upL); -0.30 keeps a lake trail at L 0.48 before the contrast lift.
+DL_MIN, DL_MAX = -0.30, 0.14
 BATCH_KEYS = {"batch", "title", "theme", "month", "overture_release", "render_epoch", "review_videos", "areas", "modes",
               "cities", "variants_default", "hashtags", "category", "release"}
 BATCH_REQUIRED = BATCH_KEYS - {"review_videos"}
@@ -629,6 +654,177 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         errors.append(f"{where}.override._why: must map KEY or <variant>.KEY to one line")
 
 
+def brand_ref(brands, ref):
+    """The brands.json entry or rule a group's `brand` names (`ttc`, `brampton:zum`), or None."""
+    if not isinstance(ref, str):
+        return None
+    eid, _, rid = ref.partition(":")
+    for e in brands.get("agencies", []):
+        if e.get("id") != eid:
+            continue
+        if not rid:
+            return e
+        return next((r for r in e.get("rules") or [] if r.get("id") == rid), None)
+    return None
+
+
+def unknown_listed(obj, allowed, where, errors):
+    """unknown() with the allowed keys in the message, and the reason for a rule field left out on purpose."""
+    for k in sorted(set(obj) - set(allowed)):
+        why = f"; {NOT_RULE_FIELDS[k]}" if k in NOT_RULE_FIELDS else ""
+        errors.append(f"{where}: unknown key {k!r} (allowed: {', '.join(sorted(allowed))}){why}")
+
+
+def label_faults(v, what):
+    if not isinstance(v, str) or not v.strip():
+        return f"{what} must be a non-empty string"
+    if len(v) > COLOR_LABEL_MAX:
+        return f"{what} {v!r} has {len(v)} characters, more than {COLOR_LABEL_MAX}"
+    if "·" in v:
+        return f"{what} {v!r} has a '·', the legend's separator"
+    return None
+
+
+def validate_colors(recipe, batch, brands, errors):
+    """2.16: a recipe's `colors` block against its batch's area, modes and brands_for(area).
+
+    Pipeline.recipe() runs it after validate_recipe, which cannot see brands.json.
+    """
+    from trim_network import informative, oklab
+    where = f"recipe {recipe.get('id')}.colors"
+    block = recipe.get("colors")
+    if not isinstance(block, dict):
+        errors.append(f"{where}: must be an object")
+        return
+    unknown_listed(block, COLORS_KEYS, where, errors)
+    if block.get("scheme") not in COLOR_SCHEMES:
+        errors.append(f"{where}.scheme: must be one of {', '.join(COLOR_SCHEMES)}")
+    if "legend" in block and not isinstance(block["legend"], bool):
+        errors.append(f"{where}.legend: must be true or false")
+    aid = recipe.get("area") or batch["areas"][0]["id"]
+    area = next(a for a in batch["areas"] if a["id"] == aid)
+    feeds = {f["id"] for f in area["feeds"]}
+    modes = recipe_modes(recipe, batch)
+    for e in brands.get("agencies", []):
+        for x, w in [(e, f"brands.json {e.get('id')}")] + [(r, f"brands.json {e.get('id')}:{r.get('id')}")
+                                                          for r in e.get("rules") or []]:
+            if "dL" in x and not (x["dL"] is None or (is_num(x["dL"]) and DL_MIN <= x["dL"] <= DL_MAX)):
+                errors.append(f"{where}: {w} dL must be a number from {DL_MIN} to {DL_MAX}, got {x['dL']!r}")
+    groups = block.get("groups")
+    if not (isinstance(groups, list) and groups and all(isinstance(g, dict) for g in groups)):
+        errors.append(f"{where}.groups: must be a non-empty list of objects")
+        return
+    if len(groups) > MAX_COLOR_GROUPS:
+        errors.append(f"{where}.groups: {len(groups)} groups, more than {MAX_COLOR_GROUPS} colours ('other' counts)")
+    ids, labels = [g.get("id") for g in groups], [g.get("label") for g in groups]
+    if "other" in ids and ids.index("other") != len(ids) - 1:
+        errors.append(f"{where}.groups: 'other' must be the last group")
+    words = {}
+    for i, g in enumerate(groups):
+        gid = g.get("id")
+        gw = f"{where}.groups[{i}]" if not isinstance(gid, str) else f"{where} group {gid}"
+        if not (isinstance(gid, str) and GROUP_ID_RE.match(gid)):
+            errors.append(f"{gw}: id must match {GROUP_ID_RE.pattern}")
+        elif ids.count(gid) > 1 and ids.index(gid) == i:
+            errors.append(f"{where}.groups: id {gid!r} is used {ids.count(gid)} times")
+        other = gid == "other"
+        unknown_listed(g, OTHER_KEYS if other else GROUP_KEYS, gw, errors)
+        bad = label_faults(g.get("label"), "label")
+        if bad:
+            errors.append(f"{gw}: {bad}")
+        elif labels.count(g["label"]) > 1 and labels.index(g["label"]) == i:
+            errors.append(f"{where}.groups: label {g['label']!r} is used {labels.count(g['label'])} times")
+        lg = g.get("legend", not other)
+        if isinstance(lg, str):
+            bad = label_faults(lg, "legend word")
+            if bad:
+                errors.append(f"{gw}: {bad}")
+            else:
+                words.setdefault(lg, []).append(i)
+        elif not isinstance(lg, bool):
+            errors.append(f"{gw}.legend: must be true, false or a word")
+        if "rest" in g and not isinstance(g["rest"], bool):
+            errors.append(f"{gw}.rest: must be true or false")
+        if "verified" in g and not isinstance(g["verified"], bool):
+            errors.append(f"{gw}.verified: must be true or false")
+        for k in ("source", "why"):
+            if k in g and not isinstance(g[k], str):
+                errors.append(f"{gw}.{k}: must be a string")
+        if other:
+            continue
+        ref = g.get("brand")
+        if "brand" in g and brand_ref(brands, ref) is None:
+            errors.append(f"{gw}.brand: {ref!r} is not an entry or entry:rule id of brands.json for area {aid}")
+        if not ({"brand", "hex", "neutral"} & set(g)):
+            errors.append(f"{gw}: needs a colour: brand, hex or neutral")
+        if "hex" in g and not (isinstance(g["hex"], str) and STRICT_HEX_RE.match(g["hex"])):
+            errors.append(f"{gw}.hex: must be #rrggbb, got {g['hex']!r}")
+        neutral = g.get("neutral")
+        if "neutral" in g and not (neutral is True or (isinstance(neutral, str) and STRICT_HEX_RE.match(neutral))):
+            errors.append(f"{gw}.neutral: must be #rrggbb or true, got {neutral!r}")
+        src = g.get("hex") if "hex" in g else (brand_ref(brands, ref) or {}).get("color")
+        if "neutral" not in g and isinstance(src, str) and STRICT_HEX_RE.match(src) and not informative(src):
+            _L, a, b = oklab(src.lower().lstrip("#"))
+            errors.append(f"{gw}: {src} has OKLCH chroma {math.hypot(a, b):.3f}, under B5's 0.03; "
+                          f"give it \"neutral\": \"#rrggbb\" or true")
+        if "dL" in g:
+            if g["dL"] is not None and not (is_num(g["dL"]) and DL_MIN <= g["dL"] <= DL_MAX):
+                errors.append(f"{gw}.dL: must be null or a number from {DL_MIN} to {DL_MAX}, got {g['dL']!r}")
+            if "neutral" in g:
+                errors.append(f"{gw}: dL and neutral together; a neutral is drawn as given, never pinned")
+        if "match" not in g:
+            if "brand" not in g:
+                errors.append(f"{gw}: needs match (or a brand, whose routes it then takes)")
+            continue
+        match = g["match"]
+        if not (isinstance(match, list) and match and all(isinstance(c, dict) for c in match)):
+            errors.append(f"{gw}.match: must be a non-empty list of clauses")
+            continue
+        for j, c in enumerate(match):
+            cw = f"{gw}.match[{j}]"
+            unknown_listed(c, CLAUSE_KEYS, cw, errors)
+            if not c and not g.get("rest"):
+                errors.append(f"{cw}: {{}} takes every route, which only a rest group may do")
+            fv = c.get("feed")
+            if "feed" in c:
+                fl = [fv] if isinstance(fv, str) else fv
+                if not (isinstance(fl, list) and fl and all(isinstance(x, str) for x in fl)):
+                    errors.append(f"{cw}.feed: must be a feed id or a list of them")
+                else:
+                    for x in fl:
+                        if x not in feeds:
+                            errors.append(f"{cw}.feed: {x!r} is not a feed of area {aid}")
+            for k in ("agency", "mode", "route_ids"):
+                if k in c and not (isinstance(c[k], list) and c[k] and all(isinstance(x, str) for x in c[k])):
+                    errors.append(f"{cw}.{k}: must be a non-empty list of strings")
+            if isinstance(c.get("mode"), list):
+                for m in c["mode"]:
+                    if m not in modes:
+                        errors.append(f"{cw}.mode: {m!r} is not one of the recipe's modes ({', '.join(modes)})")
+            if "route_type" in c and not (isinstance(c["route_type"], list) and c["route_type"]
+                                          and all(isinstance(x, int) and not isinstance(x, bool) for x in c["route_type"])):
+                errors.append(f"{cw}.route_type: must be a non-empty list of integers")
+            if "short" in c:
+                try:
+                    if not isinstance(c["short"], str):
+                        raise re.error("not a string")
+                    re.compile(c["short"])
+                except re.error as e:
+                    errors.append(f"{cw}.short: not a regular expression ({e})")
+            if "brand" in c and brand_ref(brands, c["brand"]) is None:
+                errors.append(f"{cw}.brand: {c['brand']!r} is not an entry or entry:rule id of brands.json for area {aid}")
+    for w, idx in sorted(words.items()):
+        if len(idx) > 3:
+            errors.append(f"{where}: legend word {w!r} is shared by {len(idx)} groups, more than 3 dots")
+        for i, g in enumerate(groups):
+            if i not in idx and g.get("label") == w:
+                errors.append(f"{where}: legend word {w!r} is also the label of group {g.get('id')}, "
+                              f"so two entries would read alike")
+    if (recipe.get("override") or {}).get("brand_colors"):
+        errors.append(f"{where}: override.brand_colors paints meta.brands, which a colour-group video does not draw; "
+                      f"put the hex on the group")
+
+
 def validate_batch(batch, name, licences, holidays, errors):
     where = f"batch {name}"
     if not isinstance(batch, dict):
@@ -776,6 +972,23 @@ def validate_lock(lock, batch, errors):
             errors.append(f"{where}.boundaries.{cid}.clip: must be [w, s, e, n]")
 
 
+# Machado, Oliveira and Fernandes (2009), deuteranopia at severity 1.0, on linear sRGB: the
+# matrix the colour plan checked every pair with (scratchpad colours/bin/col.py).
+DEUTAN = ((0.367322, 0.860646, -0.227968), (0.280085, 0.672501, 0.047413), (-0.011820, 0.042940, 0.968881))
+
+
+def deuteranopia_png(src, dest):
+    """A still as a deuteranope sees it, for the stills sheet."""
+    import numpy as np
+    from PIL import Image
+    with Image.open(src) as im:
+        a = np.asarray(im.convert("RGB"), dtype=np.float64) / 255
+    lin = np.where(a <= 0.04045, a / 12.92, ((a + 0.055) / 1.055) ** 2.4)
+    out = np.clip(lin @ np.array(DEUTAN).T, 0, 1)
+    srgb = np.where(out <= 0.0031308, out * 12.92, 1.055 * out ** (1 / 2.4) - 0.055)
+    Image.fromarray(np.round(srgb * 255).astype(np.uint8)).save(dest)
+
+
 # ------------------------------------------------------------------ the pipeline
 
 def stem_of(city, variant):
@@ -821,9 +1034,31 @@ def label_key(label):
 
 
 def strip_why(recipe):
+    """The recipe as the render key holds it: a reason line changes no pixel, nor does a colour
+    group's scheme, source or verified flag."""
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
+    colors = r.get("colors")
+    if isinstance(colors, dict):
+        colors.pop("scheme", None)
+        for g in colors.get("groups") or []:
+            if isinstance(g, dict):
+                for k in GROUP_DOC_KEYS:
+                    g.pop(k, None)
     return r
+
+
+def color_groups(recipe):
+    """The groups of a recipe's colour block with their defaults (2.16): match from brand, rest
+    false, legend true (false for other). Structure only; the paint is group_paint's."""
+    out = []
+    for g in (recipe.get("colors") or {}).get("groups") or []:
+        other = g["id"] == "other"
+        brand = None if other else g.get("brand")
+        match = None if other else (g.get("match") or [{"brand": brand}])
+        out.append({"id": g["id"], "label": g["label"], "brand": brand, "match": match,
+                    "rest": bool(g.get("rest", False)), "legend": g.get("legend", not other)})
+    return out
 
 
 class Pipeline:
@@ -953,6 +1188,8 @@ class Pipeline:
             batch = self.load_batch(recipe.get("batch", ""), recipes=False)
         errors = []
         validate_recipe(recipe, batch, self.defaults(), self.root, errors, file_stem=rid)
+        if not errors and "colors" in recipe:
+            validate_colors(recipe, batch, self.brands_for(self.area_of(batch, recipe)), errors)
         if errors:
             raise MakeError("invalid recipe:\n  " + "\n  ".join(errors))
         return recipe
@@ -1066,6 +1303,9 @@ class Pipeline:
         if not d.get("author") and any("{author}" in d[k] for k in ("credit_template", "credit_fallback")):
             raise MakeError("cities/defaults.json: the credit names {author} but author is empty")
         credit = {k: d[k].replace("{author}", d.get("author") or "") for k in ("credit_template", "credit_fallback")}
+        # Only a recipe with colour groups adds the key, so every other city config, and the
+        # network it trims to, stays as it was.
+        colors = {"colors": {"groups": color_groups(recipe)}} if "colors" in recipe else {}
         return {
             "schema": 4, "kind": "city",
             "id": recipe["id"], "batch": batch["batch"], "area": area["id"], "place": place,
@@ -1092,6 +1332,7 @@ class Pipeline:
             "panel": {"preferred": variety.get("panel_side", "left"), "tie": d["panel"]["tie"], "rect": d["panel"]["rect"]},
             "card": {"title": place.upper(), "templates": self.templates()["card"]},
             "major_share": d["major_share"],
+            **colors,
         }
 
     def basemap_params(self, km_vertical):
@@ -1155,6 +1396,10 @@ class Pipeline:
             rj["CAMERA"] = False
         else:
             rj["CAMERA_PATH"] = cam or self.camera_pick(recipe)
+        if "colors" in recipe:
+            # The legend is a per-video choice (bus videos name their groups, train videos do not), so it
+            # rides here rather than in the batch-wide preset; an override can still turn it either way.
+            rj["LEGEND"] = bool(recipe["colors"].get("legend", False))
         if variant == "week":
             # The week's render block turns the weekend band on and beats the preset; it is baked into every
             # week network and keyed into its trim, so the query, which beats the block, turns the band off
@@ -1234,12 +1479,20 @@ class Pipeline:
 
     # ---------------------------------------------------------- keys (D2)
 
-    def brands_for(self, area):
-        """The brand entries that can match a route of this area's feeds."""
+    def brands_for(self, area, trim=False):
+        """The brand entries that can match a route of this area's feeds. trim=True drops every
+        lightness pin (dL): the page applies them and the trim never reads one, so a pin re-renders
+        but does not re-trim."""
         fids = {f["id"] for f in area["feeds"]}
         b = self.brands()
-        return {"version": b.get("version"),
-                "agencies": [e for e in b.get("agencies", []) if fids & set(e.get("feeds", []))]}
+        out = {"version": b.get("version"),
+               "agencies": [e for e in b.get("agencies", []) if fids & set(e.get("feeds", []))]}
+        if trim:
+            out["agencies"] = [dict({k: v for k, v in e.items() if k != "dL"},
+                                    **({"rules": [{k: v for k, v in r.items() if k != "dL"} for r in e["rules"]]}
+                                       if isinstance(e.get("rules"), list) else {}))
+                               for e in out["agencies"]]
+        return out
 
     def area_key(self, batch, area, timeline, lock):
         cfg = self.area_config(batch, area, timeline, lock)
@@ -1261,7 +1514,7 @@ class Pipeline:
         payload = {"step": f"trim-{timeline}", "code": self.code_shas(TRIM_CODE),
                    "config": dict(self.city_config(batch, recipe, timeline, lock), brands=None),
                    "area": self.area_key(batch, area, timeline, lock),
-                   "boundary": boundary_sha, "brands": self.brands_for(area)}
+                   "boundary": boundary_sha, "brands": self.brands_for(area, trim=True)}
         if timeline == "week":
             payload["day_network"] = day_network_sha
         return sha256_json(payload)
@@ -2249,7 +2502,7 @@ class Pipeline:
             "peak": V["peak"], "am_peak": meta.get("am_peak"), "pm_peak": meta.get("pm_peak"),
             "window": [V.get("start"), V.get("end")],
             "feeds": feeds, "modes_present": modes_present, "modes": modes,
-            "groups": meta.get("groups", []), "credit": meta.get("credit"),
+            "groups": meta.get("groups", []), "color_by": meta.get("color_by"), "credit": meta.get("credit"),
             "seconds": seconds, "frames": frames, "trips_total": meta.get("trips_total"), "build_key": build_key,
         }
 
@@ -2322,7 +2575,36 @@ class Pipeline:
                 "--variant", variant, "--render-json", canonical(rj)]
         if bh:
             args += ["--brandhex", bh]
+        paint = self.group_paint(recipe)
+        if paint is not None:
+            args += ["--paint", canonical(paint)]
         return args
+
+    def group_paint(self, recipe):
+        """2.4: the paint= object of a colour-group recipe, None without colours. Per group but other:
+        the hex (the group's, else its brand's colour), plus the pin dL (the group's when set, null
+        unpinning, else the brand's) or the neutral. Colours ride in the page query rather than the
+        network, so a colour edit re-renders but never re-trims."""
+        if "colors" not in recipe:
+            return None
+        batch = self.load_batch(recipe["batch"], recipes=False)
+        brands = self.brands_for(self.area_of(batch, recipe))
+        out = {}
+        for g in recipe["colors"]["groups"]:
+            if g["id"] == "other":
+                continue
+            b = brand_ref(brands, g.get("brand")) or {}
+            hexv = g.get("hex") or b.get("color") or ""
+            p = {"hex": hexv.lstrip("#").lower()}
+            if "neutral" in g:
+                n = g["neutral"]
+                p["neutral"] = n if n is True else n.lstrip("#").lower()
+            else:
+                dl = g["dL"] if "dL" in g else b.get("dL")
+                if dl is not None:
+                    p["dL"] = dl
+            out[g["id"]] = p
+        return out
 
     # ---------------------------------------------------------- stills, preview, render
 
@@ -2438,11 +2720,38 @@ class Pipeline:
                 rt = os.path.join(out, f"{stem}-rt.png")
                 self.roundtrip_png(am, rt)
                 tiles.append((rt, "am peak, VP9 720p"))
+            header = ""
+            if "colors" in recipe:
+                header = self.colors_header(recipe)
+                if v == "day":
+                    # The judge's two colour tiles: each group's placement over the map, and the am peak
+                    # as a deuteranope sees it (the plan's closest pairs are checked on both).
+                    self.run_node(base + ["--tier", "stills", "--out-dir", self.rel(out), "--name", stem + "-colours",
+                                          "--times", str(times[0]), "--query", "&".join(x for x in ("colorkey=1", q) if x)])
+                    p = self.find_still(out, stem + "-colours", times[0], False)
+                    if p:
+                        tiles.append((p, "colours"))
+                    if am:
+                        dp = os.path.join(out, f"{stem}-deutan.png")
+                        deuteranopia_png(am, dp)
+                        tiles.append((dp, "deuteranopia"))
             sheet = os.path.join(out, f"{stem}.sheet.jpg")
-            tune.tile_sheet([("", tiles)], sheet, cols=5)
+            tune.tile_sheet([(header, tiles)], sheet, cols=5)
             sheets.append(sheet)
             say(f"sheet {self.rel(sheet)}")
         return sheets
+
+    def colors_header(self, recipe):
+        """The stills sheet's header of a colour-group recipe: `type, legend: Bus · Express · Streetcar`."""
+        c = recipe["colors"]
+        if not c.get("legend"):
+            return f"{c['scheme']}, no legend: " + " · ".join(g["label"] for g in c["groups"] if g["id"] != "other")
+        words = []
+        for g in color_groups(recipe):
+            w = g["legend"] if isinstance(g["legend"], str) else (g["label"] if g["legend"] else None)
+            if w and w not in words:
+                words.append(w)
+        return f"{c['scheme']}, legend: " + " · ".join(words)
 
     def capture_args(self):
         """defaults.json's capture method, and its page count for raw: render_video's own default is
@@ -2649,13 +2958,28 @@ class Pipeline:
                                                               self.defaults()["trim_scale"], bbox_km)],
                 "city.day.json": self.city_config(batch, recipe, "day", lock),
                 "basemap.config.json": self.basemap_config(batch, recipe, lock),
-                "queries": {v: dict(zip(("render", "brandhex"), self.render_query(recipe, v)))
+                "queries": {v: dict(zip(("render", "brandhex"), self.render_query(recipe, v)),
+                                    **({"paint": canonical(self.group_paint(recipe))} if "colors" in recipe else {}))
                             for v in recipe_variants(recipe, batch)},
                 "keys": self.keys_of(batch, target, lock),
                 "area_keys": {tl: self.area_key(batch, area, tl, lock) for tl in ("day", "week")}}
         if "week" in recipe_variants(recipe, batch):
             info["city.week.json"] = self.city_config(batch, recipe, "week", lock)
+        todo = None
+        if "colors" in recipe:
+            c = recipe["colors"]
+            paint = self.group_paint(recipe)
+            # A colour from a livery or chosen by the plan is checked by a person before the batch PR
+            # merges, as A10 asks for brands.
+            todo = [g["id"] for g in c["groups"] if g.get("verified") is False]
+            info["colors"] = {"scheme": c["scheme"], "legend": bool(c.get("legend", False)),
+                              "groups": [dict(g, paint=paint.get(g["id"], "the theme's foreign grey"))
+                                         for g in color_groups(recipe)],
+                              "unverified": todo}
         say(dump_json(info).rstrip())
+        if todo is not None:
+            # On stderr, so stdout stays one JSON document.
+            print(f"unverified colours: {', '.join(todo) if todo else 'none'}", file=sys.stderr, flush=True)
         return info
 
     # ---------------------------------------------------------- Actions: plan, release, review (D6)

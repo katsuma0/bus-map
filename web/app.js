@@ -164,6 +164,8 @@ const CONFIG = {
   CARD_LINES: 0,
   PEAK_MARKER: false,
   MODE_CHIPS: false,
+  // The quiet legend row of a colour-group network (B19): a dot and a word per group, no counts.
+  LEGEND: false,
   OUTSIDE_DIM: 0,
   CITY_LINE_W: 2,
   CITY_LINE_ALPHA: 0.8,
@@ -1580,8 +1582,12 @@ let histN = 1440;           // meta.hist_period, minutes
 let themeEnv = null;        // trail and line envelope of the active theme (B4)
 let brandMap = null;        // B6 result, busmap.brandMap
 let brandHexQuery = null;   // ?brandhex=, id -> rrggbb
-let groupColor = null;      // group id -> chip dot colour
+let groupColor = null;      // group id -> chip and legend dot colour
 let chipMerged = new Set(); // groups the chips line folds into "other" (B9), drawn foreign (B6)
+let groupNet = false;       // meta.color_by "group": drawn by colour group whatever COLOR_BY says (B19)
+let groupMap = null;        // B19 result on a group network, busmap.groupMap
+let paintQuery = null;      // ?paint=, merged: group id -> {hex, dL, neutral}
+let showColorKey = false;   // ?colorkey=1, the judge's placement table over the fit box
 // Occurrences (B7): one per trip, weekday and period shift that can be on
 // screen inside the window, sorted by start time.
 let occN = 0;
@@ -1650,10 +1656,11 @@ const ZONES = {
   // sparkline 52 tall; the chips 14 over its top; the count line 38 over the
   // chips, or 30 over the sparkline without them, and a split one 44 more;
   // the clock 50 over the count line (44 in the week, where it is small) and
-  // the weekday 50 over it.
+  // the weekday 50 over it. The legend takes the chips' row and gaps, and a
+  // second legend row stands 30 over the first.
   gap: {
     credit: 24, creditLine: 26, axis: 34, sparkOverAxis: 30, sparkOverCredit: 38, spark: 52, chips: 14,
-    countOverChips: 38, countOverSpark: 30, split: 44, clock: 50, clockWeek: 44, weekday: 50,
+    countOverChips: 38, countOverSpark: 30, split: 44, clock: 50, clockWeek: 44, weekday: 50, legendRow: 30,
   },
 };
 // The band no text covers: as wide as SAFE, from under the subtitle to the
@@ -1675,7 +1682,7 @@ ZONES.phone = { crops: [{ aspect: '19.5:9', x: 97 }, { aspect: '20:9', x: 108 }]
 const MIN_SIZE = {
   title: 44, subtitle: 26, weekday: 48, clock: 30, count: 28, count2: 28, chips: 20, peak: 20, axis: 20,
   credit: 18, credit2: 18, card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30,
-  card_line1b: 30,
+  card_line1b: 30, legend: 18, legend2: 18,
 };
 const DAY_NAMES = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -1704,6 +1711,7 @@ const V4_KNOBS = [
   ['clockround', 'CLOCK_ROUND', 'num'], ['card', 'CARD', 'bool'], ['cardscrim', 'CARD_SCRIM', 'num'],
   ['cardband', 'CARD_BAND', 'num'], ['cardy', 'CARD_CENTER_Y', 'num'], ['cardsize', 'CARD_TITLE_MAX', 'num'],
   ['cardline', 'CARD_LINES', 'num'], ['peak', 'PEAK_MARKER', 'bool'], ['chips', 'MODE_CHIPS', 'bool'],
+  ['legend', 'LEGEND', 'bool'],
   ['outside', 'OUTSIDE_DIM', 'num'], ['panelalpha', 'PANEL_ALPHA', 'num'], ['panelside', 'PANEL_SIDE', 'enum'],
   ['fonts', 'FONT_SET', 'enum'], ['zoom', 'FRAME_ZOOM', 'num'], ['cx', 'FRAME_DX_KM', 'num'],
   ['cy', 'FRAME_DY_KM', 'num'], ['roads', 'BASE_ROADS_GAIN', 'num'], ['water', 'BASE_WATER_GAIN', 'num'],
@@ -1774,6 +1782,29 @@ function parseV4Query() {
       const hex = part.slice(at + 1).trim().replace(/^#/, '').toLowerCase();
       if (at <= 0 || !/^[0-9a-f]{6}$/.test(hex)) throw new Error(`?brandhex: bad entry "${part}", want id:rrggbb`);
       brandHexQuery.set(id, hex);
+    }
+  }
+  showColorKey = params.get('colorkey') === '1';
+  // Each paint= is merged over the ones before it, per group and key, so a still can try one pin
+  // over make.py's paint without a rebuild (?paint={"go":{"dL":-0.2}}).
+  paintQuery = new Map();
+  for (const raw of params.getAll('paint')) {
+    let obj;
+    try {
+      obj = JSON.parse(raw);
+    } catch (e) {
+      throw new Error(`?paint is not JSON: ${e.message}`);
+    }
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('?paint must be a JSON object of group id to {hex, dL, neutral}');
+    for (const [id, v] of Object.entries(obj)) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) throw new Error(`?paint: "${id}" must be an object of hex, dL and neutral`);
+      const p = { ...(paintQuery.get(id) || {}), ...v };
+      if ('hex' in v && !/^#?[0-9a-fA-F]{6}$/.test(String(v.hex))) throw new Error(`?paint: "${id}".hex must be rrggbb, got ${JSON.stringify(v.hex)}`);
+      if ('dL' in v && v.dL !== null && !Number.isFinite(v.dL)) throw new Error(`?paint: "${id}".dL must be a number or null`);
+      if ('neutral' in v && v.neutral !== true && v.neutral !== null && !/^#?[0-9a-fA-F]{6}$/.test(String(v.neutral))) {
+        throw new Error(`?paint: "${id}".neutral must be rrggbb or true`);
+      }
+      paintQuery.set(id, p);
     }
   }
   if (!params.has('render')) return null;
@@ -2275,15 +2306,20 @@ async function initV4(basemap, network) {
   await document.fonts.ready;
 
   buildModesV4(network);
+  // A colour-group network is drawn by group whatever COLOR_BY says (B19): its groups are the
+  // recipe's, and the chips never fold one for colour.
+  groupNet = meta.color_by === 'group';
   // The groups the chips line folds into "other" draw in the foreign colour
   // (B6) whether or not the chips show, and at the line's own TEXT_SCALE 1
   // sizes: a text knob or the chips knob never repaints a city's trails.
   chipMerged = new Set();
-  if (CONFIG.HUD_LAYOUT === 'shorts' && Array.isArray(meta.groups) && meta.groups.length) {
+  if (CONFIG.HUD_LAYOUT === 'shorts' && !groupNet && Array.isArray(meta.groups) && meta.groups.length) {
     chipMerged = new Set(fitChips(chipParts(meta.groups, () => null), F, SHORTS_TEXT_W).merged);
   }
+  if (CONFIG.LEGEND && CONFIG.HUD_LAYOUT !== 'shorts') console.warn('LEGEND draws only in the shorts layout; nothing drawn');
   const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
-  if (brand) buildColorsBrand(network);
+  if (groupNet) buildColorsGroup(network);
+  else if (brand) buildColorsBrand(network);
   else buildColors(network);
   buildGroupsV4(network);
 
@@ -2400,25 +2436,45 @@ function buildColorsBrand(network) {
     placedTrails.push(pick.n.trail);
   }
 
-  // One colour class per drawn colour: rail brands after the others, then by
-  // trips ascending, so lines lie over buses and the busiest bus brand is on
-  // top of the bus layer.
+  buildColorClasses(network, brandMap.map((e, i) => ({ trail: e.trail, line: e.line, rail: e.placed && brands[i].rail === true,
+    rank: e.placed ? i : 1e6, other: false })), (r) => (Number.isInteger(r.brand) && r.brand >= 0 && r.brand < brands.length ? r.brand : -1),
+  foreign, foreignLine);
+  // Chip dots take the group's entry brand colour; "other" is foreign.
+  groupColor = new Map();
+  const byId = new Map(brands.map((b, i) => [b.id, brandMap[i]]));
+  for (const g of meta.groups || []) {
+    const e = g.id === 'other' ? null : byId.get(g.brand) || byId.get(g.id);
+    groupColor.set(g.id, `#${e && e.placed ? e.trail : foreign}`);
+  }
+}
+
+// One colour class per drawn trail and dormant line pair, shared by brand and
+// group colouring: the trip and shape lists the ribbons and the dots draw
+// from. sources are [{trail, line, rail, rank, other}], sourceOf(route) a
+// route's source index or -1 for its mode's own colour. Rail classes after
+// the others, then (on a group network) other first, then by trips ascending,
+// so lines lie over buses, the grey never covers a city's own colours and the
+// busiest bus colour is on top of the bus layer.
+function buildColorClasses(network, sources, sourceOf, foreign, foreignLine) {
+  const BC = window.BusmapColor;
   const index = new Map();
   const found = [];
-  const classOf = (trail, line, rail, rank) => {
+  const classOf = (trail, line, rail, rank, other = false) => {
     const key = `${trail}/${line}`;
     if (!index.has(key)) {
       index.set(key, found.length);
-      found.push({ trail, line, rail, rank, trips: 0, order: found.length });
+      found.push({ trail, line, rail, rank, other, trips: 0, order: found.length });
     }
     const c = found[index.get(key)];
     c.rail = c.rail || rail;
     c.rank = Math.min(c.rank, rank);
+    c.other = c.other || other;
     return index.get(key);
   };
-  const brandClass = brandMap.map((e, i) => classOf(e.trail, e.line, e.placed && brands[i].rail === true, e.placed ? i : 1e6));
+  const sourceClass = sources.map((e) => classOf(e.trail, e.line, e.rail, e.rank, e.other));
   const routeClass = network.routes.map((r) => {
-    if (Number.isInteger(r.brand) && r.brand >= 0 && r.brand < brands.length) return brandClass[r.brand];
+    const k = sourceOf(r);
+    if (k >= 0) return sourceClass[k];
     const mc = modeColorsV4(r.mode).n;
     return classOf(mc.trail, mc.line, r.mode !== 'bus', 1e6 + 1);
   });
@@ -2435,7 +2491,8 @@ function buildColorsBrand(network) {
     if (!used[i]) { fallback = classOf(foreign, foreignLine, false, 1e6 + 2); break; }
   }
   if (!found.length) classOf(foreign, foreignLine, false, 1e6 + 2);
-  const sorted = found.slice().sort((a, b) => (a.rail - b.rail) || a.trips - b.trips || a.rank - b.rank || a.order - b.order);
+  const sorted = found.slice().sort((a, b) => (a.rail - b.rail) || (b.other - a.other) || a.trips - b.trips || a.rank - b.rank
+    || a.order - b.order);
   const rank = new Uint16Array(found.length);
   sorted.forEach((c, i) => { rank[c.order] = i; });
   colors = sorted.map((c) => ({ hex: c.trail, css: `#${c.trail}`, lineCss: `#${c.line}`, rgb: BC.parseHex(c.trail), trips: c.trips }));
@@ -2454,16 +2511,149 @@ function buildColorsBrand(network) {
   }
   for (const list of colorShapes) list.sort((a, b) => a - b);
   if (CONFIG.TRAIL_MODE === 'sprite') {
-    console.warn('color_by brand draws ribbon trails; trailmode=sprite ignored');
+    console.warn(`color_by ${groupNet ? 'group' : 'brand'} draws ribbon trails; trailmode=sprite ignored`);
     CONFIG.TRAIL_MODE = 'ribbon';
   }
-  // Chip dots take the group's entry brand colour; "other" is foreign.
-  groupColor = new Map();
-  const byId = new Map(brands.map((b, i) => [b.id, brandMap[i]]));
-  for (const g of meta.groups || []) {
-    const e = g.id === 'other' ? null : byId.get(g.brand) || byId.get(g.id);
-    groupColor.set(g.id, `#${e && e.placed ? e.trail : foreign}`);
+}
+
+// color_by "group" (B19): the recipe's colour groups, painted by ?paint= (make.py's group_paint).
+// Placement order: the foreign grey for other, the neutrals, the pinned groups, then the free
+// groups through the B6 ladder without its alt step, each measured against every colour placed so
+// far, in recipe order (a feed refresh that swaps two shares never repaints a city).
+function buildColorsGroup(network) {
+  byRoute = true;
+  const BC = window.BusmapColor;
+  const C = CONFIG.COLORS;
+  const bg = bgRGB();
+  const env = themeEnv;
+  const list = Array.isArray(meta.groups) ? meta.groups : [];
+  const brands = Array.isArray(meta.brands) ? meta.brands : [];
+  const foreign = BC.toHex(cssToRGB(C.foreign, [138, 141, 150]));
+  const foreignLine = BC.over(foreign, 0.5, bg);
+  const cityLine = BC.toHex(cssToRGB(C.cityLine, [140, 143, 153]));
+  if (brandHexQuery.size) console.warn('?brandhex is ignored on a colour-group network: its colours come from ?paint=');
+  for (const id of paintQuery.keys()) {
+    if (!list.some((g) => g.id === id)) console.warn(`?paint: no group "${id}" in meta.groups (folded into other?)`);
   }
+  const index = new Map(list.map((g, i) => [g.id, i]));
+  const otherAt = index.has('other') ? index.get('other') : -1;
+  const routeGroup = network.routes.map((r) => (index.has(r.group) ? index.get(r.group) : otherAt));
+  const nRoutes = list.map(() => 0), nRail = list.map(() => 0);
+  network.routes.forEach((r, i) => {
+    const g = routeGroup[i];
+    if (g < 0) return;
+    nRoutes[g]++;
+    if (r.mode !== 'bus') nRail[g]++;
+  });
+  // Trips per brand and per mode of each group, for the colour of a group without paint (B19).
+  const byBrand = list.map(() => new Map()), byMode = list.map(() => new Map());
+  for (const t of trips) {
+    const g = routeGroup[t.r];
+    if (g < 0) continue;
+    const r = network.routes[t.r];
+    byBrand[g].set(r.brand, (byBrand[g].get(r.brand) || 0) + 1);
+    byMode[g].set(r.mode, (byMode[g].get(r.mode) || 0) + 1);
+  }
+  const most = (m) => [...m.entries()].sort((a, b) => b[1] - a[1])[0];
+  const unpainted = [];
+  const hexOf = (v) => (typeof v === 'string' ? v.replace(/^#/, '').toLowerCase() : '');
+  const entries = list.map((g, i) => {
+    const e = { id: g.id, label: g.label || g.id, source: null, dL: null, neutral: null, trail: foreign, line: foreignLine,
+      how: 'foreign', order: -1, dmin: null, near: null, dCity: null, rail: 2 * nRail[i] > nRoutes[i] };
+    if (g.id === 'other') return e;
+    const p = paintQuery.get(g.id);
+    if (p && (p.hex || p.neutral)) {
+      e.source = hexOf(p.hex) || null;
+      if (p.neutral === true) e.neutral = true;
+      else if (p.neutral) e.neutral = hexOf(p.neutral);
+      else if (Number.isFinite(p.dL)) e.dL = p.dL;
+      return e;
+    }
+    unpainted.push(g.id);
+    const named = brands.find((b) => b.id === g.brand);
+    const top = most(byBrand[i]);
+    const mode = most(byMode[i]);
+    const cands = [named && named.hex, top && brands[top[0]] && brands[top[0]].hex];
+    e.source = cands.map(hexOf).find((h) => BC.informative(h)) || MODE_SOURCES[mode ? mode[0] : 'bus'] || MODE_SOURCES.bus;
+    return e;
+  });
+  if (unpainted.length) console.warn(`no ?paint for group${unpainted.length > 1 ? 's' : ''} ${unpainted.join(', ')}: drawn from the brand or mode colour, unpinned`);
+  const placed = [];
+  const place = (e, trail, line, how) => {
+    let dmin = Infinity, near = null;
+    for (const q of placed) {
+      const d = BC.deltaE(trail, q.trail);
+      if (d < dmin) { dmin = d; near = q.label; }
+    }
+    Object.assign(e, { trail, line, how, order: placed.length, dmin: Number.isFinite(dmin) ? dmin : null, near,
+      dCity: BC.deltaE(trail, cityLine) });
+    placed.push({ label: e.label, trail });
+    return dmin;
+  };
+  const tooNear = (e, dmin) => {
+    if (dmin < CONFIG.BRAND_MIN_DE) console.warn(`group ${e.id}: ${e.how} #${e.trail} is ${dmin.toFixed(3)} from ${e.near}, under ${CONFIG.BRAND_MIN_DE}`);
+  };
+  if (otherAt >= 0 && network.routes.some((r) => r.group === 'other')) place(entries[otherAt], foreign, foreignLine, 'foreign');
+  for (const e of entries) {
+    if (e.id === 'other' || e.neutral === null) continue;
+    const trail = e.neutral === true ? foreign : e.neutral;
+    tooNear(e, place(e, trail, BC.over(trail, 0.5, bg), 'neutral'));
+    if (BC.contrast(trail, bg) < 3) console.warn(`group ${e.id}: neutral #${trail} has contrast ${BC.contrast(trail, bg).toFixed(2)} with the background, under 3`);
+  }
+  // The ladder's ceiling: no trail is asked lighter than 0.92.
+  const topL = 0.92 - env.trailL;
+  for (const e of entries) {
+    if (e.id === 'other' || e.neutral !== null || e.dL === null) continue;
+    let dL = e.dL;
+    if (dL > topL + 1e-9) {
+      console.warn(`group ${e.id}: dL ${dL} would ask a trail at L ${(env.trailL + dL).toFixed(2)}; drawn at 0.92`);
+      dL = topL;
+    }
+    const n = BC.normalise(e.source, env, bg, dL);
+    if (!n) {
+      console.warn(`group ${e.id}: #${e.source} has no hue to pin; drawn in the foreign grey`);
+      continue;
+    }
+    const how = `pin dL${e.dL === 0 ? '0' : (e.dL > 0 ? '+' : '') + e.dL.toFixed(2)}`;
+    tooNear(e, place(e, n.trail, n.line, how));
+  }
+  const upL = Math.min(0.10, topL);
+  for (const e of entries) {
+    if (e.id === 'other' || e.neutral !== null || e.dL !== null) continue;
+    let best = null, pass = null;
+    for (const [how, dL0, rot] of BRAND_LADDER) {
+      // A brand's alt is its second brand colour, which in a group video is another group's.
+      if (how === 'alt') continue;
+      const n = e.source && BC.normalise(e.source, env, bg, how === 'dL+0.10' ? upL : dL0, rot);
+      if (!n) continue;
+      const dmin = placed.reduce((m, q) => Math.min(m, BC.deltaE(n.trail, q.trail)), Infinity);
+      const cand = { how, n, dmin };
+      if (!best || dmin > best.dmin) best = cand;
+      if (dmin >= CONFIG.BRAND_MIN_DE && BC.contrast(n.trail, bg) >= 3) { pass = cand; break; }
+    }
+    const pick = pass || best;
+    if (!pick) {
+      console.warn(`group ${e.id}: #${e.source} has no hue; drawn in the foreign grey`);
+      continue;
+    }
+    if (!pass) console.warn(`group ${e.id}: no ladder step is ${CONFIG.BRAND_MIN_DE} from the placed colours; ${pick.how} is the farthest (${pick.dmin.toFixed(3)})`);
+    place(e, pick.n.trail, pick.n.line, pick.how);
+  }
+  // The city line is measured, not placed: placing it would move New York's B/D/F/M off its source.
+  for (const e of entries) {
+    if (e.order >= 0 && e.dCity < CONFIG.BRAND_MIN_DE) {
+      console.warn(`group ${e.id}: #${e.trail} is ${e.dCity.toFixed(3)} from the city line #${cityLine}`);
+    }
+  }
+  groupMap = entries.map(({ rail, ...e }) => e);
+  const sources = entries.map((e, i) => ({ trail: e.trail, line: e.line, rail: e.rail, rank: i, other: e.id === 'other' }));
+  // A route of a group the network does not list draws like other.
+  sources.push({ trail: foreign, line: foreignLine, rail: false, rank: 1e6, other: true });
+  buildColorClasses(network, sources, (r) => {
+    const g = index.has(r.group) ? index.get(r.group) : otherAt;
+    return g >= 0 ? g : sources.length - 1;
+  }, foreign, foreignLine);
+  groupColor = new Map(entries.map((e) => [e.id, `#${e.trail}`]));
 }
 
 // buildGroups for v4 groups ({id, label, brand, share}); "other" collects
@@ -3069,9 +3259,14 @@ function buildShortsLayout() {
   // over the window, at the scale 1 sizes the colours were decided at, and
   // drawn scaled, which can only be narrower.
   L.chips = null;
+  L.legend = null;
   const kCount = kOf(L.count.size, 40);
   let countY = L.spark.y0 - kCount * G.countOverSpark;
-  if (CONFIG.MODE_CHIPS) {
+  // The legend takes the chips' row (B19); it draws only on a colour-group network.
+  const legendOn = CONFIG.LEGEND && groupNet;
+  if (CONFIG.LEGEND && !groupNet) console.warn('LEGEND draws only on a colour-group network (meta.color_by "group"); nothing drawn');
+  if (legendOn && CONFIG.MODE_CHIPS) console.warn('chips and legend both on: the legend takes the row, the chips are not drawn');
+  if (CONFIG.MODE_CHIPS && !legendOn) {
     const C = CONFIG.COLORS;
     let parts;
     if (groups) {
@@ -3094,6 +3289,16 @@ function buildShortsLayout() {
     L.chips = { parts: list, fit: { size, gap }, size: px, gap: gap * kc, dot: 26 * kc, r: 9 * kc, weight,
       font: `${weight} ${px}px ${F.tnum}`, y: at(L.spark.y0 - kc * G.chips), merged, tried };
     countY = L.chips.y - Math.max(kc, kCount) * G.countOverChips;
+  }
+  if (legendOn) {
+    const lg = fitLegend(legendEntries(), F, L.textW, Math.min(500, wt.body), kOf);
+    if (lg) {
+      // The bottom row keeps the chips' baseline; a second row lifts the first and everything above.
+      const y = at(L.spark.y0 - lg.f * G.chips);
+      lg.ys = lg.rows.length === 2 ? [at(y - lg.f * G.legendRow), y] : [y];
+      L.legend = lg;
+      countY = lg.ys[0] - Math.max(lg.f, kCount) * G.countOverChips;
+    }
   }
   // A split count line lifts every row above it by one.
   const up = L.split ? kCount * G.split : 0;
@@ -3124,6 +3329,110 @@ function buildShortsLayout() {
   const peakLabel = `peak ${withCommas(variantV.peak ? variantV.peak.count : 0)}`;
   L.peakLabel = { label: peakLabel, w: textWidth(peakLabel, L.peakFont) };
   shorts = L;
+}
+
+// The legend's entries (B19), from meta.groups in order: a group with legend false is left out
+// (other by default), a shared legend word is one entry at its first group's place with one dot
+// per group, any other group one entry with its label. No numbers: nothing in it moves.
+function legendEntries() {
+  const out = [];
+  for (const g of meta.groups || []) {
+    const lg = g.legend === undefined ? g.id !== 'other' : g.legend;
+    if (lg === false) continue;
+    const color = (groupColor && groupColor.get(g.id)) || CONFIG.COLORS.foreign;
+    const word = typeof lg === 'string' ? lg : null;
+    const shared = word && out.find((e) => e.word === word);
+    if (shared) {
+      shared.ids.push(g.id);
+      shared.colors.push(color);
+    } else {
+      out.push({ label: word || g.label || g.id, word, ids: [g.id], colors: [color] });
+    }
+  }
+  if (out.length > 7) console.warn(`legend: ${out.length} entries, the first 7 drawn`);
+  return out.slice(0, 7);
+}
+
+// The legend's fit (B19), once at init and measured in the page at its drawn size, against the
+// panel's text column: one row at 24 then 22 (tighter gaps last), then two rows. If even that
+// does not fit, the last entry is dropped (a console.error, which fails a render) and the steps run
+// again. Its sizes never decide a colour, so unlike the chips it fits at the size it draws.
+function fitLegend(entries, F, textW, weight, kOf) {
+  const steps = [[1, 24, 20], [1, 22, 20], [1, 22, 12], [2, 24, 20], [2, 22, 12]];
+  const tried = [];
+  const dropped = [];
+  let list = entries.slice();
+  while (list.length) {
+    for (const [nRows, base, gap0] of steps) {
+      const size = hudPx(base, 'legend');
+      const f = kOf(size, base);
+      const font = `${weight} ${size}px ${F.mont}`;
+      const widths = list.map((e) => (24 + 20 * (e.colors.length - 1)) * f + textWidth(e.label, font));
+      const rowW = (a, b) => widths.slice(a, b).reduce((s, w) => s + w, 0) + gap0 * f * (b - a - 1);
+      let rows = null, w = rowW(0, list.length);
+      if (nRows === 1) {
+        if (w <= textW) rows = [list];
+      } else if (list.length >= 2) {
+        // Between entries, keeping their order, where the wider row is narrowest (a tie: the earlier break).
+        let best = null;
+        for (let k = 1; k < list.length; k++) {
+          const wk = Math.max(rowW(0, k), rowW(k, list.length));
+          if (!best || wk < best.w) best = { k, w: wk };
+        }
+        w = best.w;
+        if (w <= textW) rows = [list.slice(0, best.k), list.slice(best.k)];
+      }
+      tried.push({ rows: nRows, base, gap: gap0, w: Math.round(w * 10) / 10 });
+      if (rows) {
+        return { entries: list, rows, base, size, f, gap0, gap: gap0 * f, r: 8 * f, dotStep: 20 * f, textDx: 24 * f, font,
+          weight, width: Math.round(w * 10) / 10, limit: textW, widths, dropped, tried };
+      }
+    }
+    const last = list.pop();
+    dropped.push(last.label);
+    console.error(`legend: "${last.label}" dropped: ${list.length + 1} entries need more than two rows of ${textW} px at ${MIN_SIZE.legend} px`);
+  }
+  return null;
+}
+
+// The legend rows (B19): a dot per group in its trail colour and the word, one hudBoxes() box per
+// row. Drawn with the title and the credit, so the loop frame and the xfade seam never see it move.
+function drawLegendShorts(a) {
+  const L = shorts;
+  const lg = L.legend;
+  if (!lg) return;
+  const text = hudMode === 'full';
+  let at = 0;
+  lg.rows.forEach((row, ri) => {
+    const y = lg.ys[ri];
+    const name = ri ? 'legend2' : 'legend';
+    const start = lastBoxes.length;
+    let x = L.textX;
+    row.forEach((e, k) => {
+      if (k) x += lg.gap;
+      if (text && a > 0) {
+        ctx.globalAlpha = a;
+        e.colors.forEach((c, j) => {
+          ctx.fillStyle = c;
+          ctx.beginPath();
+          ctx.arc(x + lg.r + j * lg.dotStep, y - 0.36 * lg.size, lg.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      const tx = x + lg.textDx + (e.colors.length - 1) * lg.dotStep;
+      hudText(name, e.label, tx, y, lg.font, CONFIG.COLORS.breakdown, lg.size, a);
+      x = tx + lg.widths[at] - lg.textDx - (e.colors.length - 1) * lg.dotStep;
+      at++;
+    });
+    const parts = lastBoxes.splice(start);
+    if (parts.length) {
+      lastBoxes.push({
+        ...parts[0], text: parts.map((b) => b.text).join(' · '), x0: L.textX,
+        y0: Math.min(...parts.map((b) => b.y0), y - 0.36 * lg.size - lg.r), x1: parts[parts.length - 1].x1,
+        y1: Math.max(...parts.map((b) => b.y1)),
+      });
+    }
+  });
 }
 
 function countNoun(L, n) {
@@ -3705,6 +4014,7 @@ function drawHudShorts(T, a, fade = null) {
     ctx.stroke();
   }
   drawAxisShorts(Tm, a);
+  drawLegendShorts(a);
   L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, L.textX, L.creditY[k], L.creditFont, C.credit,
     L.creditSize, a));
   ctx.globalAlpha = 1;
@@ -4065,6 +4375,51 @@ function drawSafe() {
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(shortsStatics.safe, 0, 0);
   }
+  if (showColorKey) drawColorKey();
+}
+
+// ?colorkey=1 (judge only, never set by make.py renders): the colour placement over the fit box,
+// one line per colour in placement order with its dot, label, step, source and nearest colour,
+// then the trails too close to the city line. A brand network lists its placed brands.
+function drawColorKey() {
+  const BC = window.BusmapColor;
+  const rows = groupMap
+    ? groupMap.filter((e) => e.order >= 0).sort((a, b) => a.order - b.order)
+    : (brandMap || []).filter((e) => e.placed).map((e) => ({ label: e.id, how: e.how, source: e.hex, trail: e.trail, dmin: null, near: null }));
+  const cityLine = BC.toHex(cssToRGB(CONFIG.COLORS.cityLine, [140, 143, 153]));
+  const near = (groupMap || []).filter((e) => e.order >= 0 && e.dCity < CONFIG.BRAND_MIN_DE);
+  const F = fontsV4();
+  const lineH = 38;
+  const x0 = ZONES.fit.x0 + 10, y0 = ZONES.fit.y0 + 10;
+  const h = (rows.length + 2) * lineH + 12;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = rgba(cssToRGB(CONFIG.COLORS.panel, [8, 13, 21]), 1);
+  ctx.fillRect(x0, y0, ZONES.fit.x1 - ZONES.fit.x0 - 20, h);
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `500 22px ${F.inter}`;
+  ctx.fillStyle = CONFIG.COLORS.title;
+  ctx.fillText(groupMap ? 'colour groups, in placement order' : 'brands, in placement order', x0 + 14, y0 + lineH - 8);
+  rows.forEach((e, i) => {
+    const y = y0 + (i + 2) * lineH - 8;
+    ctx.fillStyle = `#${e.trail}`;
+    ctx.beginPath();
+    ctx.arc(x0 + 26, y - 8, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = CONFIG.COLORS.title;
+    ctx.font = `500 22px ${F.inter}`;
+    ctx.fillText(e.label, x0 + 48, y);
+    ctx.font = `400 18px ${F.inter}`;
+    ctx.fillStyle = CONFIG.COLORS.subtitle;
+    const d = e.dmin === null || e.dmin === undefined ? '' : `  ${e.dmin.toFixed(3)} from ${e.near}`;
+    ctx.fillText(`${e.how}  ${e.source ? `#${e.source} to ` : ''}#${e.trail}${d}`, x0 + 200, y);
+  });
+  ctx.font = `400 18px ${F.inter}`;
+  ctx.fillStyle = near.length ? CONFIG.COLORS.accent : CONFIG.COLORS.subtitle;
+  ctx.fillText(near.length ? `near the city line #${cityLine}: ${near.map((e) => `${e.label} ${e.dCity.toFixed(3)}`).join(', ')}`
+    : `every trail is ${CONFIG.BRAND_MIN_DE} or more from the city line #${cityLine}`, x0 + 14, y0 + (rows.length + 2) * lineH - 8);
 }
 
 // A still at T: full HUD, no card (B10). Returns the count line's number.
@@ -4235,6 +4590,15 @@ const busmap = {
   cardAlpha: (i) => cardAlphaV4(i),
   stillTimes: () => stillTimesV4(),
   get brandMap() { return brandMap; },
+  // B19 on a colour-group network: each group's source, pin, trail and dormant line, its placement
+  // step and position, its distance to the nearest colour placed before it and to the city line.
+  get groupMap() { return groupMap ? groupMap.map((e) => ({ ...e })) : null; },
+  // The legend's fit (B19), or null when none is drawn.
+  get legend() {
+    const g = shorts && shorts.legend;
+    return g ? { entries: g.entries.map((e) => ({ label: e.label, ids: e.ids.slice() })), rows: g.rows.length, base: g.base,
+      size: g.size, gap: g.gap0, width: g.width, limit: g.limit, dropped: g.dropped.slice(), tried: g.tried.map((t) => ({ ...t })) } : null;
+  },
   countAt: (T) => countAtV4(T),
   // The chips line's fit (B9): the parts shown, their size and gap at
   // TEXT_SCALE 1 (drawn scaled), every width tried on the way, and the groups

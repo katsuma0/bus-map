@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """B-9: every HUD and card string of the GTA batch is covered by the X fonts (fontTools cmap).
 
-The strings: every place and title of the recipes, brand, rule and group labels of brands.json,
+The strings: every place and title of the recipes, brand, rule and group labels of brands.json, the
+colour groups' labels and legend words of tests/fixtures/colours/plans.json,
 the batch's mode words, the variant labels, the labels and card lines of
 cities/templates/shorts_en.json, the credit line and its fallback (cities/defaults.json, with the
 author), the weekday names, the axis words and the digits. Both MontserratX and InterX must map
@@ -43,6 +44,11 @@ def strings():
     with open(os.path.join(ROOT, "cities", "defaults.json"), encoding="utf-8") as fh:
         d = json.load(fh)
     template, fallback = (d[k].replace("{author}", d["author"]) for k in ("credit_template", "credit_fallback"))
+    # The legend's words (B19): every group label and shared word of the checked colour plans.
+    with open(os.path.join(ROOT, "tests", "fixtures", "colours", "plans.json"), encoding="utf-8") as fh:
+        for plan in json.load(fh)["plans"]:
+            for g in plan["groups"]:
+                labels += [g["label"]] + ([g["legend"]] if isinstance(g["legend"], str) else [])
     out += labels + ["other", template.replace("{agencies}", ", ".join(labels)), fallback.replace("{n}", "10")]
     out += [f"1,234 {label}" for label in labels]
     month_words = ["October", "November"]

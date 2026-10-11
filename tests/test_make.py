@@ -1038,6 +1038,225 @@ class Derivation(Scratch):
         self.assertNotEqual(self.pl.render_key(self.batch, recipe, "rush", self.lock), k)
 
 
+# ------------------------------------------------------------------ colour groups (2.16)
+
+# Blocks shaped like the colour plan's, written against the fixture batch's feeds.
+TRAINS = {"scheme": "line", "legend": False, "groups": [
+    {"id": "line1", "label": "Line 1", "hex": "#d5c82b", "match": [{"feed": "ttc", "short": "^1$"}]},
+    {"id": "go", "label": "GO", "brand": "go", "verified": True, "source": "go.zip route_color 00853E"},
+    {"id": "line6", "label": "Line 6", "hex": "#808080", "neutral": "#b4bac4", "match": [{"feed": "ttc", "short": "^6$"}]},
+    {"id": "up", "label": "UP", "brand": "up"}]}
+BUSES = {"scheme": "type", "legend": True, "groups": [
+    {"id": "bus", "label": "Bus", "brand": "ttc", "rest": True},
+    {"id": "express", "label": "Express", "hex": "#00a651", "match": [{"feed": "ttc", "short": "^9\\d\\d$"}]},
+    {"id": "streetcar", "label": "Streetcar", "hex": "#9a7bd1", "match": [{"feed": "ttc", "mode": ["streetcar"]}],
+     "verified": False, "source": "chosen: calm lavender"},
+    {"id": "other", "label": "Other"}]}
+VAUGHAN = {"scheme": "agency", "legend": True, "groups": [
+    {"id": "yrt", "label": "YRT", "brand": "yrt"}, {"id": "go", "label": "GO", "brand": "go"},
+    {"id": "ttc", "label": "TTC", "brand": "ttc"}, {"id": "zum", "label": "Züm", "brand": "brampton:zum"},
+    {"id": "other", "label": "Other"}]}
+TROLLEY = {"scheme": "line", "legend": True, "groups": [
+    {"id": "bus", "label": "Bus", "brand": "miway", "dL": -0.12, "rest": True, "match": [{"feed": "miway"}]},
+    {"id": "blue_line", "label": "Blue Line", "hex": "#0000ff", "legend": "Trolley", "match": [{"feed": "go", "route_ids": ["LW"]}]},
+    {"id": "green_line", "label": "Green Line", "hex": "#009900", "dL": -0.12, "legend": "Trolley",
+     "match": [{"feed": "go", "route_ids": ["LE"]}]},
+    {"id": "orange_line", "label": "Orange Line", "hex": "#ff6600", "legend": "Trolley", "match": [{"feed": "go", "route_type": [2]}]}]}
+PINS = {("ttc", None): -0.12, ("go", None): -0.12, ("yrt", None): 0, ("brampton", "zum"): 0}
+
+
+class ColorGroups(Scratch):
+    """2.16 on a copy of tests/fixtures/gta: validation, the city config, the keys, the paint and show."""
+
+    def setUp(self):
+        super().setUp()
+        self.cities = os.path.join(self.tmp, "cities")
+        shutil.copytree(os.path.join(REPO, "tests", "fixtures", "gta"), self.cities)
+        brands = load(os.path.join(self.cities, "brands.json"))
+        for e in brands["agencies"]:
+            if (e["id"], None) in PINS:
+                e["dL"] = PINS[(e["id"], None)]
+            for r in e.get("rules") or []:
+                if (e["id"], r["id"]) in PINS:
+                    r["dL"] = PINS[(e["id"], r["id"])]
+        self.write("brands.json", brands)
+        feeds = [f["id"] for f in load(os.path.join(self.cities, "batches", "gta.json"))["areas"][0]["feeds"]]
+        self.write("locks/gta.lock.json", {
+            "batch": "gta", "areas": {"gta": {"feeds": {f: {"sha256": "0" * 64} for f in feeds},
+                                              "overture": {"release": "2026-09-23.1", "bbox": [-80.2, 42.6, -78.4, 44.6]},
+                                              "divisions": {"key": "CA-ON-gta", "sha256": None}}},
+            "boundaries": {rid: {"frame": {"km_vertical": 59.0, "center_km": [16.1, 2.8]}, "clip": [-79.6, 43.7, -79.1, 44.1]}
+                           for rid in ("gta-toronto", "gta-markham", "gta-vaughan", "gta-mississauga")}})
+        self.pl = make.Pipeline(REPO, self.cities)
+        self.batch = self.pl.load_batch("gta", recipes=False)
+        self.lock = self.pl.load_lock(self.batch)
+
+    def write(self, rel, obj):
+        p = os.path.join(self.cities, rel)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as fh:
+            json.dump(obj, fh, indent=1, ensure_ascii=False)
+        self.pl = make.Pipeline(REPO, self.cities) if hasattr(self, "pl") else None
+
+    def recipe(self, rid, colors, **extra):
+        r = load(os.path.join(self.cities, "recipes", f"{rid}.json"))
+        r.update(extra)
+        r["colors"] = json.loads(json.dumps(colors))
+        return r
+
+    def errors(self, recipe):
+        errs = []
+        make.validate_recipe(recipe, self.batch, self.pl.defaults(), REPO, errs, file_stem=recipe["id"])
+        if not errs:
+            make.validate_colors(recipe, self.batch, self.pl.brands_for(self.batch["areas"][0]), errs)
+        return errs
+
+    def test_colors_validate(self):
+        for rid, block in (("gta-toronto", TRAINS), ("gta-toronto", BUSES), ("gta-vaughan", VAUGHAN), ("gta-mississauga", TROLLEY)):
+            self.assertEqual(self.errors(self.recipe(rid, block)), [], (rid, block["scheme"]))
+        # Pipeline.recipe runs the colour rules on every load.
+        self.write("recipes/gta-markham.json", self.recipe("gta-markham", dict(BUSES, groups=BUSES["groups"][:1] + [
+            {"id": "bad", "label": "Bad", "hex": "#808080", "match": [{"feed": "ttc"}]}])))
+        with self.assertRaisesRegex(make.MakeError, "group bad: #808080 has OKLCH chroma 0.000"):
+            self.pl.recipe("gta-markham")
+
+    def test_colors_errors(self):
+        def mutated(block, fn):
+            b = json.loads(json.dumps(block))
+            fn(b)
+            return b
+
+        def g(i, **kv):
+            return lambda b: b["groups"][i].update(kv)
+
+        cases = [
+            (mutated(BUSES, lambda b: b["groups"].__setitem__(slice(1, 1), [
+                {"id": f"x{k}", "label": f"X{k}", "hex": "#00a651", "match": [{"feed": "go"}]} for k in range(4)])),
+             "8 groups, more than 7 colours"),
+            (mutated(BUSES, g(1, id="bus")), "id 'bus' is used 2 times"),
+            (mutated(BUSES, lambda b: b["groups"].insert(0, b["groups"].pop())), "'other' must be the last group"),
+            (mutated(BUSES, g(3, match=[{"feed": "go"}])), "group other: unknown key 'match'"),
+            (mutated(BUSES, g(1, match=[{"route_desc": "Express"}])), "the area store keeps no route_desc"),
+            (mutated(BUSES, g(1, match=[{"short": "(9"}])), "short: not a regular expression"),
+            (mutated(BUSES, g(1, match=[{"feed": "nope"}])), "'nope' is not a feed of area gta"),
+            (mutated(BUSES, g(2, match=[{"mode": ["ferry"]}])), "'ferry' is not one of the recipe's modes"),
+            (mutated(BUSES, g(0, brand="ttc:express")), "'ttc:express' is not an entry or entry:rule id"),
+            (mutated(BUSES, lambda b: b["groups"][1].pop("hex")), "needs a colour: brand, hex or neutral"),
+            (mutated(TRAINS, lambda b: b["groups"][2].pop("neutral")), "#808080 has OKLCH chroma 0.000, under B5's 0.03"),
+            (mutated(BUSES, g(1, dL=0.5)), "dL: must be null or a number from -0.3 to 0.14"),
+            (mutated(TRAINS, g(2, dL=-0.1)), "dL and neutral together"),
+            (mutated(TROLLEY, lambda b: b["groups"].append({"id": "x", "label": "X", "hex": "#00a651", "legend": "Trolley",
+                                                             "match": [{"feed": "go"}]})), "shared by 4 groups"),
+            (mutated(BUSES, g(1, match=[{}])), "{} takes every route, which only a rest group may do"),
+            (mutated(BUSES, g(1, label="Bus")), "label 'Bus' is used 2 times"),
+            (mutated(BUSES, g(1, label="Express · Fast")), "has a '·'"),
+            (mutated(BUSES, g(1, label="A very long label")), "more than 16"),
+            (mutated(TROLLEY, g(0, label="Trolley")), "is also the label of group bus"),
+            (mutated(BUSES, lambda b: b.update(scheme="colour")), "scheme: must be one of line, type, agency"),
+            (mutated(BUSES, lambda b: b.update(legend="yes")), "legend: must be true or false"),
+            (mutated(BUSES, g(1, route_type=[3])), "unknown key 'route_type' (allowed:"),
+        ]
+        for block, want in cases:
+            errs = self.errors(self.recipe("gta-toronto", block))
+            self.assertTrue(any(want in e for e in errs), (want, errs))
+        r = self.recipe("gta-toronto", BUSES)
+        r["override"]["brand_colors"] = {"ttc": "#ed1c24"}
+        self.assertTrue(any("brand_colors paints meta.brands, which a colour-group video does not draw" in e
+                            for e in self.errors(r)))
+        brands = load(os.path.join(self.cities, "brands.json"))
+        brands["agencies"][0]["dL"] = 0.4
+        self.write("brands.json", brands)
+        self.assertTrue(any("brands.json ttc dL must be a number from -0.3 to 0.14" in e
+                            for e in self.errors(self.recipe("gta-toronto", BUSES))))
+
+    def test_colors_city_config(self):
+        cc = self.pl.city_config(self.batch, self.recipe("gta-toronto", BUSES), "day", self.lock)
+        self.assertEqual(cc["colors"], {"groups": [
+            {"id": "bus", "label": "Bus", "brand": "ttc", "match": [{"brand": "ttc"}], "rest": True, "legend": True},
+            {"id": "express", "label": "Express", "brand": None, "match": [{"feed": "ttc", "short": "^9\\d\\d$"}], "rest": False,
+             "legend": True},
+            {"id": "streetcar", "label": "Streetcar", "brand": None, "match": [{"feed": "ttc", "mode": ["streetcar"]}],
+             "rest": False, "legend": True},
+            {"id": "other", "label": "Other", "brand": None, "match": None, "rest": False, "legend": False}]})
+        plain = self.pl.city_config(self.batch, load(os.path.join(self.cities, "recipes", "gta-toronto.json")), "day", self.lock)
+        self.assertNotIn("colors", plain)
+
+    def keys(self, recipe):
+        return (self.pl.trim_key(self.batch, recipe, "day", self.lock, "b" * 64),
+                self.pl.render_key(self.batch, recipe, "day", self.lock))
+
+    def test_colors_keys(self):
+        """2.5: paint and the legend flag re-render, structure re-trims, documentation does neither."""
+        base = self.recipe("gta-toronto", BUSES)
+        t0, r0 = self.keys(base)
+
+        def edit(fn):
+            r = json.loads(json.dumps(base))
+            fn(r)
+            return self.keys(r)
+
+        paint = [lambda r: r["colors"]["groups"][1].update(hex="#00a652"), lambda r: r["colors"]["groups"][1].update(dL=-0.12),
+                 lambda r: r["colors"]["groups"][2].update(neutral=True), lambda r: r["colors"].update(legend=False)]
+        docs = [lambda r: r["colors"].update(scheme="line"), lambda r: r["colors"]["groups"][1].update(source="another"),
+                lambda r: r["colors"]["groups"][2].update(verified=True), lambda r: r["colors"]["groups"][0].update(why="a reason")]
+        shape = [lambda r: r["colors"]["groups"][1].update(match=[{"feed": "ttc", "short": "^9"}]),
+                 lambda r: r["colors"]["groups"][0].update(rest=False), lambda r: r["colors"]["groups"][1].update(label="Express bus"),
+                 lambda r: r["colors"]["groups"][1].update(legend=False),
+                 lambda r: r["colors"]["groups"].insert(0, r["colors"]["groups"].pop(1))]
+        for fn in paint:
+            t, k = edit(fn)
+            self.assertEqual(t, t0)
+            self.assertNotEqual(k, r0)
+        for fn in docs:
+            self.assertEqual(edit(fn), (t0, r0))
+        for fn in shape:
+            t, k = edit(fn)
+            self.assertNotEqual(t, t0)
+            self.assertNotEqual(k, r0)
+        brands = load(os.path.join(self.cities, "brands.json"))
+        brands["agencies"][3]["dL"] = -0.12
+        self.write("brands.json", brands)
+        t, k = self.keys(base)
+        self.assertEqual(t, t0, "a brands.json pin never re-trims")
+        self.assertNotEqual(k, r0)
+        brands["agencies"][1]["color"] = "#00853f"
+        self.write("brands.json", brands)
+        self.assertNotEqual(self.keys(base)[0], t0)
+
+    def test_group_paint(self):
+        p = self.pl.group_paint(self.recipe("gta-toronto", TRAINS))
+        self.assertEqual(p, {"line1": {"hex": "d5c82b"}, "go": {"hex": "00853e", "dL": -0.12},
+                             "line6": {"hex": "808080", "neutral": "b4bac4"}, "up": {"hex": "0075d2"}})
+        b = json.loads(json.dumps(TRAINS))
+        b["groups"][1]["dL"] = 0.05
+        self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["go"], {"hex": "00853e", "dL": 0.05})
+        b["groups"][1]["dL"] = None
+        self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["go"], {"hex": "00853e"}, "null unpins")
+        b["groups"][2]["neutral"] = True
+        self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["line6"], {"hex": "808080", "neutral": True})
+        self.assertNotIn("other", self.pl.group_paint(self.recipe("gta-toronto", BUSES)))
+        recipe = self.recipe("gta-toronto", BUSES)
+        meta = {"variants": {"day": {"render": {"DURATION_FRAMES": 1500}}}}
+        args = self.pl.common_render_args(recipe, "day", meta)
+        self.assertEqual(args[args.index("--paint") + 1], make.canonical(self.pl.group_paint(recipe)))
+        self.assertIs(json.loads(args[args.index("--render-json") + 1])["LEGEND"], True)
+        plain = load(os.path.join(self.cities, "recipes", "gta-toronto.json"))
+        args = self.pl.common_render_args(plain, "day", meta)
+        self.assertNotIn("--paint", args)
+        self.assertNotIn("LEGEND", json.loads(args[args.index("--render-json") + 1]))
+
+    def test_show_colors(self):
+        self.write("recipes/gta-toronto.json", self.recipe("gta-toronto", BUSES))
+        out, err = io.StringIO(), io.StringIO()
+        with unittest.mock.patch("sys.stdout", out), unittest.mock.patch("sys.stderr", err):
+            self.pl.cmd_show("gta-toronto")
+        info = json.loads(out.getvalue())
+        self.assertEqual(json.loads(info["queries"]["day"]["paint"])["bus"], {"hex": "ed1c24", "dL": -0.12})
+        self.assertEqual(info["colors"]["unverified"], ["streetcar"])
+        self.assertEqual([g["id"] for g in info["colors"]["groups"]], ["bus", "express", "streetcar", "other"])
+        self.assertIn("unverified colours: streetcar", err.getvalue())
+
+
 # ------------------------------------------------------------------ D-4 caching, D-5 frozen
 
 class Caching(Scratch):

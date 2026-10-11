@@ -52,6 +52,8 @@ CREDIT_PX, CREDIT_WIDTH, CREDIT_LINES = 22, 504, 2
 # a line A accepts from needing a third line in the browser.
 CREDIT_SLACK = 1.02
 T_BITS = 22   # trip times fit in 22 bits (48 days), so (rank << 22) | t sorts per trip
+# A video's colours, other included (2.16): make.py caps the declared groups there too.
+MAX_COLOR_GROUPS = 7
 
 
 def log(msg):
@@ -436,6 +438,71 @@ def assign_brands(routes, entries, modes):
                                       "source": "no informative route_color; the theme's mode colour"})
                 out[i] = bid
     return out, defs
+
+
+def clause_matches(c, route, bid, bdefs, compiled):
+    """One clause of a colour group (2.16): every key it gives must match the route."""
+    if "feed" in c and route["feed"] not in ([c["feed"]] if isinstance(c["feed"], str) else c["feed"]):
+        return False
+    if "agency" in c and route["agency"] not in c["agency"]:
+        return False
+    if "mode" in c and route["mode"] not in c["mode"]:
+        return False
+    if "route_type" in c and route["type"] not in c["route_type"]:
+        return False
+    if "short" in c:
+        rx = compiled.get(c["short"])
+        if rx is None:
+            rx = compiled[c["short"]] = re.compile(c["short"])
+        if not rx.search(route["short"] or ""):
+            return False
+    if "route_ids" in c and route["id"].split(":", 1)[1] not in c["route_ids"]:
+        return False
+    if "brand" in c:
+        # An entry takes every route A10 gives it, its rules and line brands too; a rule only its own.
+        ref = c["brand"]
+        if ":" in ref:
+            if bid != ref:
+                return False
+        elif bdefs[bid].get("entry") != ref:
+            return False
+    return True
+
+
+def assign_groups(routes, used, groups, brand_of, bdefs):
+    """The colour group of each used route (2.16): the first group in recipe order without `rest` that
+    has a matching clause, else the first `rest` group with one, else other. A catch-all can so stand
+    first in the legend without repeating the other groups' rules as negations."""
+    named = [g for g in groups if g["id"] != "other"]
+    order = [g for g in named if not g.get("rest")] + [g for g in named if g.get("rest")]
+    compiled = {}
+    out = {}
+    for r in used:
+        r = int(r)
+        route, bid = routes[r], brand_of[r]
+        out[r] = next((g["id"] for g in order if any(clause_matches(c, route, bid, bdefs, compiled)
+                                                     for c in g.get("match") or [])), "other")
+    return out
+
+
+def fold_groups(ids, shares, cap=7):
+    """Listed group ids (recipe order, other last when listed) down to at most `cap` colours: while
+    there are more, the declared group with the smallest share (on a tie the later one) joins other.
+    Returns (ids kept, [(id folded, colours before the fold)] in fold order)."""
+    ids = list(ids)
+    share = dict(shares)
+    folded = []
+    while len(ids) > cap:
+        named = [g for g in ids if g != "other"]
+        if not named:
+            break
+        pick = min(reversed(named), key=lambda g: share.get(g, 0.0))
+        folded.append((pick, len(ids)))
+        ids.remove(pick)
+        share["other"] = share.get("other", 0.0) + share.get(pick, 0.0)
+        if "other" not in ids:
+            ids.append("other")
+    return ids, folded
 
 
 def credit_units(feeds, brands, bdefs, entries, feed_name):
@@ -864,9 +931,37 @@ def trim(args, t_start):
         groups.append({"id": "other", "label": "other", "brand": None, "share": round(share_at_am(other_hist), 4)})
     group_hist = {g["id"]: (cand_hist[g["id"]] if g["id"] != "other" else other_hist) for g in groups}
     route_group = {int(r): (cc if cc in shown else "other") for r, cc in zip(used, city_cand)}
+    color_by = "brand"
+    if cfg.get("colors"):
+        # The recipe's colour groups (2.16) replace agency-auto's: every used route is in exactly one,
+        # and the page colours by them (meta.color_by "group") with the paint make.py passes.
+        color_by = "group"
+        decl = cfg["colors"]["groups"]
+        route_group = assign_groups(routes, used, decl, brand_of, bdefs)
+        city_group = [route_group[int(r)] for r in used]
+        have = set(city_group)
+        for g in decl:
+            if g["id"] != "other" and g["id"] not in have:
+                warnings.append(f"group {g['id']} takes no route in {cfg['place']}")
+        ids = [g["id"] for g in decl if g["id"] != "other" and g["id"] in have] + (["other"] if "other" in have else [])
+        g_hist = {gid: fold(np.array([cg == gid for cg in city_group])) for gid in ids}
+        kept, folded = fold_groups(ids, {gid: share_at_am(h) for gid, h in g_hist.items()}, MAX_COLOR_GROUPS)
+        for gid, n in folded:
+            warnings.append(f"group {gid} joined other: {n} colours, the limit is {MAX_COLOR_GROUPS}")
+            g_hist["other"] = g_hist.get("other", np.zeros(P)) + g_hist.pop(gid)
+            for r, rg in route_group.items():
+                if rg == gid:
+                    route_group[r] = "other"
+        conf = {g["id"]: g for g in decl}
+        conf.setdefault("other", {"id": "other", "label": "Other", "brand": None, "legend": False})
+        groups = [{"id": gid, "label": conf[gid]["label"], "brand": conf[gid].get("brand"),
+                   "share": round(share_at_am(g_hist[gid]), 4), "legend": conf[gid].get("legend", gid != "other")}
+                  for gid in kept]
+        group_hist = {gid: g_hist[gid] for gid in kept}
 
-    # Brands listed: the city's, plus each shown group's entry brand.
-    listed = set(brand_ids) | {g["brand"] for g in groups if g["brand"]}
+    # Brands listed: the city's, plus each shown group's entry brand (a colour group's only when A10
+    # defined it).
+    listed = set(brand_ids) | {g["brand"] for g in groups if g["brand"] and g["brand"] in bdefs}
     for b in listed - set(brand_hist):
         brand_hist[b] = np.zeros(P)
     vm_brand = {b: share_at_am(brand_hist[b]) for b in listed}
@@ -1024,7 +1119,7 @@ def trim(args, t_start):
                      "rings": [flat3(p.exterior.coords) for p in parts],
                      "holes": [flat3(r.coords) for p in parts for r in p.interiors],
                      "area_km2": area_km2, "bbox_km": bbox_km, "source": source, "mask": mask},
-        "panel": panel, "brands": meta_brands, "color_by": "brand",
+        "panel": panel, "brands": meta_brands, "color_by": color_by,
         "preset": cfg.get("preset", "shorts"), "theme": cfg.get("theme", {}), "render": cfg.get("render", {}),
         "variants": variants, "card": cfg.get("card", {}),
     }
@@ -1044,7 +1139,22 @@ def trim(args, t_start):
     log("  feeds by inside share: " + ", ".join(f"{e['id']} {e['inside_share']:.3f}{' major' if e['major'] else ''}"
                                                for e in sorted(meta_feeds, key=lambda e: -e["inside_share"]) if e["inside_share"] > 0))
     log("  brands: " + ", ".join(f"{b['id']} {b['share']:.3f}" for b in meta_brands))
-    log("  groups: " + ", ".join(f"{g['id']} {g['share']:.3f}" for g in groups))
+    if color_by == "group":
+        # Drawn routes and trips per group, as the colour plan counted them, and the mean count at
+        # the am peak; other's routes by feed show what the grey holds.
+        n_routes = collections.Counter(r["group"] for r in routes_out)
+        n_trips = collections.Counter(routes_out[t["r"]]["group"] for t in trips_out)
+        by_feed = collections.Counter(r["feed"] for r in routes_out if r["group"] == "other")
+        at = bn.fmt_time(am["time"])
+
+        def part(g):
+            n = int(round(float(group_hist[g["id"]][m_am])))
+            feeds = (": " + ", ".join(f"{f} {c}" for f, c in sorted(by_feed.items()))) if g["id"] == "other" else ""
+            return (f"{g['id']} {g['share']:.3f} ({n_routes[g['id']]} routes{feeds}, {n_trips[g['id']]} trips, "
+                    f"{n} at {at})")
+        log("  groups: " + ", ".join(part(g) for g in groups))
+    else:
+        log("  groups: " + ", ".join(f"{g['id']} {g['share']:.3f}" for g in groups))
     for v, V in variants.items():
         log(f"  {v}: {bn.fmt_time(V['start'])} to {bn.fmt_time(V['end'])}, peak {V['peak']['count']} at "
             f"{bn.fmt_time(V['peak']['time'])}, frame {V['frame']}, {V['label']!r}")
