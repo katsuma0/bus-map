@@ -740,6 +740,12 @@ open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
 major fallback feed sets the label (Burlington: November), for sentences about the timetables;
+`{timetables}`, the variant's sentence about them (`sentences.timetables_<variant>`, "I took the
+October 2026 timetables, ..."), which, when a major fallback feed sets the label, opens with the
+reason instead (`timetables_<variant>_fallback` and `fallback_lead`: "Burlington Transit has no
+October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies.");
+`{dates_sentence}` then says "in the other timetables" and leaves that feed's fallback out, so the
+description says it once;
 `{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
 `limits_one_city` for a place whose name has the word City, "the New York City limits", or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York

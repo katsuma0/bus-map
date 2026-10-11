@@ -184,7 +184,38 @@ def colors_sentence(netmeta, templates):
     return " " + fmt(s["colors"], {"groups": join_words(words)}, "sentences")
 
 
-def dates_sentence(netmeta, templates, week):
+def label_feeds(netmeta, month, mlabel):
+    """(lead, others): the fallback feeds whose month the label follows, and whether the video draws any
+    other feed. Burlington Transit has no October timetable and runs most of Burlington's buses, so that
+    video is an average November weekday while GO and Oakville Transit keep October's timetables."""
+    if mlabel == month_name(month):
+        return [], True
+    lead = [f for f in inside_feeds(netmeta) if f.get("month_used") not in (None, month)
+            and month_name(f["month_used"]) == mlabel and all_dates(f.get("dates"))]
+    ids = {f["id"] for f in lead}
+    return lead, any(f["id"] not in ids for f in drawn_feeds(netmeta))
+
+
+def timetables_sentence(variant, month, lead, others, templates):
+    """{timetables}: which timetables the video uses. When the label follows a fallback feed, the reason
+    comes first and the batch month is named for the other feeds only, so the description never says
+    "an average November weekday" and then "I took the October 2026 timetables"."""
+    s = templates["sentences"]
+    mname, year = month_name(month), month[:4]
+    if not lead:
+        return fmt(s[f"timetables_{variant}"], {"month": mname, "year": year}, "sentences")
+    n = "many" if len(lead) > 1 else "one"
+    rest = fmt(s["fallback_others"], {"month": mname, "year": year}, "sentences") if others else ""
+    why = fmt(s["fallback_lead"], {"feed": join_words(clean(f["name"]) for f in lead), "month": mname,
+                                   "has": s[f"has_{n}"], "it": s[f"it_{n}"], "others": rest,
+                                   "range": range_label([d for f in lead for d in all_dates(f["dates"])])},
+              "sentences")
+    return fmt(s[f"timetables_{variant}_fallback"], {"fallback": why}, "sentences")
+
+
+def dates_sentence(netmeta, templates, week, lead=(), others=True):
+    """The dates each timetable averages and what they leave out. `lead` are the fallback feeds the
+    timetables sentence already explained (label_feeds), so their fallback is not said twice."""
     s = templates["sentences"]
     month = netmeta.get("month") or ""
     mname, year = month_name(month), month[:4]
@@ -199,8 +230,15 @@ def dates_sentence(netmeta, templates, week):
     hol = join_words(f"{name} ({date_label(d)})" for d, name in sorted(holidays.items()))
     kind = "week" if week else "day"
     leaves = fmt(s[f"leaves_out_{kind}"], {"holidays": hol}, "sentences") if hol else ""
-    out = [fmt(s[f"dates_{kind}"], {"month": mname, "year": year, "leaves_out": leaves}, "sentences")]
+    lead_ids = {f["id"] for f in lead}
+    if lead and not others:
+        out = [fmt(s[f"dates_{kind}_lead"], {"leaves_out": leaves}, "sentences")]
+    else:
+        out = [fmt(s[f"dates_{kind}"], {"month": mname, "year": year, "leaves_out": leaves,
+                                        "which": s["which_others" if lead else "which_each"]}, "sentences")]
     for f in feeds:
+        if f["id"] in lead_ids:
+            continue
         used = f.get("month_used")
         if used and used != month and all_dates(f.get("dates")):
             out.append(fmt(s["fallback"], {"feed": clean(f["name"]), "month": mname,
@@ -379,12 +417,9 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     month = netmeta.get("month") or batch["month"]
     netmeta = dict(netmeta, month=month)
     mlabel = netmeta.get("month_label") or month_name(month)
-    year = month[:4]
-    if mlabel != month_name(month):
-        # The label follows a major fallback feed (Burlington: November); so does the year.
-        for f in netmeta.get("feeds", []):
-            if f.get("month_used") and month_name(f["month_used"]) == mlabel:
-                year = f["month_used"][:4]
+    lead, others = label_feeds(netmeta, month, mlabel)
+    # The label follows a major fallback feed (Burlington: November); so does the year.
+    year = lead[0]["month_used"][:4] if lead else month[:4]
     faults = legend_mode_faults(netmeta, batch["modes"])
     if faults:
         raise MetaError("; ".join(faults))
@@ -399,8 +434,9 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         # so a sentence about the timetables names that month, as the dates
         # sentence does.
         "timetable_month": month_name(month), "timetable_year": month[:4],
+        "timetables": timetables_sentence(variant, month, lead, others, templates),
         "trips": with_commas(netmeta.get("trips_total") or 0),
-        "dates_sentence": dates_sentence(netmeta, templates, variant == "week"),
+        "dates_sentence": dates_sentence(netmeta, templates, variant == "week", lead, others),
         "colors": colors_sentence(netmeta, templates),
         "credits": "\n".join(credits), "author": defaults.get("author", ""),
         "hashtags": " ".join(hashtag_list(batch, place)),

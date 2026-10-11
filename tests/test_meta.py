@@ -187,13 +187,15 @@ class GTA(unittest.TestCase):
 
     def test_dates_sentences(self):
         d = self.metas["gta-burlington-day"]["description"]
-        self.assertIn("The weekday average uses every October 2026 weekday in each timetable and leaves out "
+        self.assertIn("The weekday average uses every October 2026 weekday in the other timetables and leaves out "
                       "Thanksgiving (October 12).", d)
-        self.assertIn("Burlington Transit has no October timetable, so it uses November 2 to 27.", d)
         self.assertIn("on an average November weekday", d)
-        # The subtitle month follows Burlington's fallback; the timetables are mostly October's.
-        self.assertIn("I took the October 2026 timetables", d)
-        self.assertIn("The timetables are from October 2026.", self.metas["gta-burlington-rush"]["description"])
+        # The subtitle month follows Burlington's fallback; the other timetables are October's.
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 27 for it and October "
+                      "2026 for the other agencies.", d)
+        self.assertNotIn("I took the October 2026 timetables", d)
+        self.assertIn("The timetables are from October 2026.", self.metas["gta-markham-rush"]["description"])
+        self.assertIn("I took the October 2026 timetables", self.metas["gta-markham-day"]["description"])
         w = self.metas["gta-toronto-week"]["description"]
         self.assertIn("October 31 is left out because the clocks change that night.", w)
         self.assertIn("GO Transit ran a reduced timetable on October 10, so that Saturday is left out.", w)
@@ -537,6 +539,80 @@ class Review(unittest.TestCase):
         self.meta("gta-markham", "day", nm=nm_with([("go", "GO", True, {"bus": 900, "rail": 350})]), batch=b)
         # An older netmeta has no window_modes and passes as it did.
         self.meta("gta-markham", "day", nm=nm_with([("bus", "Bus", True, {})]), batch=b)
+
+
+class GTAReview(unittest.TestCase):
+    """Findings of the GTA batch's description review, made general for every batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, rid, variant, nm=None, recipe=None):
+        recipe = recipe or self.pl.recipe(rid, self.batch)
+        return sm.build_meta(batch=self.batch, recipe=recipe, netmeta=nm or netmeta(self.batch, recipe, variant),
+                             templates=self.pl.templates(), licences=self.pl.licences(), defaults=self.pl.defaults(),
+                             publish_order=1, meta_key="0" * 64)
+
+    def test_label_fallback_said_once(self):
+        """Burlington Transit has no October timetable and the label says November: the description leads with
+        November, says why once, and names October only for the other feeds."""
+        why = ("Burlington Transit has no October timetable, so I used November 2 to 27 for it and October 2026 "
+               "for the other agencies.")
+        for v, rest in (("day", "I kept the trips that run on at least half of the weekdays and put each vehicle "
+                                "where its schedule says it is."),
+                        ("rush", "I kept the trips that run on at least half of the weekdays and placed each "
+                                 "vehicle by its schedule.")):
+            d = self.meta("gta-burlington", v)["description"]
+            self.assertIn(f"{why} {rest}", d, v)
+            self.assertEqual(d.count("no October timetable"), 1, v)
+            self.assertNotIn("October 2026 timetables", d, v)
+            self.assertNotIn("in each timetable", d, v)
+            self.assertIn("The weekday average uses every October 2026 weekday in the other timetables and leaves "
+                          "out Thanksgiving (October 12).", d, v)
+            self.assertLess(d.index("average November weekday"), d.index(why), v)
+        # A week whose label follows the fallback, with Burlington Transit's November dates.
+        recipe = self.pl.recipe("gta-burlington", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        nov = NOV_WEEKDAYS + ["2026-11-28", "2026-11-29"]
+        for f in nm["feeds"]:
+            if f["id"] == "burlington":
+                f["dates"] = {k: [d for d in nov if sm.iso_date(d).weekday() == i]
+                              for i, k in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
+        w = self.meta("gta-burlington", "week", nm=nm)["description"]
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 29 for it and October "
+                      "2026 for the other agencies. Each day is the average of that weekday, so Saturday is a "
+                      "typical Saturday, not one particular one.", w)
+        self.assertIn("The daily averages use every October 2026 date in the other timetables", w)
+        self.assertEqual(w.count("no October timetable"), 1)
+
+    def test_label_fallback_alone(self):
+        """A video that draws only the fallback feed names no batch month at all."""
+        recipe = self.pl.recipe("gta-burlington", self.batch)
+        nm = netmeta(self.batch, recipe, "day")
+        for f in nm["feeds"]:
+            f["window_trips"] = 500 if f["id"] == "burlington" else 0
+        d = self.meta("gta-burlington", "day", nm=nm)["description"]
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 27 for it. I kept", d)
+        self.assertIn("The weekday average uses every weekday in that range and leaves out Thanksgiving "
+                      "(October 12).", d)
+        self.assertNotIn("the other", d)
+
+    def test_minor_fallback_stays_a_caveat(self):
+        """Burlington Transit's few buses in Oakville leave the label at October: the batch month leads and the
+        fallback is a caveat after the dates."""
+        recipe = self.pl.recipe("gta-oakville", self.batch)
+        nm = netmeta(self.batch, recipe, "day")
+        for f in nm["feeds"]:
+            if f["id"] == "burlington":
+                f.update(inside_share=0.02, inside_vehicle_minutes=2000.0)
+        d = self.meta("gta-oakville", "day", nm=nm)["description"]
+        self.assertIn("on an average October weekday", d)
+        self.assertIn("I took the October 2026 timetables, kept the trips", d)
+        self.assertIn("The weekday average uses every October 2026 weekday in each timetable and leaves out "
+                      "Thanksgiving (October 12). Burlington Transit has no October timetable, so it uses November "
+                      "2 to 27.", d)
 
 
 class Formatting(unittest.TestCase):
