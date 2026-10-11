@@ -9,5 +9,14 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}}
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}},
+  "colors": {"scheme": "line", "legend": false, "groups": [
+   {"id": "bdfm", "label": "B/D/F/M", "hex": "#eb6800", "match": [{"feed": "subway", "short": "^(B|D|F|FX|M)$"}], "verified": true, "source": "subway.zip routes.txt route_color EB6800 on B D F FX M"},
+   {"id": "456", "label": "4/5/6", "hex": "#009952", "match": [{"feed": "subway", "short": "^(4|5|6|6X)$"}], "verified": true, "source": "subway.zip routes.txt route_color 009952 on 4 5 6 6X"},
+   {"id": "123", "label": "1/2/3", "hex": "#d82233", "match": [{"feed": "subway", "short": "^(1|2|3)$"}], "verified": true, "source": "subway.zip routes.txt route_color D82233 on 1 2 3; the B6 ladder draws it at dL -0.12 (#dc6562, a deeper red) because at the source step it is 0.059 from B/D/F/M"},
+   {"id": "nqrw", "label": "N/Q/R/W", "hex": "#f6bc26", "dL": 0.1, "match": [{"feed": "subway", "short": "^(N|Q|R|W)$"}], "verified": true, "source": "subway.zip routes.txt route_color F6BC26 on N Q R W; pinned at dL +0.10 (trail #ffcc5b, a true yellow) to clear B/D/F/M (0.096 at the source step) and the amber city line (0.054)"},
+   {"id": "ace", "label": "A/C/E", "hex": "#0062cf", "match": [{"feed": "subway", "short": "^(A|C|E)$"}], "verified": true, "source": "subway.zip routes.txt route_color 0062CF on A C E"},
+   {"id": "7", "label": "7", "hex": "#9a38a1", "match": [{"feed": "subway", "short": "^(7|7X)$"}], "verified": true, "source": "subway.zip routes.txt route_color 9A38A1 on 7 7X"},
+   {"id": "other", "label": "Other", "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
+  ]}
 }

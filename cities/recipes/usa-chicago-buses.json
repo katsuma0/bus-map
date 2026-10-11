@@ -9,5 +9,10 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.3}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the North Side grid at 2.7:1; 1.3 (alpha clamps at 1) gives 5.6:1"}}
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.3}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the North Side grid at 2.7:1; 1.3 (alpha clamps at 1) gives 5.6:1"}},
+  "colors": {"scheme": "type", "legend": true, "groups": [
+   {"id": "frequent", "label": "Frequent", "hex": "#0065bd", "match": [{"feed": "cta", "route_ids": ["4", "9", "12", "20", "34", "35", "47", "49", "53", "54", "55", "60", "63", "66", "72", "74", "77", "79", "81", "82", "85", "95", "J14"]}], "verified": false, "source": "chosen: CTA blue 0065BD (route_color of J14 in cta.zip); the 22 other Frequent Network routes are dark grey 414145. Class: CTA Frequent Network (10 min or better 6am-9pm), 20 routes at launch plus 35, 74, 85 from 23 Aug 2026 = the 23 routes coloured 414145 or 0065BD in this September feed"},
+   {"id": "express", "label": "Express", "hex": "#b71234", "match": [{"feed": "cta", "route_ids": ["2", "X4", "6", "X9", "10", "26", "X49", "100", "120", "121", "125", "134", "135", "136", "143", "146", "147", "148", "169", "192"]}], "verified": true, "source": "cta.zip routes.txt route_color B71234 on 18 express routes"},
+   {"id": "other", "label": "Local", "legend": true, "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
+  ]}
 }

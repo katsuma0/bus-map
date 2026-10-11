@@ -9,5 +9,10 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "right", "card_line": 2, "zoom": 0.95},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.0}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on North Philadelphia at 4.1:1; 1.0 gives 5.5:1"}}
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.0}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on North Philadelphia at 4.1:1; 1.0 gives 5.5:1"}},
+  "colors": {"scheme": "type", "legend": true, "groups": [
+   {"id": "frequent", "label": "Frequent", "hex": "#ef3340", "match": [{"feed": "septa-bus", "route_ids": ["3", "6", "17", "18", "21", "23", "25", "33", "46", "47", "48", "51", "52", "56", "57", "58", "60", "63", "64", "66", "70", "79", "82", "108", "113"]}], "verified": true, "source": "septa-bus.zip routes.txt route_color EF3340 on 25 routes; SEPTA's red Frequent class (15 minutes or better, New Bus Network phase 1, August 2026; Inquirer via search summary)"},
+   {"id": "trolley", "label": "Trolley", "hex": "#5a960a", "dL": -0.12, "match": [{"feed": "septa-bus", "short": "^(T\\d|G1|D\\d)$"}], "verified": true, "source": "septa-bus.zip routes.txt route_color 5A960A on T1-T5 (SEPTA Metro T); pinned at dL -0.12 (trail #6ba136) so Frequent red and Trolley green differ in lightness too"},
+   {"id": "other", "label": "Standard", "legend": true, "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
+  ]}
 }

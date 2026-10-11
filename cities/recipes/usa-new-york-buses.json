@@ -9,5 +9,10 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "right", "card_line": 2, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}}
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.5, "PANEL_ALPHA": 1.2}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1", "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1"}},
+  "colors": {"scheme": "type", "legend": true, "groups": [
+   {"id": "local", "label": "Local", "brand": "mta-bus", "rest": true, "verified": false, "source": "MTA blue (logo, classic 8 Av trunk 0039A6; cities/brands.json mta-bus, approximate); local routes carry arbitrary map colours in GTFS"},
+   {"id": "express", "label": "Express", "hex": "#00933c", "match": [{"short": "^(BM|BxM|QM|SIM|X)\\d+[CX]?$"}], "verified": true, "source": "bus-si.zip and busco.zip routes.txt route_color 00933C on every express route (SIM, BxM, QM, BM, X) and no local or SBS route in the build"},
+   {"id": "sbs", "label": "Select Bus", "hex": "#d9503f", "dL": -0.12, "match": [{"short": "-SBS$"}], "verified": false, "source": "chosen: terra cotta, after the red-painted bus lanes SBS runs on; GTFS gives SBS no colour of its own; pinned at dL -0.12 (trail #db6656)"}
+  ]}
 }

@@ -8,5 +8,12 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "left", "card_line": 0, "zoom": 1.05},
- "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}},
+  "colors": {"scheme": "line", "legend": true, "groups": [
+   {"id": "bus", "label": "Bus", "brand": "mts", "dL": -0.12, "rest": true, "match": [{"feed": "mts"}], "verified": true, "source": "mts.zip routes.txt route_color 000099 on 85 bus routes (MTS navy); pinned at dL -0.12 (trail #608bea) because at the source step it is the Blue Line's colour (0.000)"},
+   {"id": "rapid", "label": "Rapid", "brand": "mts:rapid", "verified": true, "source": "mts.zip routes.txt route_color CC0000 on the 10 Rapid routes 201-290 (brands.json mts rule rapid)"},
+   {"id": "blue_line", "label": "Blue Line", "hex": "#0000ff", "legend": "Trolley", "match": [{"feed": "mts", "route_ids": ["510"]}], "verified": true, "source": "mts.zip routes.txt route_color 0000FF on route_id 510"},
+   {"id": "green_line", "label": "Green Line", "hex": "#009900", "dL": -0.12, "legend": "Trolley", "match": [{"feed": "mts", "route_ids": ["530"]}], "verified": true, "source": "mts.zip routes.txt route_color 009900 on route_id 530; pinned at dL -0.12 (trail #52a54c) so red-green colour-blind viewers can tell it from Rapid red (0.010 at the source step)"},
+   {"id": "orange_line", "label": "Orange Line", "hex": "#ff6600", "dL": -0.12, "legend": "Trolley", "match": [{"feed": "mts", "route_ids": ["520", "535"]}], "verified": true, "source": "mts.zip routes.txt route_color FF6600 on route_id 520 (Copper B87333 joins it); drawn at dL -0.12 (#d86c3b), away from Rapid red"}
+  ]}
 }

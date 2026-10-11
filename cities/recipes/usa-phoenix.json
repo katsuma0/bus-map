@@ -8,5 +8,12 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "right", "card_line": 0, "zoom": 1.0},
- "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}},
+  "colors": {"scheme": "type", "legend": true, "groups": [
+   {"id": "local", "label": "Local", "brand": "valleymetro", "rest": true, "match": [{"feed": "valleymetro", "mode": ["bus"]}], "verified": true, "source": "valleymetro.zip routes.txt route_color 591769 on all 108 bus routes (Valley Metro purple)"},
+   {"id": "express", "label": "Express", "hex": "#2e8b57", "match": [{"feed": "valleymetro", "short": "^(5\\d\\d|I10E|I10W|I17|SME|SMW|SR51)$"}], "verified": false, "source": "chosen: sea green; Express and RAPID buses are 591769 like every bus"},
+   {"id": "b_line", "label": "B Line", "hex": "#b76912", "dL": -0.12, "legend": "Rail", "match": [{"feed": "valleymetro", "route_ids": ["B"]}], "verified": true, "source": "valleymetro.zip routes.txt route_color B76912 on route_id B; pinned at dL -0.12 (trail #c9792b) because the source step is 0.038 from the amber city line"},
+   {"id": "a_line", "label": "A Line", "hex": "#1e8ecd", "legend": "Rail", "match": [{"feed": "valleymetro", "route_ids": ["A"]}], "verified": true, "source": "valleymetro.zip routes.txt route_color 1E8ECD on route_id A"},
+   {"id": "other", "label": "Other", "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
+  ]}
 }

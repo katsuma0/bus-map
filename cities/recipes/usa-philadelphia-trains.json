@@ -9,5 +9,11 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "left", "card_line": 1, "zoom": 0.95},
- "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.0}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on North Philadelphia at 4.1:1; 1.0 gives 5.5:1"}}
+ "override": {"render": {}, "variant_render": {"rush": {"TITLE_SCRIM": 1.0}}, "brand_colors": {}, "_why": {"rush.TITLE_SCRIM": "the rush subtitle sat on North Philadelphia at 4.1:1; 1.0 gives 5.5:1"}},
+  "colors": {"scheme": "line", "legend": false, "groups": [
+   {"id": "rr", "label": "Regional Rail", "brand": "septa-rr", "verified": true, "source": "septa-rail.zip routes.txt route_color 4F758B on all 13 lines"},
+   {"id": "b", "label": "B", "hex": "#f26100", "dL": -0.12, "match": [{"feed": "septa-bus", "short": "^B\\d$"}], "verified": true, "source": "septa-bus.zip routes.txt route_color F26100 on B1 B2 B3 (SEPTA Metro B); pinned at dL -0.12 (trail #d86c3a) to clear the amber city line (0.072 at the source step)"},
+   {"id": "l", "label": "L", "hex": "#0097d6", "match": [{"feed": "septa-bus", "short": "^L\\d$"}], "verified": true, "source": "septa-bus.zip routes.txt route_color 0097D6 on L1 (SEPTA Metro L); the B6 ladder draws it at dL -0.12 (#0b9ad9) away from Regional Rail"},
+   {"id": "other", "label": "Other", "verified": true, "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"}
+  ]}
 }

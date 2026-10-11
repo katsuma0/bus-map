@@ -8,5 +8,11 @@
  "variants": ["day", "rush", "week"],
  "rush": {"frame": null, "auto": true},
  "variety": {"panel_side": "left", "card_line": 2, "zoom": 1.05},
- "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}}
+ "override": {"render": {}, "variant_render": {}, "brand_colors": {}, "_why": {}},
+  "colors": {"scheme": "type", "legend": true, "groups": [
+   {"id": "local", "label": "Local", "brand": "houmetro", "rest": true, "verified": true, "source": "houmetro.zip routes.txt route_color 004080 on 105 of 106 bus routes (METRO blue)"},
+   {"id": "pnr", "label": "Park & Ride", "hex": "#009675", "match": [{"feed": "houmetro", "short": "^2\\d\\d$"}], "verified": false, "source": "chosen: calm teal-green; METRO gives Park & Ride no colour (004080 in GTFS)"},
+   {"id": "express", "label": "Express", "hex": "#a864a2", "dL": -0.12, "match": [{"feed": "houmetro", "short": "^(1\\d\\d|500)$"}], "verified": false, "source": "chosen: orchid; METRO gives Express no colour (004080); pinned at dL -0.12 (trail #b873b2) away from Local blue"},
+   {"id": "rail", "label": "Rail", "hex": "#ef0000", "dL": -0.12, "match": [{"feed": "houmetro", "route_ids": ["700", "800", "900"]}], "verified": true, "source": "houmetro.zip routes.txt route_color EF0000 on 700 METRORail Red Line; one group with Green 800 and Purple 900; pinned at dL -0.12 (trail #db6657) so it reads red"}
+  ]}
 }
