@@ -837,6 +837,10 @@ class Tuner:
         if key not in config:
             raise TuneError(f"{self.pl.rel(cfg_path)} has no {key}; the page must report every knob in busmap.config")
         v = config[key]
+        if key not in base:
+            # The page's own value, kept for --apply: after a pick and a few re-runs every arm left may
+            # carry the key in its query, and then no config.json says what the recipe renders without it.
+            self.state.setdefault("page", {})[key] = v
         k_km = config.get("KM_VERTICAL") or self.frame()["km_vertical"] / (config.get("FRAME_ZOOM") or 1)
         a, c = arm_values(name, v, k_km)
         if kind == "frame":
@@ -922,21 +926,50 @@ class Tuner:
                 fh.write(json.dumps(s, indent=1) + "\n")
         print(f"{name}: picked {label} ({h['key']}={h['arms'][label]})")
 
+    def page_value(self, key):
+        """key as the page sets it in this pass when the query leaves it out: as run_knob kept it, else
+        (a pass tuned before it kept them) config.json of an arm rendered without it, else None."""
+        if key in self.state.get("page", {}):
+            return self.state["page"][key]
+        for h in reversed(self.state["history"]):
+            for label in ("b", "a", "c"):
+                d = os.path.join(h["dir"], label)
+                try:
+                    with open(os.path.join(d, "arm.json"), encoding="utf-8") as fh:
+                        query = json.load(fh)["query"]
+                    with open(os.path.join(d, "config.json"), encoding="utf-8") as fh:
+                        config = json.load(fh)
+                except (OSError, ValueError, KeyError, TypeError):
+                    continue
+                if key not in query and key in config:
+                    return config[key]
+        return None
+
     def apply(self):
-        """G5: write each pick that differs from the value it was tuned from into the recipe."""
+        """G5: write each pick that differs from the value the recipe renders it at into the recipe."""
         import make
         recipe = make.read_json(self.pl.recipe_path(self.rid))
+        # Each pick is compared with what the recipe renders now, read before the writes below, never
+        # with arm b: after a --knob re-run b is this pass's own earlier pick, which the recipe lacks.
+        query = self.pl.render_query(recipe, self.variant)[0]
         blocked = make.variant_block_keys(self.pl.defaults())
         variants = make.recipe_variants(recipe, self.batch)
         zoom = (recipe.get("variety") or {}).get("zoom", 1.0)
         ov = recipe.setdefault("override", {})
         for k in ("render", "variant_render", "brand_colors", "_why"):
             ov.setdefault(k, {})
-        wrote = []
+        wrote, unknown = [], []
         for h in self.state["history"]:
-            if not h.get("picked") or h["arms"][h["picked"]] == h["arms"]["b"]:
+            if not h.get("picked"):
                 continue
             key, val, why = h["key"], h["arms"][h["picked"]], h.get("why") or ""
+            now = query[key] if key in query else self.page_value(key)
+            # A value that cannot be read back (a pass tuned before `page` was kept, no arm left without
+            # the key) writes the pick: a redundant override is harmless, a dropped pick is not.
+            if now is None:
+                unknown.append(h["knob"])
+            elif same_value(val, now):
+                continue
             if key in FRAME_KEYS:
                 if self.variant == "day":
                     stored = make.r6(val / zoom) if key == "FRAME_ZOOM" else val
@@ -966,7 +999,17 @@ class Tuner:
             raise TuneError("the applied recipe does not validate:\n  " + "\n  ".join(errors))
         make.write_json(self.pl.recipe_path(self.rid), recipe)
         print(f"{self.pl.rel(self.pl.recipe_path(self.rid))}: " + (", ".join(wrote) if wrote else "nothing differs"))
+        if unknown:
+            print(f"  written without a value to compare with, maybe unchanged: {', '.join(unknown)}")
         return wrote
+
+
+def same_value(a, b):
+    """a == b, numbers to 1e-5: FRAME_ZOOM comes back from the recipe through variety.zoom and r6."""
+    num = (int, float)
+    if isinstance(a, num) and isinstance(b, num) and not isinstance(a, bool) and not isinstance(b, bool):
+        return abs(a - b) <= 1e-5
+    return a == b
 
 
 def check_why(why):

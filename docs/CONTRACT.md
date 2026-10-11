@@ -474,6 +474,14 @@ Additions made while implementing (they extend, never change, the formats below)
   block key (the week's 0), so a day pick goes to `override.variant_render.day` alone and the rush
   kept the preset's 2.2 px dots; the rush picks its own on its close-up clip, where its strobe is
   measured, into `override.variant_render.rush`;
+* `tune --apply` compares each pick with the value the recipe renders its key at in that pass when
+  the command runs (the render query's value, else the page's own) and writes it when they differ;
+  it never compares with arm b of the knob's latest run, which after a `--knob` re-run is the pass's
+  own earlier pick, so picking it again wrote nothing. The page's own value is arm b's
+  `config.json` value from a knob run whose query left the key out, kept in `state.json` as `page`
+  (key to value; a pass tuned before `page` reads it from such an arm's files). A pick whose value
+  cannot be read back is written and named as such, and one back to a value an earlier `--apply`
+  replaced is written too;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
   render key; `--upload` sends the MP4 last;

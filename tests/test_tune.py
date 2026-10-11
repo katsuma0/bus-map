@@ -190,11 +190,42 @@ class Arms(unittest.TestCase):
         self.assertEqual(tune.auto_pick("camera", [arm("a", 0.75, strobe=0.001), arm("b", 1, ["strobe"], strobe=0.005),
                                                    arm("c", 1.25, ["strobe"], strobe=0.006)], 1), "a")
 
+    def test_same_value(self):
+        # A FRAME_ZOOM of 1.51 stored over variety.zoom 1.01 renders 1e-6 off: still the same pick.
+        back = make.r6(1.01 * make.r6(1.51 / 1.01))
+        self.assertNotEqual(back, 1.51)
+        self.assertTrue(tune.same_value(1.51, back))
+        self.assertFalse(tune.same_value(1.51, 1.52))
+        self.assertFalse(tune.same_value(60, 40))
+        self.assertTrue(tune.same_value(2, 2.0))
+
     def test_why(self):
         tune.check_why("12 min keeps Highway 7 continuous without fusing Viva into YRT")
         for bad in ("", "x" * 121, "long \u2014 dash", "two\nlines"):
             with self.assertRaises(tune.TuneError):
                 tune.check_why(bad)
+
+
+class PageValue(unittest.TestCase):
+    def test_kept_then_read_from_an_arm(self):
+        class Pass(tune.Tuner):
+            def __init__(self, state):
+                self.state = state
+
+        with tempfile.TemporaryDirectory() as td:
+            for label, query in (("b", {"TRAIL_MINUTES": 60}), ("a", {"TRAIL_MINUTES": 40}), ("c", {})):
+                os.makedirs(os.path.join(td, label))
+                with open(os.path.join(td, label, "arm.json"), "w") as fh:
+                    json.dump({"query": query}, fh)
+                with open(os.path.join(td, label, "config.json"), "w") as fh:
+                    json.dump(dict({"TRAIL_MINUTES": 40, "BUS_CORE_R": 2.2}, **query), fh)
+            history = [{"dir": td}]
+            self.assertEqual(Pass({"page": {"TRAIL_MINUTES": 35}, "history": history}).page_value("TRAIL_MINUTES"), 35)
+            # A pass tuned before the page values were kept: arm c rendered without the key.
+            self.assertEqual(Pass({"history": history}).page_value("TRAIL_MINUTES"), 40)
+            os.remove(os.path.join(td, "c", "config.json"))
+            self.assertIsNone(Pass({"history": history}).page_value("TRAIL_MINUTES"))
+            self.assertEqual(Pass({"history": history}).page_value("BUS_CORE_R"), 2.2)
 
 
 class Sheets(unittest.TestCase):
@@ -427,6 +458,46 @@ class EndToEnd(tm.Scratch):
         self.assertEqual(os.stat(os.path.join(k2, "b", "still-0800.png")).st_nlink, 1)
         self.assertIsNotNone(tm.load(os.path.join(k2, "scores.json"))["arms"][1]["scores"]["whiteout"])
         self.assertTrue(os.path.exists(os.path.join(k2, "sheet.jpg")))
+
+    def test_pick_after_a_rerun(self):
+        """--apply compares a pick with what the recipe renders, not with arm b of the knob's latest run."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day", "04-trailmin")
+        run = lambda *a: self.repo.run("tune", rid, *a)
+        recipe = lambda: self.repo.read_json(f"cities/recipes/{rid}.json")["override"]["variant_render"]
+        run("--next")
+        run("--pick", "zoom=b", "--why", "the city fills the space above the panel")
+        run("--knob", "trailmin")
+        run("--pick", "trailmin=c", "--why", "60 min keeps the corridors continuous")
+        # The re-run's b is that pick, which the recipe (40 min, the page's own) has never had.
+        run("--knob", "trailmin")
+        self.assertEqual([a["value"] for a in tm.load(os.path.join(d, "scores.json"))["arms"]], [40, 60, 90])
+        run("--pick", "trailmin=b", "--why", "60 min still, after the re-run")
+        # With the zoom arms gone every arm left renders TRAIL_MINUTES: the value the pass kept decides.
+        self.assertEqual(tm.load(os.path.join(os.path.dirname(d), "state.json"))["page"]["TRAIL_MINUTES"], 40)
+        shutil.rmtree(os.path.join(os.path.dirname(d), "01-zoom"))
+        self.assertIn("variant_render.day.TRAIL_MINUTES=60", run("--apply").stdout)
+        self.assertEqual(recipe()["day"]["TRAIL_MINUTES"], 60)
+        # Back to 40 once the recipe holds 60: a change again, so it is written.
+        run("--knob", "trailmin")
+        run("--pick", "trailmin=a", "--why", "40 min after all")
+        run("--apply")
+        self.assertEqual(recipe()["day"]["TRAIL_MINUTES"], 40)
+        # A pick the recipe already renders writes nothing: zoom=b is 1.05 through variety.zoom.
+        self.assertIn("nothing differs", run("--apply").stdout)
+        self.assertNotIn("FRAME_ZOOM", recipe()["day"])
+        # A pass tuned before the page values were kept, no arm left without the key: written, and said so.
+        sp = os.path.join(os.path.dirname(d), "state.json")
+        st = tm.load(sp)
+        del st["page"]
+        with open(sp, "w", encoding="utf-8") as fh:
+            json.dump(st, fh)
+        r = self.repo.read_json(f"cities/recipes/{rid}.json")
+        del r["override"]["variant_render"]["day"]["TRAIL_MINUTES"]
+        self.repo.write_json(f"cities/recipes/{rid}.json", r)
+        out = run("--apply").stdout
+        self.assertIn("variant_render.day.TRAIL_MINUTES=40", out)
+        self.assertIn("maybe unchanged: trailmin", out)
 
     def test_rush_and_week_passes(self):
         out = self.repo.run("tune", "test-centre", "--variant", "week", "--auto").stdout
