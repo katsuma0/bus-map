@@ -1554,7 +1554,10 @@ class Pipeline:
             # A reason line from the judge changes no pixel.
             "recipe": strip_why(recipe),
             "defaults": self.defaults(),
-            "brands": self.brands_for(area),
+            # Pins reach the page only through a group's paint, so a pin re-renders just the videos
+            # whose groups take it, and never a brand network.
+            "brands": self.brands_for(area, trim=True),
+            "paint": self.group_paint(recipe),
             "holidays": self.holidays().get(area["holidays"], {}),
             "code": self.render_code(),
             "variant": variant, "tier": tier, "render_epoch": batch.get("render_epoch", 0),

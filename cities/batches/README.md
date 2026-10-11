@@ -121,9 +121,10 @@ feed, mode, brand or a regex that does not compile, `{}` outside a `rest` group,
 `override.brand_colors` next to `colors`.
 
 Colours ride in the render query (`paint=`), never in the network: a colour, pin or
-legend change re-renders but does not re-trim; a rule, label, order or legend change
-re-trims (seconds). A brands.json `dL` (on an entry or a rule) pins that brand in every
-video of the batch: the GTA's GO is `-0.12` everywhere, so it is one deep green.
+`colors.legend` change re-renders but does not re-trim; a rule, label, order, `rest` or
+`groups[].legend` change re-trims (seconds). A brands.json `dL` (on an entry or a rule)
+pins that brand in every video of the batch with a group that takes it, and re-renders
+only those: the GTA's GO is `-0.12` everywhere, so it is one deep green.
 
 ## Batch: `cities/batches/<batch>.json`
 

@@ -1248,13 +1248,16 @@ names each group's share, routes, trips and count at the am peak, and other's ro
 
 **Paint and keys.** `make.py group_paint` gives the page each group's colour as `paint=`
 (`{"go": {"dL": -0.12, "hex": "00853e"}, "line6": {"hex": "808080", "neutral": "b4bac4"}}`): the
-group's `hex`, else its brand's `color`, plus the group's `dL` (null unpins), else the brand's, or
-the `neutral`. The render JSON gains `LEGEND` from `colors.legend`. The trim key holds the city
-config's `colors` (structure only) and `brands_for(area)` without any `dL`; the render key holds the
-recipe without `colors.scheme` and each group's `source`, `verified` and `why`, and brands with
-their pins, under `DERIVE_VERSION` 2. So a group's `hex`, `dL` or `neutral`, `colors.legend` or a
-brands.json `dL` re-renders without a re-trim; a rule, label, order, `rest`, a group's `legend` or a
-brands.json `color` re-trims; the documentation changes nothing.
+group's `hex`, else its brand's `color` (no `hex` at all for a neutral group with neither: the page
+refuses an empty one), plus the group's `dL` (null unpins), else the brand's, or the `neutral`. The
+render JSON gains `LEGEND` from `colors.legend`. The trim key holds the city config's `colors`
+(structure only) and `brands_for(area)` without any `dL`; the render key holds the recipe without
+`colors.scheme` and each group's `source`, `verified` and `why`, the same `brands_for(area)` without
+any `dL`, and the paint, under `DERIVE_VERSION` 2. A pin reaches the page only through a group's
+paint, so a brands.json `dL` re-renders just the videos with a group that takes it, and never a
+brand network. So a group's `hex`, `dL` or `neutral`, `colors.legend` or a brands.json `dL` a group
+takes re-renders without a re-trim; a rule, label, order, `rest`, a group's `legend` or a brands.json
+`color` re-trims; the documentation changes nothing.
 
 ### A3. Composite dates and trip classes (`scripts/composite.py`)
 

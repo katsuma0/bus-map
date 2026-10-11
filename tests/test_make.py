@@ -1225,12 +1225,21 @@ class ColorGroups(Scratch):
             t, k = edit(fn)
             self.assertNotEqual(t, t0)
             self.assertNotEqual(k, r0)
+        plain = load(os.path.join(self.cities, "recipes", "gta-toronto.json"))
+        p0 = self.keys(plain)
         brands = load(os.path.join(self.cities, "brands.json"))
+        self.assertEqual(brands["agencies"][3]["id"], "yrt")
         brands["agencies"][3]["dL"] = -0.12
+        self.write("brands.json", brands)
+        self.assertEqual(self.keys(base), (t0, r0), "a pin on a brand no group takes changes nothing")
+        self.assertEqual(self.keys(plain), p0, "a brand network never reads a pin")
+        self.assertEqual(brands["agencies"][0]["id"], "ttc")
+        brands["agencies"][0]["dL"] = -0.2
         self.write("brands.json", brands)
         t, k = self.keys(base)
         self.assertEqual(t, t0, "a brands.json pin never re-trims")
-        self.assertNotEqual(k, r0)
+        self.assertNotEqual(k, r0, "the bus group takes TTC's pin")
+        self.assertEqual(self.keys(plain), p0)
         brands["agencies"][1]["color"] = "#00853f"
         self.write("brands.json", brands)
         self.assertNotEqual(self.keys(base)[0], t0)
