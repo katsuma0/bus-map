@@ -34,6 +34,7 @@
   "verb_many": "each use",
   "credit_line": "{name} ({publisher}): {licence}.",
   "limits_one": "the {place} city limits",
+  "limits_one_city": "the {place} limits",
   "limits_many": "{parts}",
   "the_city_one": "the city",
   "the_city_many": "the region",

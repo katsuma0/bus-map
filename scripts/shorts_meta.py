@@ -138,7 +138,9 @@ def limits_words(recipe, place, templates):
         parts = join_words(clean(p["name"]) for p in b)
         return (fmt(s["limits_many"], {"place": place, "parts": parts}, "limits_many"),
                 fmt(s["the_city_many"], {"place": place}, "the_city_many"))
-    return (fmt(s["limits_one"], {"place": place}, "limits_one"),
+    # A place that already says City (New York City, Mexico City) would read "the New York City city limits".
+    key = "limits_one_city" if re.search(r"\bcity\b", place, re.IGNORECASE) else "limits_one"
+    return (fmt(s[key], {"place": place}, key),
             fmt(s["the_city_one"], {"place": place}, "the_city_one"))
 
 

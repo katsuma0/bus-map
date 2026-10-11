@@ -394,6 +394,35 @@ class Colours(unittest.TestCase):
             self.assertEqual(branded, plain)
 
 
+class Review(unittest.TestCase):
+    """Findings of the USA batch's description review, made general for every batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, rid, variant, nm=None, recipe=None, batch=None, **kw):
+        recipe = recipe or self.pl.recipe(rid, self.batch)
+        return sm.build_meta(batch=batch or self.batch, recipe=recipe, netmeta=nm or netmeta(self.batch, recipe, variant),
+                             templates=self.pl.templates(), licences=self.pl.licences(), defaults=self.pl.defaults(),
+                             publish_order=1, meta_key="0" * 64, **kw)
+
+    def test_place_named_city(self):
+        for place in ("New York City", "Mexico City", "Quebec City", "Kansas City", "Panama City"):
+            recipe = dict(self.pl.recipe("gta-markham", self.batch), place=place)
+            d = {v: self.meta("gta-markham", v, recipe=recipe)["description"] for v in ("day", "rush", "week")}
+            self.assertIn(f"only includes vehicles inside the {place} limits. The faded ones", d["day"])
+            self.assertIn(f"Vehicles outside the {place} limits are faded and not counted.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} limits are faded and not counted.", d["week"])
+            for text in d.values():
+                self.assertNotIn("City city", text)
+        # Only the whole word: Felicity is a city like any other, and Markham keeps its city limits.
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), place="Felicity")
+        self.assertIn("inside the Felicity city limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
+        self.assertIn("inside the Markham city limits.", self.meta("gta-markham", "day")["description"])
+
+
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
         self.assertEqual(sm.clock_text(28860), "8:01 am")

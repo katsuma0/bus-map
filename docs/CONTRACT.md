@@ -736,7 +736,8 @@ open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
 major fallback feed sets the label (Burlington: November), for sentences about the timetables;
-`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits", or
+`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
+`limits_one_city` for a place whose name has the word City, "the New York City limits", or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
 Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of

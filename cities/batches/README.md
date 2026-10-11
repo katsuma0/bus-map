@@ -38,7 +38,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `id` | `^[a-z0-9][a-z0-9-]{1,39}$` | yes | | the file name and the stem of every output |
 | `batch` | str | yes | | the batch must list this id in `cities` |
 | `area` | str | when the batch has several areas | the only area | |
-| `place` | str | yes | | the name on screen, in the title and the count line |
+| `place` | str | yes | | the name on screen, in the title and the count line; with the word City in it (New York City) the description says "the New York City limits", not "city limits" |
 | `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
