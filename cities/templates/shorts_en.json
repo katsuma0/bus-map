@@ -66,6 +66,8 @@
  },
  "tags": ["transit map", "{mode_tags}", "GTFS"],
  "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "rail": "train map"},
+ "place_tags": {"GTA": "Greater Toronto Area"},
+ "hashtags_banned": {"#gta": "on YouTube #gta files a video with Grand Theft Auto"},
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
              "JP-14": "Kanagawa", "JP-23": "Aichi", "JP-26": "Kyoto", "JP-27": "Osaka", "JP-01": "Hokkaido",
              "US-NY": "New York", "US-IL": "Illinois", "US-TX": "Texas", "US-AZ": "Arizona", "US-PA": "Pennsylvania",

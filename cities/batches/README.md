@@ -145,7 +145,7 @@ only those: the GTA's GO is `-0.12` everywhere, so it is one deep green.
 | `modes` | list of `{id, label, singular, route_types, routes?}` | colours come from the theme; `routes` moves named routes into the mode (see below) |
 | `cities` | list of recipe ids | upload order |
 | `variants_default` | list | for recipes without `variants` |
-| `hashtags` | list of `#word` | `#shorts` always comes first in the metadata |
+| `hashtags` | list of `#word` | `#shorts` always comes first in the metadata, and each video adds its place's (`#markham`; `#greatertorontoarea` for the GTA); never `#gta`, which YouTube files with Grand Theft Auto |
 | `category` | str | YouTube category |
 | `release` | `{tag, name}` | the draft release that collects the MP4s and the CSV |
 

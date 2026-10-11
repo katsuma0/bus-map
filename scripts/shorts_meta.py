@@ -384,10 +384,19 @@ def legend_mode_faults(netmeta, modes):
     return out
 
 
-def hashtag_list(batch, place):
+def tag_place(place, templates):
+    """The place as a tag and a hashtag name it. "the GTA" is written as a sentence reads it, but nobody
+    searches for "the GTA" or #thegta, so a lowercase leading article goes (a capital one is part of the
+    name: The Hague). A short name that means something else on YouTube is spelled out from the
+    templates' place_tags: #gta files a video with Grand Theft Auto."""
+    bare = re.sub(r"^the\s+", "", place)
+    return (templates or {}).get("place_tags", {}).get(bare, bare)
+
+
+def hashtag_list(batch, place, templates=None):
     tags = []
     seen = set()
-    own = "#" + re.sub(r"[\W_]+", "", place.lower())
+    own = "#" + re.sub(r"[\W_]+", "", tag_place(place, templates).lower())
     for t in ["#shorts"] + list(batch.get("hashtags", [])) + [own]:
         if len(t) > 1 and t.lower() not in seen:
             seen.add(t.lower())
@@ -410,7 +419,7 @@ def tag_list(netmeta, batch, recipe, templates, modes=None):
         else:
             fixed.append(t)
     out, seen, total = [], set(), 0
-    for t in [clean(recipe["place"])] + names + fixed + ([region] if region else []):
+    for t in [tag_place(clean(recipe["place"]), templates)] + names + fixed + ([region] if region else []):
         if not t or t.lower() in seen:
             continue
         cost = len(t) + (1 if out else 0)
@@ -454,6 +463,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     if faults:
         raise MetaError("; ".join(faults))
     credits = credit_lines(netmeta, licences, templates, data_dates)
+    hashtags = hashtag_list(batch, place, templates)
     values = {
         "place": place, "modes_singular": singular, "modes_plural": plural,
         "peak_time": clock_text(peak["time"]), "peak_count": with_commas(round(peak["count"])),
@@ -469,7 +479,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         "dates_sentence": dates_sentence(netmeta, templates, variant == "week", lead, others),
         "colors": colors_sentence(netmeta, templates),
         "credits": "\n".join(credits), "author": defaults.get("author", ""),
-        "hashtags": " ".join(hashtag_list(batch, place)),
+        "hashtags": " ".join(hashtags),
     }
     title = fmt(templates["title"][variant], values, f"{stem} title")
     description = fmt(templates["description"][variant], values, f"{stem} description")
@@ -478,6 +488,11 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     check_text(f"{stem} title", title, banned)
     check_text(f"{stem} description", description, banned)
     check_text(f"{stem} tags", ", ".join(tags), banned)
+    for h in hashtags:
+        why = templates.get("hashtags_banned", {}).get(h.lower())
+        if why:
+            raise MetaError(f"{stem} hashtag {h}: {why}; take it out of the batch's hashtags, or spell the place "
+                            f"out in the templates' place_tags")
     if len(title) > TITLE_MAX:
         raise MetaError(f"{stem} title is {len(title)} characters, the limit is {TITLE_MAX}: {title}")
     if len(description) > DESCRIPTION_MAX:
@@ -501,7 +516,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         flags.append(f"bitrate floor not met: {sidecar.get('kbps')} kbps at crf {sidecar.get('crf')}")
     return {
         "file": f"{stem}.mp4", "title": title, "description": description, "tags": tags,
-        "hashtags": hashtag_list(batch, place), "category": batch.get("category"),
+        "hashtags": hashtags, "category": batch.get("category"),
         "credits": credits, "licences": entries, "flags": flags, "licence_flags": licence_flags(entries, names),
         "publish_order": publish_order, "meta_key": meta_key,
     }

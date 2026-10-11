@@ -330,8 +330,12 @@ class Split(unittest.TestCase):
         self.assertIn("only includes vehicles inside Toronto, Peel Region, York Region, Durham Region and Halton "
                       "Region. The faded ones are just outside.", m["description"])
         self.assertNotIn("city limits", m["description"])
-        self.assertIn("#thegta", m["hashtags"])
+        self.assertIn("#greatertorontoarea", m["hashtags"])
+        self.assertIn("#greatertorontoarea", m["description"])
         self.assertNotIn("#gta", m["hashtags"], "on YouTube #gta files a video with Grand Theft Auto")
+        self.assertNotIn("#thegta", m["hashtags"])
+        self.assertEqual(m["tags"][0], "Greater Toronto Area")
+        self.assertNotIn("the GTA", m["tags"])
         r = self.meta("gta-toronto", "rush", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
         self.assertEqual(r["title"], "Morning rush in the GTA: every train, 6:30 to 9:30 am")
         self.assertIn("Every train inside the region on an average October weekday.", r["description"])
@@ -548,11 +552,12 @@ class GTAReview(unittest.TestCase):
         cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
         cls.batch = cls.pl.load_batch("gta")
 
-    def meta(self, rid, variant, nm=None, recipe=None):
+    def meta(self, rid, variant, nm=None, recipe=None, batch=None):
         recipe = recipe or self.pl.recipe(rid, self.batch)
-        return sm.build_meta(batch=self.batch, recipe=recipe, netmeta=nm or netmeta(self.batch, recipe, variant),
-                             templates=self.pl.templates(), licences=self.pl.licences(), defaults=self.pl.defaults(),
-                             publish_order=1, meta_key="0" * 64)
+        return sm.build_meta(batch=batch or self.batch, recipe=recipe,
+                             netmeta=nm or netmeta(self.batch, recipe, variant), templates=self.pl.templates(),
+                             licences=self.pl.licences(), defaults=self.pl.defaults(), publish_order=1,
+                             meta_key="0" * 64)
 
     def test_label_fallback_said_once(self):
         """Burlington Transit has no October timetable and the label says November: the description leads with
@@ -647,6 +652,26 @@ class GTAReview(unittest.TestCase):
         self.assertIn("York Region Transit changed its timetables during October and has fewer than three usable "
                       "October Mondays, so its Monday and Friday each use one typical date.", w)
         self.assertIn("MiWay has fewer than three usable October Mondays, so its Monday uses one typical date.", w)
+
+    def test_place_tags_without_the_article(self):
+        """Tags and hashtags drop a lowercase leading article, and spell out a short name YouTube reads as
+        something else: the GTA is #greatertorontoarea, never #thegta or #gta (Grand Theft Auto)."""
+        cases = {"the GTA": ("Greater Toronto Area", "#greatertorontoarea"),
+                 "the Tri-Cities": ("Tri-Cities", "#tricities"),
+                 "The Hague": ("The Hague", "#thehague"),
+                 "Markham": ("Markham", "#markham")}
+        for place, (tag, hashtag) in cases.items():
+            recipe = dict(self.pl.recipe("gta-markham", self.batch), place=place)
+            m = self.meta("gta-markham", "day", recipe=recipe)
+            self.assertEqual(m["tags"][0], tag, place)
+            self.assertEqual(m["hashtags"][-1], hashtag, place)
+            self.assertTrue(m["description"].endswith(" " + hashtag), place)
+            # The title and the description keep the place as a sentence reads it.
+            self.assertIn(f"in {place} in 24 hours", m["title"], place)
+        # No batch hashtag can bring #gta back.
+        b = dict(self.batch, hashtags=["#shorts", "#transit", "#GTA"])
+        with self.assertRaisesRegex(sm.MetaError, "Grand Theft Auto"):
+            self.meta("gta-markham", "day", batch=b)
 
 
 class Formatting(unittest.TestCase):

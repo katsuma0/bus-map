@@ -585,7 +585,7 @@ does today).
   "modes": [{"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]}],
   "cities": ["gta-toronto", "gta-mississauga"],
   "variants_default": ["day", "rush", "week"],
-  "hashtags": ["#shorts", "#transit", "#gta"],
+  "hashtags": ["#shorts", "#transit", "#ontario"],
   "category": "Travel & Events",
   "release": {"tag": "shorts-gta", "name": "Shorts: GTA top 10"}
 }
@@ -756,7 +756,10 @@ Friday each use one typical date.");
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
 Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
-each mode the title names (`bus map`, `streetcar map`, `train map`).
+each mode the title names (`bus map`, `streetcar map`, `train map`). The first tag and the
+video's own hashtag name the place without a lowercase leading article, and `place_tags` spells out
+a short name: `the GTA` is tagged `Greater Toronto Area`, `#greatertorontoarea`. A hashtag in
+`hashtags_banned` fails `meta` with its reason: on YouTube `#gta` files a video with Grand Theft Auto.
 `{author}` is `cities/defaults.json` `author`, the channel's name `SOtownships`: every description
 ends its credits with `Made by SOtownships.`, and the on-screen credit (2.7 `credit_template`, B9)
 names it too. The legacy configs keep their own `Made by Katsuma Onishi` lines.
@@ -1183,7 +1186,7 @@ see **Copy without `modes`** below. The additions:
   `release`, `source`), `release` and `source` (`Overture <release> division_area <id> + <id> ...`).
   The frame fits the union's bbox (D3.2) unless the recipe pins one, and the outline, the dimming
   mask and every count use the union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
-  title `THE GTA`, hashtag `#thegta`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
+  title `THE GTA`, tag `Greater Toronto Area`, hashtag `#greatertorontoarea`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
   instead of "the <place> city limits", and `{the_city}` reads "the region".
   A union is usually far larger than one city: the GTA (Toronto and the Peel, York, Durham and
   Halton regions, 139 x 136 km) fits a 325.5 km frame, where its trains are specks, so its recipe
