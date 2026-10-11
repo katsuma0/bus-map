@@ -343,6 +343,57 @@ class Split(unittest.TestCase):
         self.assertIn("inside the Toronto city limits.", one["description"])
 
 
+class Colours(unittest.TestCase):
+    """2.16: a colour-group video's description names its colours in one plain sentence."""
+
+    EXAMPLES = {
+        "Colours: Bus, Express and Streetcar, with everything else in grey.": [
+            ("bus", "Bus", True), ("express", "Express", True), ("streetcar", "Streetcar", True), ("other", "Other", False)],
+        "Colours: Line 1, Line 2, GO, Line 5, Line 6, Line 4 and UP.": [
+            (k, k.replace("line", "Line ") if k.startswith("line") else k.upper(), True)
+            for k in ("line1", "line2", "go", "line5", "line6", "line4", "up")],
+        "Colours: Frequent and Express, with Local in grey.": [
+            ("frequent", "Frequent", True), ("express", "Express", True), ("other", "Local", True)],
+        "Colours: Bus, Rapid and Trolley.": [
+            ("bus", "Bus", True), ("rapid", "Rapid", True), ("blue_line", "Blue Line", "Trolley"),
+            ("green_line", "Green Line", "Trolley"), ("orange_line", "Orange Line", "Trolley")],
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+        cls.recipe = cls.pl.recipe("gta-markham", cls.batch)
+
+    def meta(self, variant, groups=None):
+        nm = netmeta(self.batch, self.recipe, variant)
+        if groups is not None:
+            nm = dict(nm, color_by="group", groups=[{"id": i, "label": lab, "brand": None, "share": 0.1, "legend": lg}
+                                                    for i, lab, lg in groups])
+        return sm.build_meta(batch=self.batch, recipe=self.recipe, netmeta=nm, templates=self.pl.templates(),
+                             licences=self.pl.licences(), defaults=self.pl.defaults(), publish_order=1, meta_key="0" * 64)
+
+    def test_colors_sentence(self):
+        templates = self.pl.templates()
+        for want, groups in self.EXAMPLES.items():
+            nm = {"color_by": "group", "groups": [{"id": i, "label": lab, "legend": lg} for i, lab, lg in groups]}
+            self.assertEqual(sm.colors_sentence(nm, templates), " " + want)
+            day, rush, week = (self.meta(v, groups)["description"] for v in ("day", "rush", "week"))
+            self.assertIn(f"The faded ones are just outside. {want}\n\n", day)
+            self.assertIn(f"are faded and not counted. {want}\n\n", rush)
+            self.assertIn(f"are faded and not counted. {want}\n\n", week)
+            sm.check_text("colours", want, templates.get("banned", []))
+        # A brand network, with or without color_by in its netmeta, reads as it always has.
+        for v in ("day", "rush", "week"):
+            plain = self.meta(v)["description"]
+            self.assertNotIn("Colours:", plain)
+            nm = dict(netmeta(self.batch, self.recipe, v), color_by="brand")
+            branded = sm.build_meta(batch=self.batch, recipe=self.recipe, netmeta=nm, templates=self.pl.templates(),
+                                    licences=self.pl.licences(), defaults=self.pl.defaults(), publish_order=1,
+                                    meta_key="0" * 64)["description"]
+            self.assertEqual(branded, plain)
+
+
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
         self.assertEqual(sm.clock_text(28860), "8:01 am")

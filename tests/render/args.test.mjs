@@ -152,6 +152,25 @@ test('page query additions (2.12), in order and encoded', () => {
   assert.throws(() => tier('final', '--name', 'a/b'), UsageError);
 });
 
+test('--paint: the colour groups\' paint, right after brandhex=', () => {
+  const paint = '{"go":{"dL":-0.12,"hex":"00853e"},"line6":{"hex":"808080","neutral":"b4bac4"}}';
+  const o = tier('stills', '--data', 'build/gta-trains/day/network.json.gz', '--render-json', '{"LEGEND":false}',
+    '--brandhex', 'ttc:ed1c24', '--paint', paint, '--query', 'safe=1');
+  assert.equal(buildQuery(o, true), 'record=1&data=../build/gta-trains/day/network.json.gz'
+    + `&render=${encodeURIComponent('{"LEGEND":false}')}&brandhex=${encodeURIComponent('ttc:ed1c24')}`
+    + `&paint=${encodeURIComponent(paint)}&safe=1`);
+  assert.deepEqual(JSON.parse(new URLSearchParams(buildQuery(o, true)).get('paint')).line6, { hex: '808080', neutral: 'b4bac4' });
+  // Any tier, or none, takes it: it is part of the page query.
+  assert.equal(parseArgs(['--paint', paint], NO_DEFAULTS).paint, paint);
+  for (const bad of ['{bad', '[1]', '{"go":1}', '{"go":[1]}', 'null', '"x"']) {
+    assert.throws(() => tier('final', '--paint', bad), UsageError, bad);
+  }
+  // Without it the query is today's.
+  const plain = tier('stills', '--data', 'build/gta-trains/day/network.json.gz', '--brandhex', 'ttc:ed1c24');
+  assert.equal(plain.paint, null);
+  assert.equal(buildQuery(plain, true), 'record=1&data=../build/gta-trains/day/network.json.gz&brandhex=ttc%3Aed1c24');
+});
+
 // ------------------------------------------------------------- tools (C2, C-4)
 
 test('tool paths: env, then the sandbox path, then Playwright or PATH', () => {

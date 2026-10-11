@@ -10,7 +10,8 @@
 // on frame N - 10, both with ?card=1 (the shorts preset has the card off, and
 // the card's fade-in is what the loop moves at N - 10), and the weekend band
 // on the week's Sunday still. colorby runs on a copy of the fixture without meta.color_by,
-// the only file where moving it can change anything.
+// the only file where moving it can change anything, and legend on a copy that is a
+// colour-group network (B19), the only kind that draws one.
 // trailstep, trailmode and osm are not listed: brand colouring always draws
 // ribbon trails, and the fixture basemap has no OSM routes.
 //
@@ -37,7 +38,8 @@ const KNOBS = [
   ['loop', 'LOOP', 'none', END, 'card'], ['clockround', 'CLOCK_ROUND', 60, STILL],
   ['card', 'CARD', 0, F0, 'card'], ['cardscrim', 'CARD_SCRIM', 0.6, F0, 'card'], ['cardband', 'CARD_BAND', 0.4, F0, 'card'],
   ['cardy', 'CARD_CENTER_Y', 760, F0, 'card'], ['cardsize', 'CARD_TITLE_MAX', 96, F0, 'card'], ['cardline', 'CARD_LINES', 1, F0, 'card'],
-  ['peak', 'PEAK_MARKER', 1, LATE], ['chips', 'MODE_CHIPS', 1, STILL], ['outside', 'OUTSIDE_DIM', 0, STILL],
+  ['peak', 'PEAK_MARKER', 1, LATE], ['chips', 'MODE_CHIPS', 1, STILL], ['legend', 'LEGEND', 1, STILL, 'groups'],
+  ['outside', 'OUTSIDE_DIM', 0, STILL],
   ['panelalpha', 'PANEL_ALPHA', 0.5, STILL], ['panelside', 'PANEL_SIDE', 'right', STILL], ['fonts', 'FONT_SET', 'classic', STILL],
   ['zoom', 'FRAME_ZOOM', 1.1, STILL], ['cx', 'FRAME_DX_KM', 0.4, STILL], ['cy', 'FRAME_DY_KM', 0.4, STILL],
   ['roads', 'BASE_ROADS_GAIN', 1.35, STILL], ['water', 'BASE_WATER_GAIN', 1.35, STILL],
@@ -95,12 +97,20 @@ fs.mkdirSync(path.dirname(nobrandPath), { recursive: true });
 const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'v4_tiny', 'network.json'), 'utf8'));
 delete fixture.meta.color_by;
 fs.writeFileSync(nobrandPath, JSON.stringify(fixture));
+// The fixture as a colour-group network: its two brands as two groups, painted.
+const groupsPath = path.join(ROOT, 'build', 'test_web', 'tiny_groups.json');
+const grouped = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'v4_tiny', 'network.json'), 'utf8'));
+grouped.meta.color_by = 'group';
+grouped.meta.groups = grouped.meta.groups.map((g) => ({ ...g, legend: true }));
+fs.writeFileSync(groupsPath, JSON.stringify(grouped));
+const GROUP_PAINT = encodeURIComponent(JSON.stringify({ alpha: { hex: 'ed1c24' }, beta: { hex: '00853e', dL: -0.12 } }));
 const BASES = {
   tiny: TINY,
   card: `${TINY}&card=1`,
   week: TINY_WEEK,
   framed: `${TINY}&zoom=0.6`,
   nobrand: 'data=../build/test_web/tiny_nobrand.json&basemap=../tests/fixtures/v4_tiny/basemap.json&colorby=',
+  groups: `data=../build/test_web/tiny_groups.json&basemap=../tests/fixtures/v4_tiny/basemap.json&paint=${GROUP_PAINT}`,
 };
 
 const h = await openBrowser();

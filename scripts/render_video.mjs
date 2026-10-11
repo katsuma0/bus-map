@@ -36,6 +36,7 @@
 //   --variant NAME    adds variant=NAME (day, rush, week)
 //   --render-json J   adds render=<J>, a JSON object of CONFIG keys
 //   --brandhex STR    adds brandhex=STR, id:rrggbb;id:rrggbb
+//   --paint JSON      adds paint=<JSON>, the colour groups' paint: {group id: {hex, dL, neutral}}
 //
 // Shorts tiers (spec C5). Without --tier everything above behaves exactly as before.
 //
@@ -168,7 +169,7 @@ const TIER_OPTS = {
     'keep-frames', 'review-dir', 'keep-intermediate'],
 };
 const COMMON_OPTS = ['root', 'page', 'city', 'query', 'data', 'basemap', 'variant', 'render-json', 'brandhex',
-  'tier', 'dry-run', 'help', 'h'];
+  'paint', 'tier', 'dry-run', 'help', 'h'];
 const TIER_ONLY = ['name', 'out-dir', 'times', 'frames', 'sheet', 'clip-at', 'clip-frames', 'roundtrip', 'jobs',
   'min-kbps', 'crf-ladder', 'key', 'keep-frames', 'review-dir', 'keep-intermediate'];
 
@@ -196,6 +197,7 @@ export function parseArgs(argv, { defaultsFile = DEFAULTS_FILE } = {}) {
     variant: null,
     renderJson: null,
     brandhex: null,
+    paint: null,
     tier: null,
     name: null,
     outDir: null,
@@ -217,7 +219,7 @@ export function parseArgs(argv, { defaultsFile = DEFAULTS_FILE } = {}) {
   };
   const given = new Set();
   const valued = new Set(['root', 'page', 'city', 'query', 'out', 'fps', 'start', 'end', 'capture',
-    'png-dir', 'png-every', 'crf', 'preset', 'data', 'basemap', 'variant', 'render-json', 'brandhex', 'tier',
+    'png-dir', 'png-every', 'crf', 'preset', 'data', 'basemap', 'variant', 'render-json', 'brandhex', 'paint', 'tier',
     'name', 'out-dir', 'times', 'frames', 'clip-at', 'clip-frames', 'jobs', 'min-kbps', 'crf-ladder', 'key',
     'keep-frames', 'review-dir']);
   const int = (key, v, min) => {
@@ -302,6 +304,20 @@ export function parseArgs(argv, { defaultsFile = DEFAULTS_FILE } = {}) {
         }
         opts.brandhex = val;
         break;
+      case 'paint': {
+        let obj;
+        try {
+          obj = JSON.parse(val);
+        } catch (e) {
+          throw new UsageError(`--paint is not JSON: ${e.message}`);
+        }
+        const isObj = (o) => o && typeof o === 'object' && !Array.isArray(o);
+        if (!isObj(obj) || !Object.values(obj).every(isObj)) {
+          throw new UsageError('--paint wants a JSON object of group id to {hex, dL, neutral}');
+        }
+        opts.paint = val;
+        break;
+      }
       case 'tier':
         if (!TIERS.includes(val)) throw new UsageError(`--tier must be one of ${TIERS.join(', ')}, got ${val}`);
         opts.tier = val;
@@ -525,6 +541,7 @@ export function buildQuery(opts, record) {
   if (opts.variant) q.push(`variant=${encodeURIComponent(opts.variant)}`);
   if (opts.renderJson) q.push(`render=${encodeURIComponent(opts.renderJson)}`);
   if (opts.brandhex) q.push(`brandhex=${encodeURIComponent(opts.brandhex)}`);
+  if (opts.paint) q.push(`paint=${encodeURIComponent(opts.paint)}`);
   if (opts.query) q.push(opts.query);
   return q.join('&');
 }

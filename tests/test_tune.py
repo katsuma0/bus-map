@@ -9,9 +9,12 @@ tests/test_make.py, whose render stub writes the C5 tune files.
 
 import json
 import os
+import re
+import shutil
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.normpath(os.path.join(HERE, ".."))
@@ -107,6 +110,16 @@ class Scores(unittest.TestCase):
         boxes = [dict(PANEL_BOXES[3], size=17), {"name": "card_line1", "size": 30}, dict(PANEL_BOXES[2], size=34)]
         self.assertEqual(tune.size_breaks([boxes]), ["credit 17 < 18"])
         self.assertIn("sizes", tune.breaks_of({"sizes": ["credit 17 < 18"]}))
+        # The page's MIN_SIZE literal and this copy name the same boxes and floors, the legend's rows too.
+        with open(os.path.join(REPO, "web", "app.js"), encoding="utf-8") as fh:
+            src = fh.read()
+        body = re.search(r"^const MIN_SIZE = \{(.*?)^\};", src, re.S | re.M).group(1)
+        page = {k: int(v) for k, v in re.findall(r"(\w+): (\d+)", body)}
+        self.assertEqual(page, tune.MIN_SIZES)
+        self.assertEqual((page["legend"], page["legend2"]), (18, 18))
+        for name in ("legend", "legend2"):
+            self.assertIn(name, tune.HUD_TEXT)
+            self.assertIn(name, tune.PANEL_TEXT)
 
 
 class Arms(unittest.TestCase):
@@ -226,6 +239,40 @@ class CardKnobs(tm.Scratch):
             self.assertIs(q(on, "card"), True, on)
         for off in ("card=0", "card=false", "card=0&card=1"):
             self.assertIs(q(off, "card"), False, off)
+
+
+class ColourArm(tm.Scratch):
+    """2.4: an arm of a colour-group recipe renders with its paint, and arm.json keeps it."""
+
+    def test_arm_paint(self):
+        cities = os.path.join(self.tmp, "cities")
+        shutil.copytree(os.path.join(REPO, "tests", "fixtures", "gta"), cities)
+        r = tm.load(os.path.join(cities, "recipes", "gta-markham.json"))
+        r["colors"] = json.loads(json.dumps(tm.VAUGHAN))
+        with open(os.path.join(cities, "recipes", "gta-markham.json"), "w", encoding="utf-8") as fh:
+            json.dump(r, fh, ensure_ascii=False)
+        pl = make.Pipeline(REPO, cities)
+        calls = []
+
+        class Arm(tune.Tuner):
+            def __init__(self):
+                self.pl, self.rid, self.variant, self.recipe = pl, r["id"], "day", r
+                self.net, self.basemap, self.meta = pl.path("build", "x.json.gz"), pl.path("build", "b.json.gz"), {}
+
+        arm = Arm()
+        out = os.path.join(self.tmp, "arm")
+        with unittest.mock.patch.object(pl, "run_node", side_effect=lambda args: calls.append(args)):
+            arm.render_arm(out, {"FRAME_ZOOM": 1}, "", [28800], [0], False)
+        args = calls[0]
+        paint = make.canonical(pl.group_paint(r))
+        self.assertEqual(args[args.index("--paint") + 1], paint)
+        self.assertEqual(json.loads(paint)["go"], {"hex": "00853e"}, "the fixture's brands.json has no pins")
+        sig = tm.load(os.path.join(out, "arm.json"))
+        self.assertEqual(sig["paint"], paint)
+        self.assertEqual(sig["brandhex"], "")
+        # An arm of a recipe without colours keeps the signature it always had.
+        del arm.recipe["colors"]
+        self.assertNotIn("paint", arm.arm_sig({}, "", [], [], False))
 
 
 class EndToEnd(tm.Scratch):

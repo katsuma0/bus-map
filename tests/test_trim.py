@@ -447,6 +447,110 @@ class ModeSplit(unittest.TestCase):
         self.assertFalse(os.path.exists(out))
 
 
+# Colour groups (2.16) on the four stable.zip routes the mode split puts in streetcar (R1), bus (R2)
+# and rail (R3, R4): the rest group stands first and still takes only what the others leave.
+COLOR_GROUPS = [
+    {"id": "rest", "label": "Rest", "brand": None, "match": [{"feed": "stable", "mode": ["rail", "streetcar"]}], "rest": True,
+     "legend": True},
+    {"id": "rail", "label": "Rail", "brand": None, "match": [{"mode": ["rail"], "route_type": [2]}], "rest": False, "legend": True},
+    {"id": "tram", "label": "Tram", "brand": None, "match": [{"route_ids": ["R1"]}], "rest": False, "legend": "Light rail"},
+    {"id": "ghost", "label": "Ghost", "brand": None, "match": [{"feed": "stable", "short": "^nope$"}], "rest": False, "legend": True},
+    {"id": "other", "label": "Elsewhere", "brand": None, "match": None, "rest": False, "legend": True},
+]
+
+
+# The trim with its colour limit at 3, so the fixture's four used groups (rest, rail, tram and other) fold.
+FOLD_TRIM = """import sys
+sys.path.insert(0, {scripts!r})
+import trim_network
+trim_network.MAX_COLOR_GROUPS = 3
+trim_network.main()
+"""
+
+
+class ColorGroups(unittest.TestCase):
+    """A trim with the recipe's colour groups: every used route in exactly one, nothing lost."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.mkdtemp(prefix="test_trim_colors_")
+        area = U.area_config("fx", ORIGIN, AREA_BOX, FIX, [fixture_feed("stable")], "day", chunk=5000, modes=RULE_MODES)
+        acfg = os.path.join(cls.tmp, "area.day.json")
+        U.dump_json(acfg, area)
+        cls.store = os.path.join(cls.tmp, "areas", "day")
+        U.run("build_area.py", "--config", acfg, "--out", cls.store)
+        frame = U.fit_frame(U.boundary_bbox_km(BOUNDARY, ORIGIN))
+        base = U.city_config("fx-stable", "Fixture", ORIGIN, BOUNDARY, frame, ["day", "rush"], "day", batch="fx", area="fx")
+        fold = os.path.join(cls.tmp, "fold_trim.py")
+        with open(fold, "w", encoding="utf-8") as fh:
+            fh.write(FOLD_TRIM.format(scripts=U.SCRIPTS))
+        cls.res = {}
+        groups = dict(base, colors={"groups": COLOR_GROUPS})
+        for name, cfg, script in (("brand", base, "trim_network.py"), ("group", groups, "trim_network.py"), ("fold", groups, fold)):
+            path = os.path.join(cls.tmp, f"city.{name}.json")
+            U.dump_json(path, cfg)
+            out = os.path.join(cls.tmp, name, "day", "network.json.gz")
+            p, _s, _g = U.run(script, "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64, check=False)
+            cls.res[name] = (p, out)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def net(self, name):
+        p, out = self.res[name]
+        self.assertEqual(p.returncode, 0, p.stderr[-2000:])
+        return U.load_json(out)
+
+    def test_groups_in_recipe_order(self):
+        net = self.net("group")
+        m = net["meta"]
+        self.assertEqual(m["color_by"], "group")
+        self.assertEqual([(g["id"], g["label"], g["legend"]) for g in m["groups"]],
+                         [("rest", "Rest", True), ("rail", "Rail", True), ("tram", "Tram", "Light rail"), ("other", "Elsewhere", True)])
+        group = {r["id"]: r["group"] for r in net["routes"]}
+        self.assertEqual(group, {"stable:R1": "tram", "stable:R2": "other", "stable:R3": "rail", "stable:R4": "rest"})
+        self.assertIn("warning: group ghost takes no route in Fixture", self.res["group"][0].stderr)
+        self.assertIn("groups: rest ", self.res["group"][0].stderr)
+        self.assertIn("other ", self.res["group"][0].stderr)
+
+    def test_folding_loses_nothing(self):
+        net = self.net("group")
+        m = net["meta"]
+        self.assertEqual(sorted(m["hist_by_group"]), sorted(g["id"] for g in m["groups"]))
+        for i, h in enumerate(net["hist"]):
+            self.assertLessEqual(abs(sum(m["hist_by_group"][g][i] for g in m["hist_by_group"]) - h), 0.021, i)
+        self.assertAlmostEqual(sum(g["share"] for g in m["groups"]), 1.0, delta=0.001)
+
+    def test_fold_to_the_colour_limit(self):
+        """Over the limit, the smallest declared group joins other: in meta.groups, the routes and the counts."""
+        full, fold = self.net("group"), self.net("fold")
+        share = {g["id"]: g["share"] for g in full["meta"]["groups"]}
+        self.assertEqual(sorted(share), ["other", "rail", "rest", "tram"])
+        named = [gid for gid in share if gid != "other"]
+        gone = min(reversed(named), key=lambda gid: share[gid])
+        self.assertIn(f"warning: group {gone} joined other: 4 colours, the limit is 3", self.res["fold"][0].stderr)
+        m = fold["meta"]
+        self.assertEqual([g["id"] for g in m["groups"]], [gid for gid in named if gid != gone] + ["other"])
+        self.assertAlmostEqual(m["groups"][-1]["share"], share["other"] + share[gone], delta=0.0002)
+        was = {r["id"]: r["group"] for r in full["routes"]}
+        self.assertEqual({r["id"]: r["group"] for r in fold["routes"]},
+                         {rid: "other" if gid == gone else gid for rid, gid in was.items()})
+        self.assertEqual(sorted(m["hist_by_group"]), sorted(g["id"] for g in m["groups"]))
+        for i, h in enumerate(fold["hist"]):
+            self.assertLessEqual(abs(sum(m["hist_by_group"][g][i] for g in m["hist_by_group"]) - h), 0.021, i)
+        self.assertEqual(fold["hist"], full["hist"])
+
+    def test_brands_and_brand_networks_stay(self):
+        """The colour groups change no brand, and a trim without them is the agency-auto one."""
+        brand, group = self.net("brand"), self.net("group")
+        self.assertEqual(brand["meta"]["color_by"], "brand")
+        self.assertEqual(group["meta"]["brands"], brand["meta"]["brands"])
+        self.assertEqual([r["brand"] for r in group["routes"]], [r["brand"] for r in brand["routes"]])
+        self.assertEqual(group["hist"], brand["hist"])
+        self.assertTrue(all("legend" not in g for g in brand["meta"]["groups"]))
+
+
 class Units(unittest.TestCase):
     def test_informative(self):
         self.assertTrue(tn.informative("ED1C24"))
@@ -480,6 +584,52 @@ class Units(unittest.TestCase):
         self.assertEqual(defs["other:acme"], {**defs["other:acme"], "kind": "gtfs", "hex": "112233", "verified": False})
         self.assertEqual(defs["mode:bus"]["hex"], "")
         self.assertEqual(defs["miway"]["alt"], "026bcd")
+
+    def test_assign_groups(self):
+        """2.16 rules on synthetic routes with the GTA brand entries: first match in recipe order, rest groups last."""
+        entries = U.load_json(os.path.join(U.GTA_FIX, "brands.json"))["agencies"]
+        R = lambda fid, rid, short, mode, color, rtype=3, agency="X": {  # noqa: E731
+            "id": f"{fid}:{rid}", "feed": fid, "short": short, "long": "", "mode": mode, "color_raw": color, "agency": agency,
+            "type": rtype}
+        routes = [R("ttc", "1", "1", "rail", "D5C82B", 1), R("ttc", "29", "29", "bus", "ED1C24"), R("ttc", "939", "939", "bus", "00A651"),
+                  R("ttc", "504", "504", "streetcar", "ED1C24", 0), R("brampton", "501", "501", "bus", ""),
+                  R("brampton", "1", "1", "bus", ""), R("go", "LW", "LW", "rail", "98002E", 2), R("miway", "1", "1", "bus", "D33517"),
+                  R("milton", "2", "2", "bus", "", 3, "Milton Transit"), R("drt", "N1", "N1", "bus", "0000FF")]
+        brand_of, defs = tn.assign_brands(routes, entries, U.MODES)
+        groups = [
+            {"id": "bus", "match": [{"brand": "ttc"}], "rest": True},
+            {"id": "express", "match": [{"feed": "ttc", "short": "^9\\d\\d$"}]},
+            {"id": "streetcar", "match": [{"feed": "ttc", "mode": ["streetcar"]}]},
+            {"id": "zum", "match": [{"brand": "brampton:zum"}]},
+            {"id": "brampton", "match": [{"brand": "brampton"}]},
+            {"id": "rail", "match": [{"route_type": [2]}, {"agency": ["Milton Transit"]}]},
+            {"id": "n1", "match": [{"feed": ["drt", "yrt"], "route_ids": ["N1"]}]},
+            {"id": "anything", "match": [{}], "rest": True},
+            {"id": "other"},
+        ]
+        got = tn.assign_groups(routes, range(len(routes)), groups, brand_of, defs)
+        self.assertEqual([got[i] for i in range(len(routes))],
+                         ["bus", "bus", "express", "streetcar", "zum", "brampton", "rail", "anything", "rail", "n1"])
+        # Line 1 is a line brand of the ttc entry, so the entry's clause takes it; a rule clause takes only its rule.
+        self.assertEqual(brand_of[0], "ttc:line:d5c82b")
+        without = [g for g in groups if g["id"] != "anything"]
+        got = tn.assign_groups(routes, range(len(routes)), without, brand_of, defs)
+        self.assertEqual(got[7], "other", "an unmatched route is other's")
+        only_rule = [{"id": "zum", "match": [{"brand": "brampton:zum"}]}, {"id": "other"}]
+        got = tn.assign_groups(routes, [4, 5], only_rule, brand_of, defs)
+        self.assertEqual((got[4], got[5]), ("zum", "other"))
+
+    def test_fold_groups(self):
+        """More than 7 colours: the smallest declared group joins other (on a tie the later one), one warning each."""
+        ids = [f"g{k}" for k in range(9)]
+        shares = {"g0": 0.3, "g1": 0.2, "g2": 0.1, "g3": 0.1, "g4": 0.08, "g5": 0.07, "g6": 0.05, "g7": 0.05, "g8": 0.05}
+        kept, folded = tn.fold_groups(ids, shares)
+        self.assertEqual(folded, [("g8", 9), ("g7", 9), ("g6", 8)])
+        self.assertEqual(kept, ["g0", "g1", "g2", "g3", "g4", "g5", "other"])
+        kept, folded = tn.fold_groups(ids[:7] + ["other"], dict(shares, other=0.01))
+        self.assertEqual((kept, folded), (["g0", "g1", "g2", "g3", "g4", "g5", "other"], [("g6", 8)]))
+        six = ids[:6] + ["other"]
+        self.assertEqual(tn.fold_groups(six, shares), (six, []))
 
     def test_credit_units(self):
         """A route with no entry credits the entry that lists its feed; a feed no entry lists credits itself."""

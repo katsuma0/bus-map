@@ -56,8 +56,9 @@ recipe, and only inside `override` and `variety.card_line`.
 | `variety.camera` | `pull-out-east`, `pull-out-north`, `pull-out-west`, `pull-out-south`, `drift-orbit`, `drift-sway`, `off` | no | picked from the id | the slow camera move over the map, the same in every variant; `off` keeps the map still |
 | `override.render` | CONFIG keys | no | {} | for every variant; a key that a `defaults.variants.*.render` block sets is an error |
 | `override.variant_render` | variant to CONFIG keys | no | {} | per variant, after `override.render` |
-| `override.brand_colors` | brand id to `#rrggbb` | no | {} | pins a brand colour (`brandhex=`) |
+| `override.brand_colors` | brand id to `#rrggbb` | no | {} | pins a brand colour (`brandhex=`); must stay empty with `colors` |
 | `override._why` | `KEY` or `<variant>.KEY` to one line | no | {} | why a tuned value was picked; changes no render key |
+| `colors` | object | no | | the video's colour groups and its legend (below); without it the trails take their agency's colour |
 
 The page query of a video is `render=` with `CARD_LINES` from `variety.card_line`
 and `CAMERA_PATH` from `variety.camera` (or `CAMERA: false` for `off`), then
@@ -70,6 +71,60 @@ Appending a city never changes an earlier city's path; reordering the list or
 naming a path in an earlier recipe can change later ones. The amplitudes are
 CONFIG keys (`CAMERA_ZOOM`, `CAMERA_DRIFT`, `CAMERA_AMP`) and go in `override`
 like any other.
+
+## Colour groups: `colors`
+
+A recipe can say what its colours explain: its lines, its kinds of service or its
+operators. Each group is one colour on the map, in the dots' halos and in the legend:
+
+```json
+"colors": {"scheme": "type", "legend": true, "groups": [
+  {"id": "bus", "label": "Bus", "brand": "ttc", "rest": true},
+  {"id": "express", "label": "Express", "hex": "#00a651", "match": [{"feed": "ttc", "short": "^9\\d\\d$"}]},
+  {"id": "streetcar", "label": "Streetcar", "hex": "#9a7bd1", "match": [{"feed": "ttc", "mode": ["streetcar"]}],
+   "verified": false, "source": "chosen: calm lavender; ttc.zip gives streetcars the bus red"},
+  {"id": "other", "label": "Other"}]}
+```
+
+| key | type | required | default | meaning |
+|---|---|---|---|---|
+| `scheme` | `line`, `type`, `agency` | yes | | what the colours explain (the stills sheet and `make.py show` print it) |
+| `legend` | bool | no | false | the legend row (dot and word per group, no counts) in the panel; bus videos on, train videos off |
+| `groups` | list | yes | | 1 to 7, `other` counted; their order is the legend's and the network's; colours are placed `other` first, then the neutrals, the pins and the rest, each step in this order (CONTRACT B19) |
+| `groups[].id` | `^[a-z0-9][a-z0-9_]{0,23}$` | yes | | unique; `other` is the remainder, drawn in the theme's grey, and must be last |
+| `groups[].label` | 1 to 16 characters, no `·` | yes | | the legend's word and the description's; unique |
+| `groups[].brand` | `entry` or `entry:rule` of `cities/brands.json` | one of brand, hex, neutral | | its colour and pin (`dL`) by default, and its routes when there is no `match` |
+| `groups[].hex` | `#rrggbb` | | | the colour; beats the brand's |
+| `groups[].dL` | -0.30 to 0.14, or null | no | the brand's `dL` | a lightness pin: the trail drawn at the theme's trail lightness plus dL; null unpins |
+| `groups[].neutral` | `#rrggbb` or true | | | drawn as given, outside the theme envelope (true: the theme's grey); for a colour without hue |
+| `groups[].match` | list of clauses | unless `brand` | `[{"brand": <brand>}]` | the routes it takes; a clause matches when all its keys do, a group when any clause does |
+| `groups[].rest` | bool | no | false | takes its routes only after every other group took theirs |
+| `groups[].legend` | bool or a word | no | true (false for `other`) | false leaves it out of the legend; up to 3 groups with the same word share one entry, one dot each |
+| `groups[].source`, `verified`, `why` | str, bool, str | no | | documentation, as in brands.json; in no key. `make.py show` lists the unverified colours |
+
+A clause takes `feed` (an id or a list), `agency` (`agency_name` list), `mode` (the
+recipe's mode ids), `route_type` (integers), `short` (a regex on the builder's short
+name), `route_ids` (without the feed prefix) and `brand` (the routes A10 gives an entry,
+its rules and line brands too, or exactly one rule). `{}` matches every route and only a
+`rest` group may use it. Every route lands in exactly one group: the first group without
+`rest` with a matching clause, else the first `rest` group with one, else `other`.
+
+`make.py` refuses, with the key and the reason: an unknown key (a `route_desc`,
+`route_color`, `route_long_name` or `trips` rule says why it is not supported), a scheme
+other than the three, more than 7 groups, a duplicate id or label, `other` not last or
+with a colour or rule, a label or legend word that is empty, over 16 characters, holds a
+`·`, is shared by more than 3 groups or equals another group's label, a group without a
+colour, a brand without a `color` for a group with no hex or neutral of its own, a hex
+that is not `#rrggbb`, a colour without hue and no `neutral` (TTC's 808080), a `dL` out
+of range or next to `neutral`, a brands.json `dL` out of range, a clause with an unknown
+feed, mode, brand or a regex that does not compile, `{}` outside a `rest` group, and
+`override.brand_colors` next to `colors`.
+
+Colours ride in the render query (`paint=`), never in the network: a colour, pin or
+`colors.legend` change re-renders but does not re-trim; a rule, label, order, `rest` or
+`groups[].legend` change re-trims (seconds). A brands.json `dL` (on an entry or a rule)
+pins that brand in every video of the batch with a group that takes it, and re-renders
+only those: the GTA's GO is `-0.12` everywhere, so it is one deep green.
 
 ## Batch: `cities/batches/<batch>.json`
 

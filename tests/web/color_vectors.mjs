@@ -75,6 +75,27 @@ function main() {
     expect(`table ${name} 0058a9 dL -0.12`, C.normalise('0058a9', t.env, t.colors.bg, -0.12).trail, rows._dl);
     expect(`table ${name} 0058a9 rot +30`, C.normalise('0058a9', t.env, t.colors.bg, 0, 30).trail, rows._rot);
   }
+  // B19 lightness pins, exactly as the colour plan checked them: one value gives one colour in
+  // every video of a batch (GO, TTC, YRT and Zum in the GTA), and the USA pins of its plans.
+  const PINS = [
+    ['lake', '00853e', -0.12, '3fab61', '006e32'], ['lake', 'ed1c24', -0.12, 'df695e', 'a04038'],
+    ['lake', '0058a9', 0, '83bbff', '3e7cc5'], ['lake', 'e31837', 0, 'ff9592', 'bb5756'],
+    ['sodium', 'f6bc26', 0.10, 'ffcc5b', 'b78e2f'], ['sodium', 'ae5f2f', -0.20, 'ae5f2f', '984b17'],
+    ['sodium', '000099', -0.12, '608bea', '3d5da4'],
+  ];
+  for (const [name, src, dL, trail, line] of PINS) {
+    const t = themes[name];
+    const got = C.normalise(src, t.env, t.colors.bg, dL);
+    checked++;
+    if (!got || got.trail !== trail || got.line !== line) {
+      failures.push(`pin ${name} ${src} dL ${dL}: got ${got && got.trail} ${got && got.line}, want ${trail} ${line}`);
+    }
+  }
+  // A neutral is drawn as given: neither TTC Line 6's 808080 nor its silver has a hue to normalise.
+  for (const hex of ['808080', 'b4bac4']) {
+    checked++;
+    if (C.informative(hex)) failures.push(`informative(${hex}) is true; a neutral would go through the envelope`);
+  }
   // informative(): the A10 and B6 rule.
   const info = { ed1c24: true, '#ED1C24': true, ffffff: false, '000000': false, '808080': false, '': false, '2f6bf': false, '0058a9': true };
   for (const [hex, want] of Object.entries(info)) {

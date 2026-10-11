@@ -14,8 +14,10 @@
 //       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
 //       equal point-in-polygon on meta.boundary except within 25 m of its edge
-//  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart, and
-//       no card line pair splits the place name
+//  B-10 every pair of placed brands at least BRAND_MIN_DE (0.08) apart (on a
+//       colour-group network, B19: every group the ladder placed that far from
+//       every colour placed before it), and no card line pair splits the place
+//       name
 //  B-9  a group the chips line folds into "other" was tried at 24 px with
 //       the 8 px gap first,
 //       and (B6) its brands are drawn foreign, not placed
@@ -40,6 +42,16 @@
 // carry the longest place names (Mississauga, Richmond Hill, Philadelphia,
 // San Antonio, San Francisco) through the title, the card and the count line.
 //
+// A colour-group network (meta.color_by "group") is drawn with the paint and
+// the legend flag make.py gives it (cities/recipes/<id>.json and
+// cities/brands.json when the checkout has the batch's), so its legend row is
+// in every box check. Its meta.groups must carry the recipe's ids, labels and
+// legend words, and the page must find a paint for every group and a group for
+// every paint: a build older than the recipe fails rather than passing on the
+// old groups. A paint whose group the build's city.<day|week>.json gave the
+// trim is only logged: such a group took no route or joined other, which 2.16
+// makes a trim warning, not an error.
+//
 // Usage: node tests/web/v4_hud.mjs [--only gta-toronto,...] [--no-gta]
 
 import fs from 'node:fs';
@@ -49,15 +61,65 @@ import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const MIN = {
   title: 44, subtitle: 26, weekday: 48, clock: 30, count: 28, count2: 28, chips: 20, peak: 20, axis: 20, credit: 18, credit2: 18,
-  card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30, card_line1b: 30,
+  card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30, card_line1b: 30, legend: 18, legend2: 18,
 };
 const FULL = 'card=1&chips=1&peak=1&sparklabels=1';
-const GTA = ['gta-toronto', 'gta-mississauga', 'gta-brampton', 'gta-markham', 'gta-vaughan', 'gta-oakville',
-  'gta-richmond-hill', 'gta-burlington', 'gta-oshawa', 'gta-whitby'];
+// The stubs' ids, and the batch's when build/ has them.
+const GTA = ['gta-toronto', 'gta-toronto-buses', 'gta-toronto-trains', 'gta-trains', 'gta-mississauga', 'gta-brampton',
+  'gta-markham', 'gta-vaughan', 'gta-oakville', 'gta-richmond-hill', 'gta-burlington', 'gta-oshawa', 'gta-whitby'];
 const failures = [];
 const ok = (cond, what) => check(failures, cond, what);
 const args = process.argv.slice(2);
 const only = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null;
+
+// make.py's group_paint and the LEGEND default of a colour-group recipe, from the checkout's
+// recipe and brands.json, with the recipe's groups as color_groups gives them to the trim; null
+// when it has none.
+function recipeColors(id) {
+  const rp = path.join(ROOT, 'cities', 'recipes', `${id}.json`), bp = path.join(ROOT, 'cities', 'brands.json');
+  if (!fs.existsSync(rp) || !fs.existsSync(bp)) return null;
+  const recipe = JSON.parse(fs.readFileSync(rp, 'utf8'));
+  if (!recipe.colors) return null;
+  const brands = JSON.parse(fs.readFileSync(bp, 'utf8')).agencies || [];
+  const ref = (s) => {
+    if (!s) return {};
+    const [eid, rid] = s.split(':');
+    const e = brands.find((a) => a.id === eid) || {};
+    return rid ? (e.rules || []).find((x) => x.id === rid) || {} : e;
+  };
+  const paint = {};
+  for (const g of recipe.colors.groups) {
+    if (g.id === 'other') continue;
+    const b = ref(g.brand);
+    const hex = (g.hex || b.color || '').replace('#', '').toLowerCase();
+    const p = hex ? { hex } : {};
+    if ('neutral' in g) p.neutral = g.neutral === true ? true : g.neutral.replace('#', '').toLowerCase();
+    else {
+      const dL = 'dL' in g ? g.dL : b.dL;
+      if (dL !== undefined && dL !== null) p.dL = dL;
+    }
+    paint[g.id] = p;
+  }
+  return { query: `paint=${encodeURIComponent(JSON.stringify(paint))}&legend=${recipe.colors.legend ? 1 : 0}`,
+    groups: recipe.colors.groups.map((g) => {
+      const other = g.id === 'other', brand = other ? null : g.brand || null;
+      return { id: g.id, label: g.label, brand, match: other ? null : g.match || [{ brand }], rest: Boolean(g.rest),
+        legend: 'legend' in g ? g.legend : !other };
+    }) };
+}
+
+// The colour groups make.py build gave this network's trim (build/<id>/city.<tl>.json), so a
+// group that is in them but not in meta.groups is the trim's no-route or 7-colour fold.
+function trimGroups(id, tl) {
+  const cp = path.join(ROOT, 'build', id, `city.${tl}.json`);
+  if (!fs.existsSync(cp)) return [];
+  const cfg = JSON.parse(fs.readFileSync(cp, 'utf8'));
+  return (cfg.colors && cfg.colors.groups) || [];
+}
+
+// JSON with sorted keys, so a rule compares equal whatever order its clause keys were written in.
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : x));
 
 function gtaNetworks() {
   const out = [];
@@ -70,7 +132,9 @@ function gtaNetworks() {
       if (!file) continue;
       const bm = fs.existsSync(path.join(ROOT, `build/${id}/basemap.json.gz`)) ? `build/${id}/basemap.json.gz` : 'data/gta/built/basemap.json.gz';
       const variants = tl === 'day' ? ['day', 'rush'] : ['week'];
-      out.push({ id, tl, query: `data=../${file}&basemap=../${bm}`, variants, stub: file === stub });
+      const colors = file === real ? recipeColors(id) : null;
+      out.push({ id, tl, query: `data=../${file}&basemap=../${bm}${colors ? `&${colors.query}` : ''}`, variants, stub: file === stub,
+        groups: colors && colors.groups, trimmed: colors && trimGroups(id, tl) });
     }
   }
   return out;
@@ -174,7 +238,7 @@ function inPage() {
   // after 24 px fails, and none of its brands keeps a colour of its own.
   out.chips = bm.chips;
   out.foldedPlaced = [];
-  if (out.chips && out.chips.merged.length) {
+  if (out.chips && out.chips.merged.length && bm.brandMap) {
     const folded = new Set(out.chips.merged);
     (meta.brands || []).forEach((b, i) => {
       const g = b.kind === 'gtfs' || b.kind === 'mode' ? b.id : b.entry || b.id;
@@ -182,8 +246,16 @@ function inPage() {
       if (folded.has(g) && (e.placed || e.how !== 'foreign')) out.foldedPlaced.push(`${e.id}=${e.trail}(${e.how})`);
     });
   }
-  const placed = (bm.brandMap || []).filter((b) => b.placed);
+  // A group network (B19) places by group: the ladder keeps a free group BRAND_MIN_DE from every
+  // colour before it, while a pin or a neutral is a recipe's choice and only warns.
+  const groupNet = Boolean(bm.groupMap);
+  const placed = groupNet ? bm.groupMap.filter((g) => g.order >= 0) : (bm.brandMap || []).filter((b) => b.placed);
   out.placed = placed.map((b) => `${b.id}=${b.trail}(${b.how})`);
+  out.ladderNear = groupNet ? bm.groupMap.filter((g) => g.order >= 0 && !/^(foreign|neutral|pin)/.test(g.how)
+    && g.dmin !== null && g.dmin < cfg.BRAND_MIN_DE - 1e-9).map((g) => `${g.id} ${g.dmin.toFixed(3)} from ${g.near}`) : [];
+  out.groupNet = groupNet;
+  out.groups = (meta.groups || []).map((g) => ({ id: g.id, label: g.label, legend: g.legend }));
+  out.legend = bm.legend;
   out.closest = Infinity;
   out.closestPair = '';
   for (let i = 0; i < placed.length; i++) {
@@ -219,7 +291,32 @@ function checkOverlap(tag, where, boxes) {
   }
 }
 
-async function run(h, name, query, variant) {
+// A real build drawn with its checkout's recipe must be that recipe's trim: a build older than a
+// group edit still draws, with the new paint on the old groups, and would pass every other check.
+// A paint without a group is stale only when the trim was not given that group exactly as the
+// recipe has it (label, rule, legend); when it was, the group took no route or joined other (2.16),
+// and rebuilding changes nothing.
+function checkGroups(tag, r, warnings, groups, trimmed) {
+  const want = new Map(groups.map((g) => [g.id, g]));
+  const same = (a, b) => Boolean(a && b) && a.label === b.label && a.legend === b.legend;
+  for (const g of r.groups) {
+    const w = want.get(g.id);
+    if (!w && g.id === 'other') continue;
+    ok(same(w, g), `${tag} B19: meta.groups ${JSON.stringify(g)}, recipe ${JSON.stringify(w || null)}; `
+      + 'is build/ older than cities/recipes? rerun make.py build');
+  }
+  const given = new Map(trimmed.map((g) => [g.id, g]));
+  for (const w of warnings.filter((x) => /no \?paint for group|\?paint: no group/.test(x))) {
+    const id = (w.match(/^\?paint: no group "([^"]+)"/) || [])[1];
+    if (id && want.has(id) && canon(want.get(id)) === canon(given.get(id))) {
+      console.log(`  ${tag}: group ${id} is not in meta.groups: it took no route or joined other (2.16, a trim warning)`);
+      continue;
+    }
+    failures.push(`${tag} B19: ${w}; is build/ older than cities/recipes? rerun make.py build`);
+  }
+}
+
+async function run(h, name, query, variant, groups = null, trimmed = []) {
   const tag = `${name} ${variant}`;
   const page = await h.open(`${query}&variant=${variant}`, { allowErrors: true });
   if (page.failed) {
@@ -258,9 +355,12 @@ async function run(h, name, query, variant) {
   ok(r.maxCount <= r.peakCount, `${tag} B-6: count reaches ${r.maxCount} > peak ${r.peakCount}`);
   ok(!r.badSum.length, `${tag} B-6: chips do not add up at frames ${JSON.stringify(r.badSum.slice(0, 3))}`);
   ok(!r.flagMismatch.length, `${tag} B-6: lastVehicles flags differ from the polygon away from the edge: ${JSON.stringify(r.flagMismatch)}`);
-  ok(r.closest >= r.minDE - 1e-9 || r.placed.length < 2, `${tag} B-10: ${r.closestPair} only ${r.closest.toFixed(3)} apart`);
+  if (r.groupNet) ok(!r.ladderNear.length, `${tag} B-10: ladder groups under ${r.minDE}: ${r.ladderNear.join(', ')}`);
+  else ok(r.closest >= r.minDE - 1e-9 || r.placed.length < 2, `${tag} B-10: ${r.closestPair} only ${r.closest.toFixed(3)} apart`);
+  if (r.legend) ok(!r.legend.dropped.length, `${tag} B19: the legend dropped ${r.legend.dropped.join(', ')}`);
+  if (groups) checkGroups(tag, r, page.warnings, groups, trimmed);
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join(' | ')}`);
-  const sizes = Object.fromEntries(r.stills.am.filter((b) => ['count', 'chips', 'title', 'weekday'].includes(b.name)).map((b) => [b.name, b.size]));
+  const sizes = Object.fromEntries(r.stills.am.filter((b) => ['count', 'chips', 'legend', 'title', 'weekday'].includes(b.name)).map((b) => [b.name, b.size]));
   const card = r.frames[0].filter((b) => b.name.startsWith('card_title')).map((b) => `${b.text}@${b.size}`).join(' / ');
   const folded = r.chips && r.chips.merged.length ? `  folded ${r.chips.merged.join(',')}` : '';
   console.log(`  ${tag.padEnd(24)} peak ${String(r.peakCount).padStart(5)}  sizes ${JSON.stringify(sizes)}${r.count2 ? ' split' : ''}  `
@@ -377,11 +477,13 @@ try {
     if (nets.some((n) => n.stub)) console.log('  (GTA networks from the stubs in build/stub_v4/)');
     for (const n of nets) {
       for (const v of n.variants) {
-        await run(h, n.id, n.query, v);
+        await run(h, n.id, n.query, v, n.groups, n.trimmed);
         await run(h, `${n.id} full`, `${n.query}&${FULL}`, v);
+        // A train video has its legend off; the row must still fit when a render turns it on.
+        if (n.query.includes('&legend=0')) await run(h, `${n.id} legend`, n.query.replace('&legend=0', '&legend=1'), v);
       }
     }
-    for (const [id, factor] of [['gta-richmond-hill', 200], ['gta-mississauga', 12], ['gta-toronto', 8]]) {
+    for (const [id, factor] of [['gta-richmond-hill', 200], ['gta-mississauga', 12], ['gta-toronto', 8], ['gta-toronto-buses', 8]]) {
       const n = nets.find((x) => x.id === id && x.tl === 'day');
       if (!n) continue;
       const q = stress(n, factor, `stress-${id}`);
