@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "houston",
+ "files": {
+  "2026-09-23.1/divisions/US-TX-houston.geojson": {
+   "sha256": "1e556f349d1b5dc818c3aa5b637f86431e87264d8368ec305e2989079283e8e6",
+   "bytes": 4055791,
+   "parts": [
+    "2026-09-23.1/divisions/US-TX-houston.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/houston/segments.geojson": {
+   "sha256": "e60169bdf24d90d75376d3014cc9ca38be02a2b15321f08a467f7bdb064d8b2f",
+   "bytes": 334183510,
+   "parts": [
+    "2026-09-23.1/houston/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/houston/water.geojson": {
+   "sha256": "07cdda5fc30773cd6cae10c1a590ffa37ce4efcf75b9dd22bf510601af5b70ad",
+   "bytes": 53587926,
+   "parts": [
+    "2026-09-23.1/houston/water.geojson.gz.000"
+   ]
+  }
+ }
+}
