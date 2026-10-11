@@ -291,7 +291,8 @@ elif tier == "tune":
         f = N - 1 if f == "last" else int(f)
         save(picture(1080, 1920, 0), os.path.join(od, f"frame-{f:04d}.png"))
         save(picture(1080, 1920, 0, text=False), os.path.join(od, f"bgframe-{f:04d}.png"))
-        json.dump(CARD if f in (0, 15) else BOXES, open(os.path.join(od, f"boxes-f{f:04d}.json"), "w"))
+        # The card shows on its hold frames only when the query turns it on (the preset has it off).
+        json.dump(CARD if cfg.get("CARD") and f in (0, 15) else BOXES, open(os.path.join(od, f"boxes-f{f:04d}.json"), "w"))
         json.dump(vehicles(0), open(os.path.join(od, f"vehicles-f{f:04d}.json"), "w"))
     nclip = int(arg("--clip-frames", "90"))
     for i in range(nclip):
@@ -955,6 +956,12 @@ class Derivation(Scratch):
         rj, _ = self.pl.render_query(r, "rush")
         self.assertEqual(rj["FRAME_ZOOM"], 1.2)
         self.assertEqual(bh, "brampton:zum:e31837;yrt:0058a9")
+        # The week's render block turns the weekend band on; the query turns it off (B9), and a
+        # recipe's week block can turn it back on.
+        self.assertIs(self.pl.render_query(r, "week")[0]["WEEKEND_BAND"], False)
+        self.assertNotIn("WEEKEND_BAND", self.pl.render_query(r, "day")[0])
+        r["override"]["variant_render"]["week"] = {"WEEKEND_BAND": True}
+        self.assertIs(self.pl.render_query(r, "week")[0]["WEEKEND_BAND"], True)
 
     def test_camera_query(self):
         """B18: one camera path per city, the same in every variant: variety.camera, else the

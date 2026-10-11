@@ -7,8 +7,8 @@
 //
 //  B-5  every hudBoxes() box inside the tall-phone safe zone x 120..800,
 //       y 290..1440 (busmap.safe) and at or above its minimum size, on every
-//       stillTimes() still and on frames 0 and 15 (card), and no console.error
-//       from the page's own layout asserts
+//       stillTimes() still and on frames 0 and 15 (the card with ?card=1), and
+//       no console.error from the page's own layout asserts
 //  B-6  at V.peak.time the count line equals V.peak.count (and B9: its noun
 //       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
@@ -19,9 +19,15 @@
 //       the 8 px gap first,
 //       and (B6) its brands are drawn foreign, not placed
 //
+// The shorts preset shows none of the card, the chips, the peak marker and
+// the sparkline's labels, so each network also runs with all four on (FULL):
+// the card and the chips checks run there, and every box of it must still
+// fit the safe zone at TEXT_SCALE 0.85.
+//
 // Credit copies of the fixture carry the credits of the GTA batch with the
-// author (B9): each still shows the data line, then "Map: Overture, OSM ·
-// Made by SOtownships", on either panel side.
+// author (B9): each still shows the credit on one line when it fits the
+// panel's column, else the data line and then "Map: Overture, OSM · Made by
+// SOtownships", on either panel side.
 //
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
 // five-digit count that has to split, Mississauga x12 and Toronto x8 for the
@@ -37,9 +43,10 @@ import zlib from 'node:zlib';
 import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const MIN = {
-  title: 48, subtitle: 32, weekday: 64, clock: 40, count: 36, count2: 36, chips: 24, peak: 26, axis: 26, credit: 22, credit2: 22,
+  title: 44, subtitle: 26, weekday: 48, clock: 30, count: 28, count2: 28, chips: 20, peak: 20, axis: 20, credit: 18, credit2: 18,
   card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30, card_line1b: 30,
 };
+const FULL = 'card=1&chips=1&peak=1&sparklabels=1';
 const GTA = ['gta-toronto', 'gta-mississauga', 'gta-brampton', 'gta-markham', 'gta-vaughan', 'gta-oakville',
   'gta-richmond-hill', 'gta-burlington', 'gta-oshawa', 'gta-whitby'];
 const failures = [];
@@ -207,6 +214,7 @@ async function run(h, name, query, variant) {
   for (const [i, boxes] of Object.entries(r.frames)) checkBoxes(tag, `frame ${i}`, boxes);
   for (const pair of [['card_line0', 'card_line0b'], ['card_line1', 'card_line1b']]) {
     const lines = r.frames[0].filter((b) => pair.includes(b.name)).map((b) => b.text);
+    if (query.includes('card=1')) ok(r.frames[0].some((b) => b.name === 'card_title'), `${tag}: no card on frame 0 with card=1`);
     ok(!lines.join(' ').includes(r.place) || lines.some((l) => l.includes(r.place)),
       `${tag} B-10: the card splits "${r.place}": ${JSON.stringify(lines)}`);
   }
@@ -288,49 +296,68 @@ function credited(query, credit, name) {
 }
 
 // B9: the credits the trim writes with cities/defaults.json's template and
-// author, on both panel sides: the data on the first line, the map and the
-// author on the second, both inside the safe zone at 22 px. Markham and
-// Brampton keep their agencies; Toronto and Mississauga (seven) and a
-// two-digit count take the fallback.
+// author, on both panel sides, in the panel's column at the credit's own size:
+// on one line when it fits there, else the data on the first line and the map
+// and the author on the second. Markham and Brampton keep their agencies;
+// Toronto and Mississauga (seven) and a two-digit count take the fallback;
+// Chicago's buses (one short agency) is the one-line case.
 const MADE_BY = 'Map: Overture, OSM · Made by SOtownships';
-const CREDITS = [['markham', 'Data: YRT, TTC, GO'], ['brampton', 'Data: Brampton, GO, MiWay, YRT, Milton'],
-  ['seven', 'Data: 7 transit agencies'], ['twelve', 'Data: 12 transit agencies']];
+// [name, data line, on one line]: at 18.7 px "Data: CTA · " and the rest is
+// 494 px of the 504 px column, "Data: YRT, TTC, GO · " and the rest 578.
+const CREDITS = [['markham', 'Data: YRT, TTC, GO', false], ['brampton', 'Data: Brampton, GO, MiWay, YRT, Milton', false],
+  ['seven', 'Data: 7 transit agencies', false], ['twelve', 'Data: 12 transit agencies', false], ['cta', 'Data: CTA', true]];
 const LONG_NAMES = ['Mississauga', 'Richmond Hill', 'Philadelphia', 'San Antonio', 'San Francisco'];
 const h = await openBrowser();
 try {
-  await run(h, 'v4_tiny', TINY, 'day');
-  await run(h, 'v4_tiny', TINY, 'rush');
-  await run(h, 'v4_tiny', TINY_WEEK, 'week');
-  for (const [name, data] of CREDITS) {
+  for (const extra of ['', `&${FULL}`]) {
+    const tag = extra ? 'v4_tiny full' : 'v4_tiny';
+    await run(h, tag, `${TINY}${extra}`, 'day');
+    await run(h, tag, `${TINY}${extra}`, 'rush');
+    await run(h, tag, `${TINY_WEEK}${extra}`, 'week');
+  }
+  for (const [name, data, oneLine] of CREDITS) {
     for (const side of ['left', 'right']) {
       const q = `${credited(TINY, `${data} · ${MADE_BY}`, name)}&panelside=${side}`;
       const r = await run(h, `credit ${name} ${side}`, q, 'day');
       if (!r) continue;
+      const want = oneLine ? [`${data} · ${MADE_BY}`] : [data, MADE_BY];
       for (const [k, boxes] of Object.entries(r.stills)) {
         const credit = boxes.filter((b) => b.name === 'credit' || b.name === 'credit2');
         const lines = credit.map((b) => b.text);
-        ok(JSON.stringify(lines) === JSON.stringify([data, MADE_BY]), `credit ${name} ${side} still ${k} B-9: lines ${JSON.stringify(lines)}`);
-        // The panel's text column: 28 px into the panel on SAFE's left or right side.
+        ok(JSON.stringify(lines) === JSON.stringify(want), `credit ${name} ${side} still ${k} B-9: lines ${JSON.stringify(lines)}`);
+        // The panel's text column: 28 px into the panel on SAFE's left or right side, 504 px wide.
         const x = side === 'right' ? SAFE.x1 - 560 + 28 : SAFE.x0 + 28;
+        ok(credit.every((b) => b.size === credit[0].size && b.size >= MIN.credit && b.x1 <= x + 504 + 0.5),
+          `credit ${name} ${side} still ${k}: ${credit.map((b) => `${b.size} px to x ${b.x1.toFixed(0)}`).join(', ')}, column ends at ${x + 504}`);
         ok(credit.every((b) => Math.abs(b.x0 - x) < 1), `credit ${name} ${side} still ${k}: x0 ${credit.map((b) => b.x0.toFixed(1))}, want ${x}`);
       }
     }
   }
   for (const place of LONG_NAMES) {
-    await run(h, place, renamed(TINY, place), 'day');
-    await run(h, place, renamed(TINY, place), 'rush');
-    await run(h, place, renamed(TINY_WEEK, place), 'week');
+    for (const extra of ['', `&${FULL}`]) {
+      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY, place)}${extra}`, 'day');
+      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY, place)}${extra}`, 'rush');
+      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY_WEEK, place)}${extra}`, 'week');
+    }
   }
   if (!args.includes('--no-gta')) {
     const nets = gtaNetworks();
     if (!nets.length) console.log('SKIP GTA: no build/<id>/ networks and no stubs (python3 -I tests/web/stub_gta_v4.py)');
     if (nets.some((n) => n.stub)) console.log('  (GTA networks from the stubs in build/stub_v4/)');
-    for (const n of nets) for (const v of n.variants) await run(h, n.id, n.query, v);
+    for (const n of nets) {
+      for (const v of n.variants) {
+        await run(h, n.id, n.query, v);
+        await run(h, `${n.id} full`, `${n.query}&${FULL}`, v);
+      }
+    }
     for (const [id, factor] of [['gta-richmond-hill', 200], ['gta-mississauga', 12], ['gta-toronto', 8]]) {
       const n = nets.find((x) => x.id === id && x.tl === 'day');
       if (!n) continue;
       const q = stress(n, factor, `stress-${id}`);
-      for (const v of n.variants) await run(h, `${id} x${factor}`, q, v);
+      for (const v of n.variants) {
+        await run(h, `${id} x${factor}`, q, v);
+        await run(h, `${id} x${factor} full`, `${q}&${FULL}`, v);
+      }
     }
   }
 } finally {

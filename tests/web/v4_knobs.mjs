@@ -7,8 +7,10 @@
 // Each knob is read on the frame where it shows: map and HUD knobs on the
 // am-peak still, the sparkline knobs after the peak, the warp knobs at a
 // frame in the middle of the video, the card knobs on frame 0 and the loop
-// on frame N - 10. colorby runs on a copy of the fixture without
-// meta.color_by, the only file where moving it can change anything.
+// on frame N - 10, both with ?card=1 (the shorts preset has the card off, and
+// the card's fade-in is what the loop moves at N - 10), and the weekend band
+// on the week's Sunday still. colorby runs on a copy of the fixture without meta.color_by,
+// the only file where moving it can change anything.
 // trailstep, trailmode and osm are not listed: brand colouring always draws
 // ribbon trails, and the fixture basemap has no OSM routes.
 //
@@ -16,7 +18,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { openBrowser, ROOT, TINY, check } from './browser.mjs';
+import { openBrowser, ROOT, TINY, TINY_WEEK, check } from './browser.mjs';
 
 const failures = [];
 const ok = (cond, what) => check(failures, cond, what);
@@ -25,15 +27,17 @@ const LATE = { kind: 'still', at: 'pm' };
 const MID = { kind: 'frame', at: 700 };
 const F0 = { kind: 'frame', at: 0 };
 const END = { kind: 'frame', at: -10 };
+// The weekend band grows with the curve, so it shows from Saturday on.
+const SUNDAY = { kind: 'still', at: 'sun' };
 // [query, CONFIG key, moved value, where to look]
 const KNOBS = [
   ['layout', 'HUD_LAYOUT', 'panel', STILL], ['theme', 'THEME', 'ink', STILL], ['variant', 'VARIANT', 'rush', STILL],
   ['colorby', 'COLOR_BY', 'brand', STILL, 'nobrand'],
   ['warp', 'TIME_WARP_MODE', 'linear', MID], ['warpgamma', 'TIME_WARP_GAMMA', 2, MID], ['warpfloor', 'TIME_WARP_FLOOR', 0.4, MID],
-  ['loop', 'LOOP', 'none', END], ['clockround', 'CLOCK_ROUND', 60, STILL],
-  ['card', 'CARD', 0, F0], ['cardscrim', 'CARD_SCRIM', 0.6, F0], ['cardband', 'CARD_BAND', 0.4, F0], ['cardy', 'CARD_CENTER_Y', 760, F0],
-  ['cardsize', 'CARD_TITLE_MAX', 96, F0], ['cardline', 'CARD_LINES', 1, F0],
-  ['peak', 'PEAK_MARKER', 0, LATE], ['chips', 'MODE_CHIPS', 0, STILL], ['outside', 'OUTSIDE_DIM', 0, STILL],
+  ['loop', 'LOOP', 'none', END, 'card'], ['clockround', 'CLOCK_ROUND', 60, STILL],
+  ['card', 'CARD', 0, F0, 'card'], ['cardscrim', 'CARD_SCRIM', 0.6, F0, 'card'], ['cardband', 'CARD_BAND', 0.4, F0, 'card'],
+  ['cardy', 'CARD_CENTER_Y', 760, F0, 'card'], ['cardsize', 'CARD_TITLE_MAX', 96, F0, 'card'], ['cardline', 'CARD_LINES', 1, F0, 'card'],
+  ['peak', 'PEAK_MARKER', 1, LATE], ['chips', 'MODE_CHIPS', 1, STILL], ['outside', 'OUTSIDE_DIM', 0, STILL],
   ['panelalpha', 'PANEL_ALPHA', 0.5, STILL], ['panelside', 'PANEL_SIDE', 'right', STILL], ['fonts', 'FONT_SET', 'classic', STILL],
   ['zoom', 'FRAME_ZOOM', 1.1, STILL], ['cx', 'FRAME_DX_KM', 0.4, STILL], ['cy', 'FRAME_DY_KM', 0.4, STILL],
   ['roads', 'BASE_ROADS_GAIN', 1.35, STILL], ['water', 'BASE_WATER_GAIN', 1.35, STILL],
@@ -43,6 +47,11 @@ const KNOBS = [
   ['shoulder', 'TRAIL_SHOULDER_ALPHA', 0.3, STILL], ['trailalpha', 'TRAIL_ALPHA', 0.4, STILL], ['routealpha', 'ROUTE_ALPHA', 0.3, STILL],
   ['trailscale', 'TRAIL_SCALE', 0.5, STILL], ['trailbands', 'TRAIL_BANDS', 6, STILL], ['shoulderbands', 'TRAIL_SHOULDER_BANDS', 2, STILL],
   ['simplify', 'TRAIL_SIMPLIFY_PX', 12, STILL],
+  // The HUD's text (B9): its scale, its four weights and the sparkline's labels.
+  ['textscale', 'TEXT_SCALE', 0.75, STILL], ['titleweight', 'TITLE_WEIGHT', 700, STILL],
+  ['clockweight', 'CLOCK_WEIGHT', 800, STILL], ['bodyweight', 'BODY_WEIGHT', 600, STILL],
+  ['smallweight', 'SMALL_WEIGHT', 300, STILL], ['sparklabels', 'SPARK_LABELS', true, STILL],
+  ['weekend', 'WEEKEND_BAND', false, SUNDAY, 'week'],
   // The camera (B18) mid loop, where the zoom and the drift both show, on a
   // frame that leaves the city line room for the whole move, so the line's cap
   // hides no knob; its floor (cambound) moves on the fixture's own frame, the
@@ -87,6 +96,8 @@ delete fixture.meta.color_by;
 fs.writeFileSync(nobrandPath, JSON.stringify(fixture));
 const BASES = {
   tiny: TINY,
+  card: `${TINY}&card=1`,
+  week: TINY_WEEK,
   framed: `${TINY}&zoom=0.6`,
   nobrand: 'data=../build/test_web/tiny_nobrand.json&basemap=../tests/fixtures/v4_tiny/basemap.json&colorby=',
 };

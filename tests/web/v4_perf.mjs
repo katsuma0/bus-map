@@ -33,8 +33,8 @@ try {
   const page = await h.open(`data=../${data}&basemap=../${basemap}`);
   const r = await page.evaluate(async (n) => {
     const bm = window.busmap;
-    // The am peak is frame 0 of the day video (the window starts there), so
-    // the frames timed cover the card (0 to 44) and the plain HUD after it.
+    // The am peak is frame 0 of the day video (the window starts there), the
+    // video's busiest frames, all with the full HUD (the card is off).
     const i0 = Math.round(bm.progressAt(bm.stillTimes().am) * bm.totalFrames);
     bm.renderFrame(i0);
     bm.canvas.toDataURL('image/png');

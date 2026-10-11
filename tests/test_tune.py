@@ -84,6 +84,15 @@ class Scores(unittest.TestCase):
         band[400:800] = (8, 13, 21)
         self.assertGreater(tune.text_contrast(card, band, tune.CARD_TEXT), 6)
 
+    def test_sparse_dots_need_the_high_percentile(self):
+        # A dark panel with bright dots on about 7% of the count line's pixels: P90 is the dark
+        # ground, the panelalpha knob's P99 is the dots.
+        bg = np.full((1920, 1080, 3), 10, np.uint8)
+        bg[1195:1205, 150:560:4] = 255
+        count = [PANEL_BOXES[2]]
+        self.assertGreater(tune.text_contrast(count, bg, ["count"]), 10)
+        self.assertLess(tune.text_contrast(count, bg, ["count"], 99), 2)
+
     def test_card_cover(self):
         card = [{"name": "card_title", "x0": 72, "y0": 480, "x1": 800, "y1": 600},
                 {"name": "card_line0", "x0": 72, "y0": 650, "x1": 700, "y1": 700}, {"name": "clock", "y0": 1200, "y1": 1290}]
@@ -95,9 +104,9 @@ class Scores(unittest.TestCase):
         self.assertEqual(tune.breaks_of({"card_cover": 0.3}), [])
 
     def test_sizes(self):
-        boxes = [dict(PANEL_BOXES[3], size=20), {"name": "card_line1", "size": 30}]
-        self.assertEqual(tune.size_breaks([boxes]), ["credit 20 < 22"])
-        self.assertIn("sizes", tune.breaks_of({"sizes": ["credit 20 < 22"]}))
+        boxes = [dict(PANEL_BOXES[3], size=17), {"name": "card_line1", "size": 30}, dict(PANEL_BOXES[2], size=34)]
+        self.assertEqual(tune.size_breaks([boxes]), ["credit 17 < 18"])
+        self.assertIn("sizes", tune.breaks_of({"sizes": ["credit 17 < 18"]}))
 
 
 class Arms(unittest.TestCase):
@@ -136,7 +145,7 @@ class Arms(unittest.TestCase):
         knobs = lambda v: [k[0] for k in tune.KNOBS if v in k[5]]
         # The camera knob (24) runs right after the frame knobs it moves over.
         self.assertEqual(knobs("day"), [1, 2, 3, 24] + list(range(4, 24)))
-        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 19])
+        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 19, 22])
         self.assertEqual(knobs("week"), [24, 4, 10, 12, 17, 19])
         self.assertEqual(tune.BY_NAME["camamp"][2:5], ("CAMERA_AMP", "camera", True))
 
@@ -173,6 +182,40 @@ class Arms(unittest.TestCase):
         for bad in ("", "x" * 121, "long \u2014 dash", "two\nlines"):
             with self.assertRaises(tune.TuneError):
                 tune.check_why(bad)
+
+
+class CardKnobs(tm.Scratch):
+    """B10: the card knobs join a pass only when the video shows the card."""
+
+    def setUp(self):
+        super().setUp()
+        self.repo = tm.FakeRepo(self.tmp)
+        self.repo.run("lock", "test")
+        self.repo.run("build", "test")
+
+    def knobs(self, variant):
+        pl = make.Pipeline(self.repo.root)
+        return [k[1] for k in tune.Tuner(pl, "test-centre", variant).knobs()]
+
+    def test_preset_decides(self):
+        self.assertNotIn("cardline", self.knobs("week"))
+        self.assertIn("panelalpha", self.knobs("day"))
+        self.assertFalse(any(k.startswith("card") for k in self.knobs("day")))
+        # web/presets/<meta.preset>.json turns it on, as it does on the page.
+        os.makedirs(os.path.join(self.repo.root, "web", "presets"), exist_ok=True)
+        self.repo.write_json("web/presets/shorts.json", {"render": {"CARD": True}})
+        self.assertEqual([k for k in self.knobs("day") if k.startswith("card")], ["cardsize", "cardline", "cardscrim", "cardy"])
+        self.assertIn("cardline", self.knobs("week"))
+        # The recipe's render query wins over the preset.
+        r = self.repo.read_json("cities/recipes/test-centre.json")
+        r.setdefault("override", {}).setdefault("render", {})["CARD"] = False
+        self.repo.write_json("cities/recipes/test-centre.json", r)
+        self.assertNotIn("cardline", self.knobs("week"))
+
+    def test_still_frames(self):
+        self.assertEqual(make.Pipeline.still_frames("day", 1500), [0, 1499])
+        self.assertEqual(make.Pipeline.still_frames("day", 1500, card=True), [0, 15, 45, 1469, 1499])
+        self.assertEqual(make.Pipeline.still_frames("week", 1800, card=True), [0, 1799])
 
 
 class EndToEnd(tm.Scratch):
@@ -293,8 +336,8 @@ class EndToEnd(tm.Scratch):
         out = self.repo.run("tune", "test-centre", "--variant", "week", "--auto").stdout
         self.assertIn("every knob of the week pass has a pick", out)
         state = tm.load(os.path.join(self.repo.root, "build/test-centre/tune/week/state.json"))
-        self.assertEqual([h["knob"] for h in state["history"]], ["camamp", "trailmin", "dotcore", "haloalpha", "warpfloor",
-                                                                 "cardline"])
+        # The card is off (no preset turns it on here), so cardline is not in the pass.
+        self.assertEqual([h["knob"] for h in state["history"]], ["camamp", "trailmin", "dotcore", "haloalpha", "warpfloor"])
         self.assertTrue(all(h["picked"] for h in state["history"]))
         res = self.repo.run("tune", "test-north", "--variant", "week", "--next", check=False)
         self.assertNotEqual(res.returncode, 0)

@@ -1145,6 +1145,8 @@ class Pipeline:
         """D3.8: the render= JSON and brandhex= string for one video."""
         variety = recipe.get("variety") or {}
         ov = recipe.get("override") or {}
+        # The card is off in the shorts preset (B10), so card_line changes no pixel; it stays in the
+        # query so a render that turns the card on (card=1) opens on the recipe's own line.
         rj = {"CARD_LINES": variety.get("card_line", 0)}
         # The preset turns the camera on; the recipe only names the path (or turns it off), the
         # same for every variant, so the rush close-up and the week move like the day.
@@ -1153,6 +1155,11 @@ class Pipeline:
             rj["CAMERA"] = False
         else:
             rj["CAMERA_PATH"] = cam or self.camera_pick(recipe)
+        if variant == "week":
+            # The week's render block turns the weekend band on and beats the preset; it is baked into every
+            # week network and keyed into its trim, so the query, which beats the block, turns the band off
+            # (B9) without a rebuild. override.variant_render.week can turn it back on.
+            rj["WEEKEND_BAND"] = False
         rj.update(ov.get("render", {}))
         rj.update(ov.get("variant_render", {}).get(variant, {}))
         if variant in ("day", "week"):
@@ -2334,10 +2341,23 @@ class Pipeline:
         return [int(t + period if t < w0 else t) for t in ts]
 
     @staticmethod
-    def still_frames(variant, n):
-        if variant == "week":
-            return [0, n - 1]
-        return [0, 15, 45, n - 31, n - 1]
+    def still_frames(variant, n, card=False):
+        """Frame 0 (the cover) and N - 1 (the loop seam); with the card on, also its hold, fade-out and fade-in."""
+        if card and variant != "week":
+            return [0, 15, 45, n - 31, n - 1]
+        return [0, n - 1]
+
+    def card_on(self, recipe, variant, meta):
+        """Whether the video opens on the card (B10): CARD in the page's preset, then the network's and the
+        variant's render blocks and the recipe's render query, the page's own precedence (2.10)."""
+        r = {}
+        preset = meta.get("preset") or ""
+        p = self.path("web", "presets", f"{preset}.json")
+        if re.match(r"^[A-Za-z0-9_-]+$", preset) and os.path.exists(p):
+            r.update(read_json(p).get("render") or {})
+        r.update(meta.get("render") or {})
+        r.update(self.effective_render(recipe, variant, meta)[2])
+        return bool(r.get("CARD", False))
 
     @staticmethod
     def still_names(stem, t, week):
@@ -2382,7 +2402,10 @@ class Pipeline:
             os.makedirs(out, exist_ok=True)
             stem = stem_of(rid, v)
             times = self.still_times(meta, v)
-            frames = self.still_frames(v, n)
+            # A ?card= in the extra query wins, as the page pins every query knob (B2 step 1).
+            card = dict(urllib.parse.parse_qsl(extra_query or "")).get("card")
+            card = self.card_on(recipe, v, meta) if card is None else card not in ("0", "false")
+            frames = self.still_frames(v, n, card)
             base = self.common_render_args(recipe, v, meta)
             q = extra_query or ""
             self.run_node(base + ["--tier", "stills", "--out-dir", self.rel(out), "--name", stem,

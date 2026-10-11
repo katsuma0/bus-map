@@ -460,7 +460,12 @@ Additions made while implementing (they extend, never change, the formats below)
 * tuning (G) has a 23rd knob, `outside` (`OUTSIDE_DIM`, day pass, arms v - 0.2 and v + 0.2 capped
   at 0.95), and a G4 score `card_cover` for the card knobs: the share of on-screen inside vehicles
   in the rows of the frame-0 card band (card text extent +- 60 px), hard limit 0.4; for it the tune
-  tier also writes `vehicles-f<nnnn>.json` for each frame it renders;
+  tier also writes `vehicles-f<nnnn>.json` for each frame it renders. The card knobs (18 to 21)
+  join a pass only when the video shows the card (`CARD` after the preset, the render blocks and
+  the recipe, B10; off in the shorts preset), and an explicit `--knob` for one renders its arms
+  with `CARD` on; `panelalpha` (22) is scored by text contrast over the stills of the day and the
+  rush passes, against P99 of the background under each box rather than P90, so the few bright dots
+  and lines that cross the text, which the backdrop is there for, count;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
   render key; `--upload` sends the MP4 last;
@@ -520,7 +525,7 @@ does today).
 | `rush.frame` | obj or null | no | null | a pinned closer frame for the rush; must lie inside the day trim box |
 | `rush.auto` | bool | no | true | with `rush.frame` null, A computes a closer frame (A8.6); false = the day frame |
 | `variety.panel_side` | `left` / `right` | no | `left` | preference; the side is chosen by A8.7 and this breaks ties within 10% |
-| `variety.card_line` | int 0..2 | no | 0 | index into the card templates; a `cardline` tuning pick writes here |
+| `variety.card_line` | int 0..2 | no | 0 | index into the card templates, for a render that turns the card on (`card=1`; off in the shorts preset, B10); a `cardline` tuning pick writes here |
 | `variety.zoom` | float | no | 1.0 | multiplies FRAME_ZOOM (D3.8) |
 | `variety.camera` | one of the six B18 paths, or `off` | no | the batch pick (B18, `camera_paths`) | the camera move, the same in every variant; D3.8 passes it as `CAMERA_PATH` (`off`: `CAMERA: false`) |
 | `override.render` | obj of CONFIG keys | no | {} | for every variant; never a key that any `defaults.variants.*.render` block sets (validation error) |
@@ -748,7 +753,7 @@ only by the untouched legacy scripts).
 | `modes` | [str] | `["bus"]` | the recipe's modes in batch order (every batch mode by default); the trim keeps only their trips |
 | `brands` | str | `"cities/brands.json"` | |
 | `group_by` | obj | `{"field": "agency-auto", "min_share": 0.03, "max_groups": 3}` | |
-| `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM · Made by SOtownships"`, `"Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"` | on-screen credit: `defaults.json`'s with `{author}` filled by D; A fills `{agencies}` (by inside share) when that wraps into at most 2 lines at 22 px in 504 px (B9), else the fallback's `{n}` (Toronto and Mississauga: `Data: 7 transit agencies`); a fallback past 2 lines fails the trim |
+| `credit_template`, `credit_fallback` | str | `"Data: {agencies} · Map: Overture, OSM · Made by SOtownships"`, `"Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"` | on-screen credit: `defaults.json`'s with `{author}` filled by D; A fills `{agencies}` (by inside share) when that wraps into at most 2 lines at 22 px in 504 px (B9), else the fallback's `{n}` (Toronto and Mississauga: `Data: 7 transit agencies`); a fallback past 2 lines fails the trim. The page draws the credit at 22 x `TEXT_SCALE` (18.7 px in the shorts preset) and on one line when it fits, so this fit is the conservative one |
 | `preset`, `theme` | str, obj | `"shorts"`, `{"batch": "lake"}` | copied to meta |
 | `render` | obj | `{}` | copied to meta.render (base values only) |
 | `variants` | obj | 2.9 | `start: "am_peak"` and the rush frame are filled by A |
@@ -849,8 +854,8 @@ hist                   [hist_period floats, 2 decimals]: mean vehicles running i
 
 `hist`, `hist_by_mode` and `hist_by_group` are the mean running counts over each feed's selected
 dates (decision 2), always, including where the drawn set follows the median-date rule. Every number
-on screen and in the metadata is read from them (B9, B10, D5), so the count line, the peak label,
-the card and the description cannot disagree.
+on screen and in the metadata is read from them (B9, B10, D5), so the count line, the peak label
+and the card (when a render turns them on) and the description cannot disagree.
 
 Variant object `V`:
 
@@ -895,15 +900,15 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `TIME_WARP_SMOOTH_MIN` | int | 60 | 60 | |
 | `LOOP` | `'none'`, `'wrap'`, `'xfade'` | `'none'` | per variant | `loop` |
 | `CLOCK_ROUND` | int minutes, 0 = auto | 0 | | `clockround` |
-| `CARD` | bool | false | true | `card` (0/1) |
-| `CARD_HOLD` / `CARD_FADE_OUT` / `CARD_FADE_IN` | int frames | 27 / 18 / 30 | | |
+| `CARD` | bool | false | false (no title card: frame 0 is the full HUD and the cover, B10) | `card` (0/1) |
+| `CARD_HOLD` / `CARD_FADE_OUT` / `CARD_FADE_IN` | int frames | 27 / 18 / 30 (`CARD_FADE_IN` is also the xfade's cross-fade, card or not) | | |
 | `CARD_SCRIM` | float | 0.25 | | `cardscrim` |
 | `CARD_BAND` | float | 0.85 | | `cardband` |
 | `CARD_CENTER_Y` | int px | 0 (auto: the block hung 20 px over `SAFE.y1`, B10) | | `cardy` |
 | `CARD_TITLE_MAX` | int px | 132 | | `cardsize` |
 | `CARD_LINES` | int | 0 | from `variety.card_line` | `cardline` |
-| `PEAK_MARKER` | bool | false | true | `peak` |
-| `MODE_CHIPS` | bool | false | true | `chips` |
+| `PEAK_MARKER` | bool | false | false | `peak` |
+| `MODE_CHIPS` | bool | false | false | `chips` |
 | `OUTSIDE_DIM` | float 0..1 | 0 | 0.55 | `outside` |
 | `CITY_LINE_W` / `CITY_LINE_ALPHA` | float | 2 / 0.8 | | |
 | `PANEL_ALPHA` | float | 1 | 1 | `panelalpha` |
@@ -914,7 +919,13 @@ them). The default is today's behaviour; the Shorts values come from the preset 
 | `FRAME_ZOOM` | float | 1 | | `zoom` |
 | `FRAME_DX_KM` / `FRAME_DY_KM` | float | 0 / 0 | | `cx` / `cy` |
 | `BASE_ROADS_GAIN` / `BASE_WATER_GAIN` | float | 1 / 1 | | `roads` / `water` |
-| `WEEKEND_BAND` | bool | false | | |
+| `WEEKEND_BAND` | bool | false | false: the week's render block sets true, and D3.8's week render query sets false over it (the block is baked into every week network and keyed into its trim) | `weekend` (0/1; beats both) |
+| `TEXT_SCALE` | float 0.6..1 | 1 | 0.85 | `textscale` |
+| `TITLE_WEIGHT` | int 100..900 | 700 | 500 | `titleweight` |
+| `CLOCK_WEIGHT` | int 100..900, the clock and the weekday | 800 | 500 | `clockweight` |
+| `BODY_WEIGHT` | int 100..900, the count line, the week's clock, the chips (at most 500) and the peak label | 600 | 400 | `bodyweight` |
+| `SMALL_WEIGHT` | int 100..900, the subtitle, the credit and the axis | 400 | 500 | `smallweight` |
+| `SPARK_LABELS` | bool, the sparkline's axis labels (and the day's and the rush's ticks) | true | false | `sparklabels` (0/1) |
 | `CAMERA` | bool | false | true | `camera` (0/1) |
 | `CAMERA_PATH` | `'auto'` or a B18 path | `'auto'` (FNV-1a of `meta.id`) | from `variety.camera` (D3.8) | `campath` |
 | `CAMERA_ZOOM` | float 0..0.5 | 0.08 | | `camzoom` |
@@ -964,12 +975,12 @@ Every existing member stays. Added:
 | `hudBoxes()` | `[{name, x0, y0, x1, y1, color, size, font}]` | text boxes of the last drawn frame (B9, B10); names `title`, `subtitle` (one box per line), `weekday`, `clock`, `count`, `count2`, `chips`, `axis`, `credit`, `credit2`, `peak`, `card_title`, `card_title2`, `card_line0`, `card_line0b`, `card_line1`, `card_line1b`; `size` in px |
 | `lastVehicles` | Float32Array | `[x, y, inside, ...]` screen positions of vehicles running at the last render; `inside` from the A mask (B11) |
 | `setHud(mode)` | fn | `'full'`, `'notext'`, `'none'`, without reload |
-| `setCard(on)` | fn | turns the card on or off without reload |
-| `cardAlpha(i)` | fn | card alpha a(i) at frame i (B10); the card draws at c(i), the HUD at u(i) |
+| `setCard(on)` | fn | turns the card on or off without reload; no card shows unless `CARD` is on (the shorts preset has it off; `card=1`) |
+| `cardAlpha(i)` | fn | card alpha a(i) at frame i (B10), 0 on every frame with `CARD` off; the card draws at c(i), the HUD at u(i) |
 | `stillTimes()` | fn | `{am, noon, pm, late, night}` absolute seconds inside the window (B15) |
 | `brandMap` | `[{id, hex, trail, line, how, placed}]` | result of B6 (`how` = ladder step) |
 | `countAt(T)` | fn | `{total, byGroup}` as drawn by the HUD at T (B9) |
-| `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null | the chips fit (B9): parts shown, size, the width limit, groups folded into `other`, and every width tried in order |
+| `chips` | `{ids, size, gap, width, merged, tried: [{n, size, gap, w}]}` or null (`MODE_CHIPS` off) | the chips fit (B9): parts shown, size and gap at `TEXT_SCALE` 1 (drawn scaled), the width limit, groups folded into `other`, and every width tried in order |
 | `camera` | `{path, zoom, drift, scale, amp, bound, box, keep, peak_speed, pivot, base: {w, h, k, x0, y0}}` or null | B18: the path, the zoom amplitude, the drift in px, the speed cap's factor, `CAMERA_AMP`, the city line's factor, the line's fitted bbox and keep rect (`[x0, y0, x1, y1]` px; `keep` null when the frame crops the line), the fastest on-screen motion in frame widths a second, the pivot, and the cached base (px, scale, base-px origin) |
 | `cameraAt(u)` | fn | `{zoom, e, f}`: screen = zoom x base px + (e, f) at phase u; frame i of N is u = i / N; identity when off |
 | `setCamera(u)` | fn | pins the phase `renderAt` draws the camera at; `null` follows T again (`renderFrame` always uses i / N) |
@@ -987,7 +998,7 @@ Every existing member stays. Added:
 --name STEM            output stem, default from --out
 --out-dir DIR          stills/tune output directory
 --times LIST           stills/tune: comma list of H:MM (26:30 allowed), seconds, or "none"
---frames LIST          stills/tune: comma list of frame indices, "last" allowed (card checks)
+--frames LIST          stills/tune: comma list of frame indices, "last" allowed (the cover and the seam; card checks with card=1)
 --sheet                stills: also write <out-dir>/<name>.sheet.jpg (at most 1568 px on the long edge)
 --clip-at T            tune: clip starts at the frame whose time is T (default busmap.stillTimes().am)
 --clip-frames N        tune: default 90
@@ -1219,62 +1230,88 @@ never shrunk further. The panel is 560 px wide against `SAFE`'s left side (x 120
 the right one. Font names are the `extended` families (B13).
 
 The map stays full bleed. Between the title block and the panel lies the band no text covers, the
-**fit box** x 120..800, y 440..1080 (`SAFE.y0 + 150` to the day panel's top), which is
-`defaults.json` `fit_box`: the lock frame (D3.2) puts the city's bbox inside it, centred on
-(460, 760), so no part of the city sits under the day panel or the title, on a tall phone as on a
-9:16 one. The week panel, one row taller, reaches 30 px into the fit box's bottom edge, a split
-count line 44 px more.
+**fit box** x 120..800, y 440..1080 (`SAFE.y0 + 150` to `SAFE.y1 - 360`, the day panel's top with
+every row on at `TEXT_SCALE` 1), which is `defaults.json` `fit_box`: the lock frame (D3.2) puts
+the city's bbox inside it, centred on (460, 760), so no part of the city sits under the day panel
+or the title, on a tall phone as on a 9:16 one. No HUD knob moves it. With every row on at scale 1
+the week panel, one row taller, reaches 30 px into the fit box's bottom edge, a split count line
+44 px more; the shorts preset's panel stays under it (its top is about 1170).
+
+The shorts preset is the quiet HUD the owner asked for: no card, no chips, no peak marker and no
+sparkline labels, and smaller, lighter text. What stays: the title, one subtitle line (the variant
+label, which says the data is an average October weekday or week), the clock, the count line, the
+sparkline and the credit. Every size below is the scale 1 size times k = `TEXT_SCALE` (0.85 in the
+preset), to a tenth of a pixel, and never under its `MIN_SIZE` floor (the asserts' list below);
+every fit runs between its scale 1 sizes times k; every gap between rows is the scale 1 gap times k,
+rounded to the pixel. Numbers in brackets are the preset's.
 
 | element | font | colour | x | baseline y | fit |
 |---|---|---|---|---|---|
-| title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, 42 px more under a wrapped subtitle): alpha S from y 0 down to F = the last subtitle baseline + ceil(0.3 x its size) (431, or 473 wrapped), 0.55 S at F + 0.55 (h - F) for the sprite's height h, 0 at h; S = `TITLE_SCRIM`. At half strength the rush's second line read 2.2:1 over dense trails |
-| title (`meta.title`) | MontserratX 700, `TITLE_SIZE` 64, letter-spacing 0.12 em | title | 132 | 366 | width <= 656: shrink by 2 down to 48 |
-| subtitle (variant label) | MontserratX 400 36 | subtitle | 132 | 420 | width <= 656: 36 down to 32; past that two lines 42 px apart from 36 px down, broken after the comma when both halves fit, else balanced (the rush label: `Morning rush,` / `an average October weekday`) |
-| panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95) | 120+dx..680+dx | | y `PANEL_TOP`..1440 |
-| weekday (week only) | MontserratX 800, fitted once on `WEDNESDAY` from 80 down to 64 (68 with the repo fonts) | clock | 148+dx | clock row - 50 | |
-| clock | day and rush: MontserratXTnum 800 88; week: MontserratXTnum 600 40 | clock | 148+dx | 1172 (day, rush), 1178 (week) | |
-| count | MontserratXTnum 600 40 | accent | 148+dx | 1222 | fitted once on the widest text down to 36; then split (below) |
-| chips | MontserratXTnum 500 26, dots r 9 | breakdown | 148+dx | 1260 | chips rule below |
-| sparkline | area + 3 px accent stroke | accent | 148+dx..652+dx | y 1274..1326, floor line 1326.5 (1 px `floor`) | curve height `y1 - y0 - 6` |
-| peak marker | dot r 5; label MontserratXTnum 600 26 `peak 3,951` | accent | right of the dot (left when it would pass 652+dx) | dot y + 9, inside 1293..1326 | |
-| axis | MontserratX 500 26 | axis | 148+dx left, 652+dx right-aligned | 1356 | |
-| credit (`meta.credit`) | InterX 400 22 | credit | 148+dx | 1390 and 1416 | wraps at a space into at most 2 lines of 504 px; two lines break at the first ` · ` when both halves fit (`Data: YRT, TTC, GO` / `Map: Overture, OSM · Made by SOtownships`); never cut |
+| title scrim | | `scrim` | | | sprite 1080 x 510 at y 0 (`SAFE.y0 + 220`, one subtitle line spacing more under a wrapped subtitle): alpha S from y 0 down to F = the last subtitle baseline + ceil(0.3 x its size), 0.55 S at F + 0.55 (h - F) for the sprite's height h, 0 at h; S = `TITLE_SCRIM`. At half strength the rush's second line read 2.2:1 over dense trails |
+| title (`meta.title`) | MontserratX `TITLE_WEIGHT` [500], `TITLE_SIZE` 64 x k [54.4], letter-spacing 0.12 em | title | 132 | `SAFE.y0 + round(30k + 0.72 x 64k)` [355], from the unfitted size, so a long name keeps the baseline | width <= 656: shrink by 2 down to 48k (at least 44) |
+| subtitle (variant label) | MontserratX `SMALL_WEIGHT` [500] 36k [30.6] | subtitle | 132 | title + round(54k) [401] | width <= 656: 36k down to 32k (at least 26) by 1; past that two lines round(42k) apart from 36k down, broken after the comma when both halves fit, else balanced. The preset's rush label fits one line at 29.6 px |
+| panel | backdrop, radius 24, `blur(28px)` once at init | `panel` x `PANEL_ALPHA` (alpha capped 0.95; 0 hides it) | 120+dx..680+dx | | y `PANEL_TOP`..1440 |
+| weekday (week only) | MontserratX `CLOCK_WEIGHT` [500], fitted once on `WEDNESDAY` from 80k down to 64k (at least 48) by 2 [68] | clock | 148+dx | clock - round(50k) | |
+| clock | day and rush: MontserratXTnum `CLOCK_WEIGHT` [500] 88k [74.8]; week: MontserratXTnum `BODY_WEIGHT` [400] 40k [34] | clock | 148+dx | count line - 50k (week: 44k) | |
+| count | MontserratXTnum `BODY_WEIGHT` [400] 40k [34] | accent | 148+dx | sparkline top - 30k (chips - 38k with the chips) | fitted once on the widest text from 40k down to 36k (at least 28); then split (below) |
+| chips (`MODE_CHIPS`, off) | MontserratXTnum min(500, `BODY_WEIGHT`), the fitted 26 or 24 times k, dots r 9k | breakdown | 148+dx | sparkline top - 14k | chips rule below |
+| sparkline | area + 3k px accent stroke, neither drawn under 1 px of curve (frame 0, the cover, shows the floor line alone, not a round cap's lone dot) | accent | 148+dx..652+dx | 52k tall; its floor 30k over the axis, else 38k over the first credit line; floor line 1 px `floor` | curve height `y1 - y0 - 6` |
+| peak marker (`PEAK_MARKER`, off) | dot r 5k; label MontserratXTnum `BODY_WEIGHT` 26k `peak 3,951`, outline 6k | accent | 11k right of the dot (left when it would pass 652+dx) | dot y + 9k, inside sparkline top + 19k..floor | |
+| axis (`SPARK_LABELS`, off) | MontserratX `SMALL_WEIGHT` 26k (the week's current day `SMALL_WEIGHT` + 300) | axis | 148+dx left, 652+dx right-aligned | first credit line - 34k | |
+| credit (`meta.credit`) | InterX `SMALL_WEIGHT` [500] 22k [18.7] | credit | 148+dx | last line `SAFE.y1 - 24k` [1420], lines 26k apart | in the panel's 504 px column, under the sparkline, at 22k for every city: one line when it fits (at the preset `Data: CTA`, `Data: VIA` and `Data: MTS` with the map and the author, 488 to 497 px); else at most 2 lines, which break at the first ` · ` when both halves fit (`Data: YRT, TTC, GO` / `Map: Overture, OSM · Made by SOtownships`); never cut, never shrunk to save a line, and always ending `Made by SOtownships`. Past the column a line would hang off a left panel's backdrop (x 680) |
 
-* **Panel top.** `PANEL_TOP` 0 means auto: the cap top of the first row minus 28 px: 1080 for day
-  and rush (`SAFE.y1 - 360`), 1050 for the week (weekday cap top 1078), 44 px higher again when
-  the count splits.
+* **Panel top.** `PANEL_TOP` 0 means auto: the first row's cap top (`floor(baseline - 0.72 x
+  size)`, the clock, or the weekday in the week) minus 28 px, so the panel is as tall as what it
+  shows. At scale 1 with every row on that is 1080 for day and rush (`SAFE.y1 - 360`), about 1050
+  for the week, 44 px higher again when the count splits; at the preset 1172 for the day and the
+  rush with a two-line credit (1194 with one) and 1140 for the week.
 * **Count line**: `${withCommas(n)} ${noun} in ${meta.place}` with `n = round(histRaw(T / 60))`;
   noun = the mode label (singular when n is 1) when only one mode has at least 0.5 inside
   vehicles in some minute of `[start, end)` (the minutes `V.peak` is taken over), else
-  `vehicles` / `vehicle`. Fit once on the text at `V.peak.count`: 40 px, down to 36; if it still
+  `vehicles` / `vehicle`. Fit once on the text at `V.peak.count`: 40k, down to 36k; if it still
   exceeds 504 px, split before ` in `: `count` (`12,345 vehicles`) and `count2` (`in Richmond
-  Hill`) 44 px apart, and the rows above move up 44 px. The count never exceeds the peak label,
-  because both read `hist` and the label is its maximum over the window.
-* **Chips** (`MODE_CHIPS`): groups from `meta.groups` in order (else modes). Each part is a dot r 9
-  centred at `(x + 9, baseline - 9)` in the group's colour (B6), then the text `412 YRT` from
-  `x + 26`; 20 px between parts (8 px in the last fit step). The numbers are the group means at T, rounded by largest
-  remainder so they add up to the count line's n. Fit once at each group's maximum over the window,
-  before the colours: all groups at 26 px, then at 24 px, then at 24 px with 8 px gaps; if none
-  fits, the smallest shown group joins `other` and the shorter list tries the same three again,
-  down to 1 group plus other. Never below 24. A group folded into `other` is not placed (B6): its brands are drawn in the foreign
-  colour like `other`, so every trail colour on the map has its chip.
+  Hill`) 44k apart, and the rows above move up 44k. The count never exceeds `V.peak.count` (the
+  peak label's number), because both read `hist` and the peak is its maximum over the window.
+* **Chips** (`MODE_CHIPS`, off in the preset): groups from `meta.groups` in order (else modes).
+  Each part is a dot r 9 centred at `(x + 9, baseline - 9)` in the group's colour (B6), then the
+  text `412 YRT` from `x + 26`; 20 px between parts (8 px in the last fit step); every one of those
+  numbers times k as drawn. The numbers are the group means at T, rounded by largest remainder so
+  they add up to the count line's n. Fit once at each group's maximum over the window, before the
+  colours and at scale 1 in weight 500, whatever the chips knob and the text knobs say: all groups
+  at 26 px, then at 24 px, then at 24 px with 8 px gaps; if none fits, the smallest shown group
+  joins `other` and the shorter list tries the same three again, down to 1 group plus other. Never
+  below 24 at scale 1; drawn at k and at most weight 500 the line is never wider, so it still fits.
+  A group folded into `other` is not placed (B6): its brands are drawn in the foreign colour like
+  `other`, with or without the chips, so turning them on or scaling the text never repaints a
+  city's trails (Brampton folds MiWay, Mississauga and Vaughan fold Brampton).
 * **Clock.** `CLOCK_ROUND` 0 (auto): the time is floored to 5 minutes while `rate(m)` exceeds 2
   minutes per frame (nights of the day video), else to the minute; the week block sets 60 (`8 am`).
-* **Axis**: day: `clockText(W0)` left and `clockText(W1)` right (the same clock time) plus a 1 px
-  floor-colour tick at midnight (y 1326..1334) with `midnight` centred under it when its centre is
-  at least 120 px from both ends. Rush: `6:30 am` / `9:30 am`, ticks at 7, 8, 9 am. Week: day letters
-  `M T W T F S S` centred on each calendar day's visible span (none under 30 px), the current day's
-  letter in MontserratX 700 accent; 1 px ticks at each midnight; with `WEEKEND_BAND` an accent
-  rectangle at 0.07 alpha from x(Saturday 00:00) to x(Monday 00:00), y 1274..1326, under the area.
+* **Axis** (`SPARK_LABELS`, off in the preset): day: `clockText(W0)` left and `clockText(W1)`
+  right (the same clock time) plus a 1 px floor-colour tick at midnight (8k long under the floor)
+  with `midnight` centred under it when its centre is at least 120 px from both ends. Rush:
+  `6:30 am` / `9:30 am`, ticks at 7, 8, 9 am. Week: day letters `M T W T F S S` centred on each
+  calendar day's visible span (none under 30 px), the current day's letter bolder in accent. Off,
+  the day and the rush draw no ticks; the week keeps its 1 px ticks at each midnight, which with
+  the weekday line is all it takes to tell the days apart. With `WEEKEND_BAND` (off in the shorts:
+  the week's render block sets it, D3.8's week query clears it; `weekend=1` or a recipe's
+  `override.variant_render.week` brings it back) an accent rectangle at 0.07 alpha from x(Saturday 00:00) to
+  x(Monday 00:00), over the sparkline's height, under the area, drawn only as far as the curve:
+  ahead of it the weekend was an empty box for five days of the video.
 * **Weekday** (week): `['MONDAY', ..., 'SUNDAY'][floor(T / 86400) % 7]`, T counted from the
   composite Monday 00:00. It is the big line of the week panel; the clock is the small line.
-* **Peak marker** (`PEAK_MARKER`): at `V.peak.time` on the drawn curve, shown once T has passed it;
-  label `peak ${withCommas(V.peak.count)}`.
-* **Asserts.** After layout, every box above and every card box (B10) is checked against `SAFE`
-  (x 120..800, y 290..1440) with `measureText` widths, and every text size against its minimum
-  (title 48, subtitle 32, weekday 64, clock 40, count 36, chips 24, peak, axis 26, credit 22, card
-  title 72, card line 0 40, card line 1 30); any failure is a `console.error`, which fails a render
-  (C). `hudBoxes()` reports `size`.
+* **Peak marker** (`PEAK_MARKER`, off in the preset): at `V.peak.time` on the drawn curve, shown
+  once T has passed it; label `peak ${withCommas(V.peak.count)}`.
+* **Asserts.** After layout, every box above and, with the card on, every card box (B10) is
+  checked against `SAFE` (x 120..800, y 290..1440) with `measureText` widths, and every text size
+  against its minimum (title 44, subtitle 26, weekday 48, clock 30, count 28, chips, peak and axis
+  20, credit 18, card title 72, card line 0 40, card line 1 30; `web/app.js` `MIN_SIZE`,
+  `tests/web/v4_hud.mjs`, `scripts/tune.py` `MIN_SIZES`); any failure is a `console.error`, which
+  fails a render (C). `hudBoxes()` reports `size`. A 1080 px frame is about 390 pt wide on a
+  phone, so 1 pt is about 2.8 px: the 18 px credit is 6.4 pt, the 26 px subtitle 9.3 pt.
+  `TEXT_SCALE` runs 0.6 to 1 (outside, a warning and the nearest end): over 1 the chips fitted at
+  scale 1 could overflow; going down, the credit reaches its floor under 0.82, the subtitle under
+  0.73, the count line under 0.7 and the title under 0.69. Weights run 100 to 900 (the faces are
+  variable).
 * `?safe=1`: translucent `rgba(255,0,0,0.18)` boxes over everything outside `SAFE` (y 0..290,
   y 1440..1920, x 0..120 and x 800..1080 between), the button column x 811..972 filled once more and
   outlined, each tall phone's crop (x 97 and 983 for 19.5:9, x 108 and 972 for 20:9) dashed in
@@ -1282,6 +1319,12 @@ count line 44 px more.
   dashed in cyan. Never set by make.py renders.
 
 ### B10. Card and loop frame mapping
+
+The shorts preset has no title card (`CARD` false): frame 0 is the full HUD over the map, with no
+fade-in, and is the video's cover frame on YouTube. With `CARD` off nothing of the card is laid
+out, drawn or asserted, `a(i)` below is 0 on every frame and the HUD is at `u = 1` throughout.
+Everything in this section up to "Frame to time" describes the card for a render that turns it on
+(`card=1`), which the tests keep covering; the templates stay in `shorts_en.json`.
 
 Card text from `meta.card.templates[VARIANT][CARD_LINES]`, a pair `[line0, line1]`, formatted with
 `{place}`, `{modes_singular}` (`bus and train`, `bus, streetcar and train`: modes with at least
@@ -1335,16 +1378,26 @@ reports `a(i)`.
 Frame to time:
 
 * `LOOP 'wrap'` (day, week): `T(i) = timeAtProgress(i / N)`. Frame N - 1 is one step before
-  `W0 + P`, which looks exactly like `W0`, and both ends carry the full card, so YouTube's loop from
-  the last frame to frame 0 is one ordinary step.
-* `LOOP 'xfade'` (rush): `T(i) = timeAtProgress(i / N)`; the live frame's card is back at full by
-  frame N - 30, the HUD gone with it; a snapshot of frame 0 (card included) is drawn over it at alpha
-  `smooth(clamp((i - (N - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1))`, which reaches 1 at the virtual
-  frame N, so N - 1 to 0 is one step of the cross-fade, with no held frame. Both carry the same
-  card, and drawing it over either map is the same affine step, so the cross-fade moves only the
-  map and never doubles or dims the card. The
-  snapshot is rendered lazily into an offscreen canvas, so `renderFrameV4(i)` stays a pure function
-  of i.
+  `W0 + P`, which looks exactly like `W0`: the map, the clock and the count are periodic, and the
+  HUD draws any T >= `W0 + P` as T - P, so the virtual frame N, sparkline included, is frame 0
+  exactly. YouTube's loop from the last frame to frame 0 is one ordinary step of the map and the
+  numbers; the sparkline, full at N - 1, starts again empty, the one visible reset (with the card
+  on, both ends carry the full card instead).
+* `LOOP 'xfade'` (rush): `T(i) = timeAtProgress(i / N)`. Over the last `CARD_FADE_IN` (30) frames
+  a snapshot of frame 0's map is drawn over the live map at alpha
+  `s = smooth(clamp((i - (N - CARD_FADE_IN)) / CARD_FADE_IN, 0, 1))`, which reaches 1 at the
+  virtual frame N, so N - 1 to 0 is one step of the cross-fade, with no held frame. The HUD goes on
+  after it. Its still parts (title scrim, title, subtitle, panel, floor line, axis, credit) are the
+  same on both sides and drawn once; its moving rows (weekday, clock, count line, chips, the
+  sparkline's curve with its weekend band and peak marker) are drawn at T while s < 0.5 and as
+  frame 0's from s = 0.5 (frame N - 15) on, each at its own full HUD alpha, so the clock never
+  shows `9:26 am` over `6:30 am` and the panel never empties: fading the live rows out over the
+  first 15 frames and frame 0's in over the last 15 left the clock and count gone for about 0.3 s
+  on every loop. The switch is one step, like the day's sparkline reset, under a map that is half
+  cross-faded, and frame N - 1 carries frame 0's HUD. With the card on, the card is at full over
+  the whole cross-fade and the HUD rows under it are at 0. The snapshot is rendered lazily into an offscreen canvas, so
+  `renderFrameV4(i)` stays a pure function of i; the panel layout (`layout=panel`) still
+  cross-fades its whole frame.
 * `LOOP 'none'`: today's `frameTime`.
 
 `renderAtV4(T)` stays pure and draws the HUD at full alpha with no card (stills); only

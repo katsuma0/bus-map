@@ -51,7 +51,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `rush.frame` | `{km_vertical, center_km}` or null | no | null | a pinned close-up; must lie inside the day trim box |
 | `rush.auto` | bool | no | true | with no pinned frame, find a closer frame automatically |
 | `variety.panel_side` | `left`, `right` | no | `left` | breaks a tie when both panel sides hide about as many vehicles |
-| `variety.card_line` | 0, 1, 2 | no | 0 | which card text the video opens with |
+| `variety.card_line` | 0, 1, 2 | no | 0 | which card text a video opens with when a render turns the card on (`card=1`); the shorts preset has no card |
 | `variety.zoom` | 0.5 to 2 | no | 1.0 | multiplies FRAME_ZOOM of the day and week |
 | `variety.camera` | `pull-out-east`, `pull-out-north`, `pull-out-west`, `pull-out-south`, `drift-orbit`, `drift-sway`, `off` | no | picked from the id | the slow camera move over the map, the same in every variant; `off` keeps the map still |
 | `override.render` | CONFIG keys | no | {} | for every variant; a key that a `defaults.variants.*.render` block sets is an error |
@@ -170,10 +170,11 @@ boundary, the frame and the clip:
  "modes": ["bus", "streetcar"], ...}
 ```
 
-Titles, cards, descriptions and tags follow: "Every train in Toronto in 24 hours",
-"Every bus and streetcar in Toronto in 24 hours"; the trains card says "Busiest at
-8:17 am with 168 trains" where the buses and streetcars one says "with 1,561
-vehicles", and the trains video is tagged "train map", not "bus map".
+Titles, count lines, cards, descriptions and tags follow: "Every train in Toronto in
+24 hours", "Every bus and streetcar in Toronto in 24 hours"; the trains video counts
+"168 trains in Toronto" where the buses and streetcars one counts vehicles (with
+`card=1` the trains card says "Busiest at 8:17 am with 168 trains"), and the trains
+video is tagged "train map", not "bus map".
 
 A feed can give a route the wrong route_type for this split: ttc.zip gives Line 5
 Eglinton and Line 6 Finch West (route_id and route_short_name `5` and `6`)
