@@ -1903,9 +1903,9 @@ class Actions(Scratch):
         self.repo.run("lock", "test")
         self.repo.run("meta", "test", "--only", "test-centre-day")
         m = load(os.path.join(self.repo.root, "out/shorts/test/test-centre-day.meta.json"))
-        self.assertIn("Tsukubus timetables as of 4 October 2026.", m["credits"])
-        self.assertIn("Tsukubane timetables as of 16 September 2026.", m["credits"])
-        self.assertIn("CC BY 4.0.\nTsukubus timetables as of 4 October 2026.\n", m["description"])
+        self.assertIn("Tsukubus timetables as of October 4, 2026.", m["credits"])
+        self.assertIn("Tsukubane timetables as of September 16, 2026.", m["credits"])
+        self.assertIn("CC BY 4.0.\nTsukubus timetables as of October 4, 2026.\n", m["description"])
 
     def test_netmeta_records_what_the_video_draws(self):
         pl = make.Pipeline(self.repo.root)

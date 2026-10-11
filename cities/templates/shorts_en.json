@@ -59,7 +59,7 @@
   "the_city_one": "the {kind}",
   "the_city_many": "the region",
   "credit_line_same": "{name}: {licence}.",
-  "data_date": "{feed} timetables as of {day} {month} {year}.",
+  "data_date": "{feed} timetables as of {month} {day}, {year}.",
   "colors": "Colours: {groups}.",
   "colors_other": "Colours: {groups}, with {other} in grey.",
   "colors_everything": "everything else"

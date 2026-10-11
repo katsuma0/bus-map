@@ -499,9 +499,9 @@ class Review(unittest.TestCase):
         next(f for f in nm["feeds"] if f["id"] == "go")["licence_id"] = "metra-gtfs"
         m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe, data_dates={"go": "2026-10-04", "ttc": "2026-09-16"})
         i = next(i for i, c in enumerate(m["credits"]) if c.startswith("GO Transit"))
-        self.assertEqual(m["credits"][i + 1], "GO Transit timetables as of 4 October 2026.")
+        self.assertEqual(m["credits"][i + 1], "GO Transit timetables as of October 4, 2026.")
         self.assertEqual(len(m["credits"]), 3, "a date only where the licence asks for one")
-        self.assertIn("Not sponsored, affiliated or operated by Metra.\nGO Transit timetables as of 4 October 2026.\n",
+        self.assertIn("Not sponsored, affiliated or operated by Metra.\nGO Transit timetables as of October 4, 2026.\n",
                       m["description"])
         # Without the date the metadata fails rather than publish a description the licence does not allow.
         for dates in (None, {}, {"ttc": "2026-09-16"}):

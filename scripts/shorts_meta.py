@@ -327,7 +327,7 @@ def licence_flags(entries, names):
 
 
 def data_date_line(feed, data_dates, templates):
-    """{feed} timetables as of 4 October 2026: the date a licence asks the credit to give (Metra's)."""
+    """{feed} timetables as of October 4, 2026: the date a licence asks the credit to give (Metra's)."""
     iso = (data_dates or {}).get(feed["id"])
     if not iso:
         raise MetaError(f"{feed['id']}: licence {feed.get('licence_id')} asks for the date the data was last "

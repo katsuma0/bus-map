@@ -728,7 +728,7 @@ Each `ogl-*` statement follows the Toronto one with its own licence name ("..." 
 error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; `check` goes into
 `flags`, the CSV's `licence_flags` and the release notes. A licence with `"data_date": true` (Metra's,
 whose terms ask for the date the data was last updated) puts `sentences.data_date`, "Metra timetables
-as of 4 October 2026.", after the credit of each of its feeds a video draws; the date is the MDB
+as of October 4, 2026.", after the credit of each of its feeds a video draws; the date is the MDB
 dataset stamp of the feed's URL in the lock (`.../mdb-<id>-<YYYYMMDDHHMM>.zip`, `tld-` for a
 Transitland copy), and a feed locked from a tag, a path or any other URL fails `make.py meta`.
 
