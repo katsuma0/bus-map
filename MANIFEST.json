@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "chicago",
+ "files": {
+  "2026-09-23.1/chicago/segments.geojson": {
+   "sha256": "7ff0b447d9a84f73bfa1ff91e3faa194c78595c31caf6408dd1d3957e3548c5a",
+   "bytes": 368006281,
+   "parts": [
+    "2026-09-23.1/chicago/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/chicago/water.geojson": {
+   "sha256": "10aa7779e6535614cbe42bcf665fc58acfc816f32f65617fc3b0d1f245eab5de",
+   "bytes": 38571775,
+   "parts": [
+    "2026-09-23.1/chicago/water.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/divisions/US-IL-chicago.geojson": {
+   "sha256": "976daddecba58d2b120f310fbbd6e36625f2956d8f2938d882eb2bcaa8ef5cc8",
+   "bytes": 3660356,
+   "parts": [
+    "2026-09-23.1/divisions/US-IL-chicago.geojson.gz.000"
+   ]
+  }
+ }
+}
