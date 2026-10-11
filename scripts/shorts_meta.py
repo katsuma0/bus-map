@@ -259,19 +259,9 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
     # Each caveat once: a feed's reduced days in one sentence, and feeds with the same caveat in one
     # sentence. A GTA week had four sentences on GO alone (October 10, October 11, a timetable change,
     # too few weekend dates), and New York's trains said the same two things of LIRR and Metro-North.
-    low = []
+    caveats = []
     for f in feeds:
-        days = tuple(sorted({x["date"] for x in f.get("excluded", []) or [] if x.get("why") == "low"}))
-        if days:
-            low.append((days, clean(f["name"])))
-    for days, names in grouped(low):
-        if len(days) == 1:
-            out.append(fmt(s["low"], {"feed": join_words(names), "date": date_label(days[0]),
-                                      "weekday": DAYS[iso_date(days[0]).weekday()]}, "sentences"))
-        else:
-            out.append(fmt(s["low_many"], {"feed": join_words(names), "dates": dates_label(days)}, "sentences"))
-    median = []
-    for f in feeds:
+        low = tuple(sorted({x["date"] for x in f.get("excluded", []) or [] if x.get("why") == "low"}))
         rule, dates = f.get("rule"), f.get("dates")
         if isinstance(rule, dict):
             classes = [k for k in CLASS_ORDER if rule.get(k) == "median-date"]
@@ -279,16 +269,28 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
             classes = ["wd"] if rule == "median-date" else []
         few = tuple(k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3)
         changed = tuple(k for k in classes if k not in few)
-        if classes:
-            median.append(((changed, few), clean(f["name"])))
-    for (changed, few), names in grouped(median):
-        n = "many" if len(names) > 1 else "one"
-        days = [k for k in CLASS_ORDER if k in changed or k in few]
-        key = "median_both" if changed and few else "median_changed" if changed else "median_few"
-        out.append(fmt(s[key], {"feed": join_words(names), "month": mname, "its": s[f"its_{n}"], "has": s[f"has_{n}"],
-                                "days": join_words(CLASS_DAYS[k][0] for k in days),
-                                "days_plural": join_words(CLASS_DAYS[k][1] for k in few),
-                                "verb": s["verb_one" if len(days) == 1 else "verb_many"]}, "sentences"))
+        caveats.append((clean(f["name"]), low or None, (changed, few) if classes else None))
+    lows = dict(grouped((low, name) for name, low, _ in caveats if low))
+    medians = dict(grouped((median, name) for name, _, median in caveats if median))
+    # A feed's caveats come together, busiest feed first. With every reduced-day sentence first,
+    # Oshawa's week read GO, then Durham Region Transit, then GO again.
+    for _, low, median in caveats:
+        if low in lows:
+            names = lows.pop(low)
+            if len(low) == 1:
+                out.append(fmt(s["low"], {"feed": join_words(names), "date": date_label(low[0]),
+                                          "weekday": DAYS[iso_date(low[0]).weekday()]}, "sentences"))
+            else:
+                out.append(fmt(s["low_many"], {"feed": join_words(names), "dates": dates_label(low)}, "sentences"))
+        if median in medians:
+            names, (changed, few) = medians.pop(median), median
+            n = "many" if len(names) > 1 else "one"
+            days = [k for k in CLASS_ORDER if k in changed or k in few]
+            key = "median_both" if changed and few else "median_changed" if changed else "median_few"
+            out.append(fmt(s[key], {"feed": join_words(names), "month": mname, "its": s[f"its_{n}"],
+                                    "has": s[f"has_{n}"], "days": join_words(CLASS_DAYS[k][0] for k in days),
+                                    "days_plural": join_words(CLASS_DAYS[k][1] for k in few),
+                                    "verb": s["verb_one" if len(days) == 1 else "verb_many"]}, "sentences"))
     return " ".join(out)
 
 

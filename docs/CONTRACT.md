@@ -751,7 +751,7 @@ sentence (`low`, `low_many`: "GO Transit ran a reduced timetable on October 10 a
 are left out."), its median-date classes in one (`median_changed`, `median_few`, `median_both`), and
 feeds with the same caveats in one ("Long Island Rail Road and Metro-North Railroad changed their
 timetables during October and have fewer than three usable October Mondays, so their Monday and
-Friday each use one typical date.");
+Friday each use one typical date."); a feed's two sentences come together, busiest feed first;
 `{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
 with the recipe's `limits` for `{kind}`: "the Oakville town limits"; `limits_one_city` for a place
 whose name has that word, "the New York City limits"; or

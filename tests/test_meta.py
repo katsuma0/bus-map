@@ -653,6 +653,23 @@ class GTAReview(unittest.TestCase):
                       "October Mondays, so its Monday and Friday each use one typical date.", w)
         self.assertIn("MiWay has fewer than three usable October Mondays, so its Monday uses one typical date.", w)
 
+    def test_a_feeds_caveats_together(self):
+        """A feed's reduced days and its typical dates come one after the other, busiest feed first. Oshawa's
+        week read GO, Durham Region Transit, then GO again."""
+        recipe = self.pl.recipe("gta-toronto", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        for f in nm["feeds"]:
+            if f["id"] == "go":
+                f["excluded"].append({"date": "2026-10-11", "why": "low", "trips": 1200, "median": 1392})
+            if f["id"] == "ttc":
+                f["rule"] = {"tue": "median-date", "wed": "median-date"}
+        dates = self.meta("gta-toronto", "week", nm=nm)["description"].split("\n\n")[2]
+        self.assertIn("the clocks change that night. TTC changed its timetables during October, so its Tuesday and "
+                      "Wednesday each use one typical date. GO Transit ran a reduced timetable on October 10 and 11, "
+                      "so those days are left out. GO Transit changed its timetables during October and has fewer "
+                      "than three usable October Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use "
+                      "one typical date.", dates)
+
     def test_place_tags_without_the_article(self):
         """Tags and hashtags drop a lowercase leading article, and spell out a short name YouTube reads as
         something else: the GTA is #greatertorontoarea, never #thegta or #gta (Grand Theft Auto)."""
