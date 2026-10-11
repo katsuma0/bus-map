@@ -32,25 +32,12 @@
  },
  "override": {
   "render": {
-   "OUTSIDE_DIM": 0.9,
-   "TRAIL_SHOULDER_W": 15,
-   "ROUTE_ALPHA": 0.2
+   "OUTSIDE_DIM": 0.9
   },
-  "variant_render": {
-   "day": {
-    "BUS_CORE_R": 2.4
-   },
-   "week": {
-    "TRAIL_MINUTES": 45
-   }
-  },
+  "variant_render": {},
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "0.9 drops the grey Mississauga grid and outside GO lines to a hint so Brampton stands alone; at 0.7 they compete",
-   "TRAIL_SHOULDER_W": "15 px keeps neighbouring grid streets apart at 7:40 and the red Zum lines crisp; 29 mats the grid into one blue sheet",
-   "day.BUS_CORE_R": "2.4 px dots still read as buses in the crop and cut strobe 0.0073 to 0.0054; 3.6 px piles them into white",
-   "ROUTE_ALPHA": "0.2 shows the dormant grid as a faint hint at 2:30 am when 8 buses run; at 0.13 the city outline reads empty",
-   "week.TRAIL_MINUTES": "45 min halves strobe to 0.0076 while the week runs 5 min a frame; the Fri 6 pm grid and Zum lines still read"
+   "OUTSIDE_DIM": "0.9 drops the grey Mississauga grid and outside GO lines to a hint so Brampton stands alone; at 0.7 they compete"
   }
  }
 }

@@ -32,19 +32,12 @@
  },
  "override": {
   "render": {
-   "OUTSIDE_DIM": 0.9,
-   "TRAIL_CORE_W": 4.0
+   "OUTSIDE_DIM": 0.9
   },
-  "variant_render": {
-   "day": {
-    "TRAIL_MINUTES": 18
-   }
-  },
+  "variant_render": {},
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads",
-   "day.TRAIL_MINUTES": "18 min draws the MiWay grid as unbroken lines at phone size, 12 leaves gaps; whiteout stays 0.002",
-   "TRAIL_CORE_W": "4 px cores make the MiWay grid read as lines at 270 px and lift the city over the grey neighbours; whiteout 0.0023"
+   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads"
   }
  }
 }
