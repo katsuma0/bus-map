@@ -48,7 +48,9 @@
 // in every box check. Its meta.groups must carry the recipe's ids, labels and
 // legend words, and the page must find a paint for every group and a group for
 // every paint: a build older than the recipe fails rather than passing on the
-// old groups.
+// old groups. A paint whose group the build's city.<day|week>.json gave the
+// trim is only logged: such a group took no route or joined other, which 2.16
+// makes a trim warning, not an error.
 //
 // Usage: node tests/web/v4_hud.mjs [--only gta-toronto,...] [--no-gta]
 
@@ -71,7 +73,8 @@ const args = process.argv.slice(2);
 const only = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null;
 
 // make.py's group_paint and the LEGEND default of a colour-group recipe, from the checkout's
-// recipe and brands.json, with the recipe's groups; null when it has none.
+// recipe and brands.json, with the recipe's groups as color_groups gives them to the trim; null
+// when it has none.
 function recipeColors(id) {
   const rp = path.join(ROOT, 'cities', 'recipes', `${id}.json`), bp = path.join(ROOT, 'cities', 'brands.json');
   if (!fs.existsSync(rp) || !fs.existsSync(bp)) return null;
@@ -98,8 +101,25 @@ function recipeColors(id) {
     paint[g.id] = p;
   }
   return { query: `paint=${encodeURIComponent(JSON.stringify(paint))}&legend=${recipe.colors.legend ? 1 : 0}`,
-    groups: recipe.colors.groups.map((g) => ({ id: g.id, label: g.label, legend: 'legend' in g ? g.legend : g.id !== 'other' })) };
+    groups: recipe.colors.groups.map((g) => {
+      const other = g.id === 'other', brand = other ? null : g.brand || null;
+      return { id: g.id, label: g.label, brand, match: other ? null : g.match || [{ brand }], rest: Boolean(g.rest),
+        legend: 'legend' in g ? g.legend : !other };
+    }) };
 }
+
+// The colour groups make.py build gave this network's trim (build/<id>/city.<tl>.json), so a
+// group that is in them but not in meta.groups is the trim's no-route or 7-colour fold.
+function trimGroups(id, tl) {
+  const cp = path.join(ROOT, 'build', id, `city.${tl}.json`);
+  if (!fs.existsSync(cp)) return [];
+  const cfg = JSON.parse(fs.readFileSync(cp, 'utf8'));
+  return (cfg.colors && cfg.colors.groups) || [];
+}
+
+// JSON with sorted keys, so a rule compares equal whatever order its clause keys were written in.
+const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)
+  ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) : x));
 
 function gtaNetworks() {
   const out = [];
@@ -114,7 +134,7 @@ function gtaNetworks() {
       const variants = tl === 'day' ? ['day', 'rush'] : ['week'];
       const colors = file === real ? recipeColors(id) : null;
       out.push({ id, tl, query: `data=../${file}&basemap=../${bm}${colors ? `&${colors.query}` : ''}`, variants, stub: file === stub,
-        groups: colors && colors.groups });
+        groups: colors && colors.groups, trimmed: colors && trimGroups(id, tl) });
     }
   }
   return out;
@@ -273,20 +293,30 @@ function checkOverlap(tag, where, boxes) {
 
 // A real build drawn with its checkout's recipe must be that recipe's trim: a build older than a
 // group edit still draws, with the new paint on the old groups, and would pass every other check.
-function checkGroups(tag, r, warnings, groups) {
+// A paint without a group is stale only when the trim was not given that group exactly as the
+// recipe has it (label, rule, legend); when it was, the group took no route or joined other (2.16),
+// and rebuilding changes nothing.
+function checkGroups(tag, r, warnings, groups, trimmed) {
   const want = new Map(groups.map((g) => [g.id, g]));
+  const same = (a, b) => Boolean(a && b) && a.label === b.label && a.legend === b.legend;
   for (const g of r.groups) {
     const w = want.get(g.id);
     if (!w && g.id === 'other') continue;
-    ok(w && w.label === g.label && w.legend === g.legend, `${tag} B19: meta.groups ${JSON.stringify(g)}, recipe ${JSON.stringify(w || null)}; `
+    ok(same(w, g), `${tag} B19: meta.groups ${JSON.stringify(g)}, recipe ${JSON.stringify(w || null)}; `
       + 'is build/ older than cities/recipes? rerun make.py build');
   }
+  const given = new Map(trimmed.map((g) => [g.id, g]));
   for (const w of warnings.filter((x) => /no \?paint for group|\?paint: no group/.test(x))) {
+    const id = (w.match(/^\?paint: no group "([^"]+)"/) || [])[1];
+    if (id && want.has(id) && canon(want.get(id)) === canon(given.get(id))) {
+      console.log(`  ${tag}: group ${id} is not in meta.groups: it took no route or joined other (2.16, a trim warning)`);
+      continue;
+    }
     failures.push(`${tag} B19: ${w}; is build/ older than cities/recipes? rerun make.py build`);
   }
 }
 
-async function run(h, name, query, variant, groups = null) {
+async function run(h, name, query, variant, groups = null, trimmed = []) {
   const tag = `${name} ${variant}`;
   const page = await h.open(`${query}&variant=${variant}`, { allowErrors: true });
   if (page.failed) {
@@ -328,7 +358,7 @@ async function run(h, name, query, variant, groups = null) {
   if (r.groupNet) ok(!r.ladderNear.length, `${tag} B-10: ladder groups under ${r.minDE}: ${r.ladderNear.join(', ')}`);
   else ok(r.closest >= r.minDE - 1e-9 || r.placed.length < 2, `${tag} B-10: ${r.closestPair} only ${r.closest.toFixed(3)} apart`);
   if (r.legend) ok(!r.legend.dropped.length, `${tag} B19: the legend dropped ${r.legend.dropped.join(', ')}`);
-  if (groups) checkGroups(tag, r, page.warnings, groups);
+  if (groups) checkGroups(tag, r, page.warnings, groups, trimmed);
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join(' | ')}`);
   const sizes = Object.fromEntries(r.stills.am.filter((b) => ['count', 'chips', 'legend', 'title', 'weekday'].includes(b.name)).map((b) => [b.name, b.size]));
   const card = r.frames[0].filter((b) => b.name.startsWith('card_title')).map((b) => `${b.text}@${b.size}`).join(' / ');
@@ -447,7 +477,7 @@ try {
     if (nets.some((n) => n.stub)) console.log('  (GTA networks from the stubs in build/stub_v4/)');
     for (const n of nets) {
       for (const v of n.variants) {
-        await run(h, n.id, n.query, v, n.groups);
+        await run(h, n.id, n.query, v, n.groups, n.trimmed);
         await run(h, `${n.id} full`, `${n.query}&${FULL}`, v);
         // A train video has its legend off; the row must still fit when a render turns it on.
         if (n.query.includes('&legend=0')) await run(h, `${n.id} legend`, n.query.replace('&legend=0', '&legend=1'), v);
