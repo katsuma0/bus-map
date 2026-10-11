@@ -40,7 +40,9 @@ KNOBS = [
     (7, "shoulder", "TRAIL_SHOULDER_ALPHA", "look", True, ("day",)),
     (8, "trailalpha", "TRAIL_ALPHA", "look", True, ("day",)),
     (9, "layeralpha", "TRAIL_LAYER_ALPHA", "look", True, ("day",)),
-    (10, "dotcore", "BUS_CORE_R", "look", True, ("day", "week")),
+    # BUS_CORE_R is a variant block key (the week's 0), so a day pick stays in the day; the rush
+    # tunes its own on its close-up clip, whose strobe the day's clip does not measure.
+    (10, "dotcore", "BUS_CORE_R", "look", True, ("day", "rush", "week")),
     (11, "halor", "BUS_HALO_R", "look", True, ("day",)),
     (12, "haloalpha", "BUS_HALO_ALPHA", "look", True, ("day", "week")),
     (13, "routealpha", "ROUTE_ALPHA", "look", False, ("day",)),
@@ -456,15 +458,22 @@ def tile_sheet(groups, out, cols=5, tile=(TILE_W, TILE_H), crop=None):
         for i, (path, label) in enumerate(tiles):
             x0 = GAP + (i % cols) * (tw + GAP)
             y0 = y + HEADER + (i // cols) * (th + GAP)
-            try:
-                with Image.open(path) as im:
-                    im = im.convert("RGB")
-                    if crop:
-                        im = im.crop(crop(im))
-                    im = im.resize((tw, th), Image.LANCZOS)
-                sheet.paste(im, (x0, y0))
-            except (OSError, ValueError):
+            # A tile whose image is gone (none found for that time, or the PNGs deleted to save disk)
+            # gets the red outline, so a sheet with a hole still reaches the judge.
+            tile_im = None
+            if path:
+                try:
+                    with Image.open(path) as im:
+                        im = im.convert("RGB")
+                        if crop:
+                            im = im.crop(crop(im))
+                        tile_im = im.resize((tw, th), Image.LANCZOS)
+                except (OSError, ValueError):
+                    pass
+            if tile_im is None:
                 draw.rectangle([x0, y0, x0 + tw - 1, y0 + th - 1], outline=(200, 60, 60))
+            else:
+                sheet.paste(tile_im, (x0, y0))
             if label:
                 tb = draw.textbbox((0, 0), label, font=f_lab)
                 draw.rectangle([x0, y0 + th - (tb[3] - tb[1]) - 10, x0 + tb[2] - tb[0] + 10, y0 + th], fill=(0, 0, 0))
@@ -607,7 +616,11 @@ class Tuner:
         return sig
 
     def render_arm(self, out, query, bh, times, frames, clip):
-        os.makedirs(out, exist_ok=True)
+        # New files rather than writes into the old ones: reuse_previous hard-links a picked arm's files
+        # into the next knob's b, and the renderer rewrites a file in place, through every link to it.
+        if os.path.isdir(out):
+            shutil.rmtree(out)
+        os.makedirs(out)
         args = ["--data", self.pl.rel(self.net), "--basemap", self.pl.rel(self.basemap), "--variant", self.variant,
                 "--render-json", json.dumps(query, sort_keys=True, separators=(",", ":"))]
         if bh:
@@ -627,8 +640,27 @@ class Tuner:
         with open(os.path.join(out, "arm.json"), "w", encoding="utf-8") as fh:
             json.dump(self.arm_sig(query, bh, times, frames, clip), fh, sort_keys=True)
 
+    def arm_whole(self, d, times, frames, clip):
+        """Whether arm d still has every file its scores and sheets read. A picked knob's PNGs may be
+        deleted to save disk, which leaves arm.json behind, so the signature alone does not say so."""
+        if not os.path.exists(os.path.join(d, "config.json")):
+            return False
+        if times and not self.find(d, "rt-still", times[0]):
+            return False
+        for t in times:
+            if not (self.find(d, "still", t) and self.find(d, "bg", t)):
+                return False
+        for f in frames:
+            if not all(os.path.exists(os.path.join(d, f"{p}-{f:04d}.png")) for p in ("frame", "bgframe")):
+                return False
+        # Two round-trip frames are the least the motion and strobe scores need.
+        if clip and len([p for p in os.listdir(d) if re.match(r"^rt-clip-\d+\.png$", p)]) < 2:
+            return False
+        return True
+
     def reuse_previous(self, out, query, bh, times, frames, clip):
-        """Arm b is the previous knob's chosen arm when that arm rendered the same query and files."""
+        """Arm b is the previous knob's chosen arm when that arm rendered the same query and files and
+        still has them."""
         for h in reversed(self.state["history"]):
             if h.get("picked") is None:
                 continue
@@ -641,6 +673,11 @@ class Tuner:
             want = self.arm_sig(query, bh, times, frames, clip)
             if json.loads(json.dumps(sig, sort_keys=True)) != json.loads(json.dumps(want, sort_keys=True)):
                 return False
+            if not self.arm_whole(src, times, frames, clip):
+                return False
+            if os.path.abspath(src) == os.path.abspath(out):
+                # A re-run of the knob picked last, at b: its b is that arm already.
+                return True
             if os.path.isdir(out):
                 shutil.rmtree(out)
             os.makedirs(out)
@@ -807,6 +844,10 @@ class Tuner:
         if key not in config:
             raise TuneError(f"{self.pl.rel(cfg_path)} has no {key}; the page must report every knob in busmap.config")
         v = config[key]
+        if key not in base:
+            # The page's own value, kept for --apply: after a pick and a few re-runs every arm left may
+            # carry the key in its query, and then no config.json says what the recipe renders without it.
+            self.state.setdefault("page", {})[key] = v
         k_km = config.get("KM_VERTICAL") or self.frame()["km_vertical"] / (config.get("FRAME_ZOOM") or 1)
         a, c = arm_values(name, v, k_km)
         if kind == "frame":
@@ -892,21 +933,50 @@ class Tuner:
                 fh.write(json.dumps(s, indent=1) + "\n")
         print(f"{name}: picked {label} ({h['key']}={h['arms'][label]})")
 
+    def page_value(self, key):
+        """key as the page sets it in this pass when the query leaves it out: as run_knob kept it, else
+        (a pass tuned before it kept them) config.json of an arm rendered without it, else None."""
+        if key in self.state.get("page", {}):
+            return self.state["page"][key]
+        for h in reversed(self.state["history"]):
+            for label in ("b", "a", "c"):
+                d = os.path.join(h["dir"], label)
+                try:
+                    with open(os.path.join(d, "arm.json"), encoding="utf-8") as fh:
+                        query = json.load(fh)["query"]
+                    with open(os.path.join(d, "config.json"), encoding="utf-8") as fh:
+                        config = json.load(fh)
+                except (OSError, ValueError, KeyError, TypeError):
+                    continue
+                if key not in query and key in config:
+                    return config[key]
+        return None
+
     def apply(self):
-        """G5: write each pick that differs from the value it was tuned from into the recipe."""
+        """G5: write each pick that differs from the value the recipe renders it at into the recipe."""
         import make
         recipe = make.read_json(self.pl.recipe_path(self.rid))
+        # Each pick is compared with what the recipe renders now, read before the writes below, never
+        # with arm b: after a --knob re-run b is this pass's own earlier pick, which the recipe lacks.
+        query = self.pl.render_query(recipe, self.variant)[0]
         blocked = make.variant_block_keys(self.pl.defaults())
         variants = make.recipe_variants(recipe, self.batch)
         zoom = (recipe.get("variety") or {}).get("zoom", 1.0)
         ov = recipe.setdefault("override", {})
         for k in ("render", "variant_render", "brand_colors", "_why"):
             ov.setdefault(k, {})
-        wrote = []
+        wrote, unknown = [], []
         for h in self.state["history"]:
-            if not h.get("picked") or h["arms"][h["picked"]] == h["arms"]["b"]:
+            if not h.get("picked"):
                 continue
             key, val, why = h["key"], h["arms"][h["picked"]], h.get("why") or ""
+            now = query[key] if key in query else self.page_value(key)
+            # A value that cannot be read back (a pass tuned before `page` was kept, no arm left without
+            # the key) writes the pick: a redundant override is harmless, a dropped pick is not.
+            if now is None:
+                unknown.append(h["knob"])
+            elif same_value(val, now):
+                continue
             if key in FRAME_KEYS:
                 if self.variant == "day":
                     stored = make.r6(val / zoom) if key == "FRAME_ZOOM" else val
@@ -936,7 +1006,17 @@ class Tuner:
             raise TuneError("the applied recipe does not validate:\n  " + "\n  ".join(errors))
         make.write_json(self.pl.recipe_path(self.rid), recipe)
         print(f"{self.pl.rel(self.pl.recipe_path(self.rid))}: " + (", ".join(wrote) if wrote else "nothing differs"))
+        if unknown:
+            print(f"  written without a value to compare with, maybe unchanged: {', '.join(unknown)}")
         return wrote
+
+
+def same_value(a, b):
+    """a == b, numbers to 1e-5: FRAME_ZOOM comes back from the recipe through variety.zoom and r6."""
+    num = (int, float)
+    if isinstance(a, num) and isinstance(b, num) and not isinstance(a, bool) and not isinstance(b, bool):
+        return abs(a - b) <= 1e-5
+    return a == b
 
 
 def check_why(why):

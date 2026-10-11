@@ -158,7 +158,7 @@ class Arms(unittest.TestCase):
         knobs = lambda v: [k[0] for k in tune.KNOBS if v in k[5]]
         # The camera knob (24) runs right after the frame knobs it moves over.
         self.assertEqual(knobs("day"), [1, 2, 3, 24] + list(range(4, 24)))
-        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 19, 22])
+        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 10, 19, 22])
         self.assertEqual(knobs("week"), [24, 4, 10, 12, 17, 19])
         self.assertEqual(tune.BY_NAME["camamp"][2:5], ("CAMERA_AMP", "camera", True))
 
@@ -190,11 +190,62 @@ class Arms(unittest.TestCase):
         self.assertEqual(tune.auto_pick("camera", [arm("a", 0.75, strobe=0.001), arm("b", 1, ["strobe"], strobe=0.005),
                                                    arm("c", 1.25, ["strobe"], strobe=0.006)], 1), "a")
 
+    def test_same_value(self):
+        # A FRAME_ZOOM of 1.51 stored over variety.zoom 1.01 renders 1e-6 off: still the same pick.
+        back = make.r6(1.01 * make.r6(1.51 / 1.01))
+        self.assertNotEqual(back, 1.51)
+        self.assertTrue(tune.same_value(1.51, back))
+        self.assertFalse(tune.same_value(1.51, 1.52))
+        self.assertFalse(tune.same_value(60, 40))
+        self.assertTrue(tune.same_value(2, 2.0))
+
     def test_why(self):
         tune.check_why("12 min keeps Highway 7 continuous without fusing Viva into YRT")
         for bad in ("", "x" * 121, "long \u2014 dash", "two\nlines"):
             with self.assertRaises(tune.TuneError):
                 tune.check_why(bad)
+
+
+class PageValue(unittest.TestCase):
+    def test_kept_then_read_from_an_arm(self):
+        class Pass(tune.Tuner):
+            def __init__(self, state):
+                self.state = state
+
+        with tempfile.TemporaryDirectory() as td:
+            for label, query in (("b", {"TRAIL_MINUTES": 60}), ("a", {"TRAIL_MINUTES": 40}), ("c", {})):
+                os.makedirs(os.path.join(td, label))
+                with open(os.path.join(td, label, "arm.json"), "w") as fh:
+                    json.dump({"query": query}, fh)
+                with open(os.path.join(td, label, "config.json"), "w") as fh:
+                    json.dump(dict({"TRAIL_MINUTES": 40, "BUS_CORE_R": 2.2}, **query), fh)
+            history = [{"dir": td}]
+            self.assertEqual(Pass({"page": {"TRAIL_MINUTES": 35}, "history": history}).page_value("TRAIL_MINUTES"), 35)
+            # A pass tuned before the page values were kept: arm c rendered without the key.
+            self.assertEqual(Pass({"history": history}).page_value("TRAIL_MINUTES"), 40)
+            os.remove(os.path.join(td, "c", "config.json"))
+            self.assertIsNone(Pass({"history": history}).page_value("TRAIL_MINUTES"))
+            self.assertEqual(Pass({"history": history}).page_value("BUS_CORE_R"), 2.2)
+
+
+class Sheets(unittest.TestCase):
+    def test_missing_image_is_an_outlined_tile(self):
+        with tempfile.TemporaryDirectory() as td:
+            ok = os.path.join(td, "still-0800.png")
+            Image.new("RGB", (1080, 1920), (40, 120, 200)).save(ok)
+            out = tune.tile_sheet([("b: BUS_CORE_R=2.2", [(ok, "08:00"), (None, "12:30"),
+                                                         (os.path.join(td, "gone.png"), "17:30")])],
+                                  os.path.join(td, "sheet.jpg"), cols=3)
+            with Image.open(out) as im:
+                self.assertEqual(im.size, (tune.GAP + 3 * (tune.TILE_W + tune.GAP),
+                                           tune.HEADER + tune.TILE_H + tune.GAP))
+                y = tune.HEADER + 100
+                self.assertGreater(im.getpixel((tune.GAP + 100, y))[2], 150)
+                for i in (1, 2):
+                    x0 = tune.GAP + i * (tune.TILE_W + tune.GAP)
+                    r, g, _b = im.getpixel((x0, y))
+                    self.assertGreater(r - g, 40, "the red outline")
+                    self.assertLess(max(im.getpixel((x0 + 100, y))), 60, "nothing inside it")
 
 
 class CardKnobs(tm.Scratch):
@@ -389,6 +440,89 @@ class EndToEnd(tm.Scratch):
         self.assertFalse([c for c in self.repo.calls() if c.split()[0] in ("build_area", "trim", "basemap", "fetch_overture")])
         self.assertEqual(self.stamps(), before)
 
+    def test_picked_arm_without_its_frames(self):
+        """A picked arm whose PNGs were deleted to save disk is rendered again rather than linked as arm b."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day")
+        self.repo.run("tune", rid, "--next")
+        self.repo.run("tune", rid, "--pick", "zoom=b", "--why", "the city fills the space above the panel")
+        k1 = os.path.join(d, "01-zoom")
+        for root, _d, names in os.walk(k1):
+            for n in names:
+                if n.endswith(".png"):
+                    os.remove(os.path.join(root, n))
+        self.repo.clear_calls()
+        self.repo.run("tune", rid, "--next")
+        self.assertEqual(len([c for c in self.repo.calls() if c.startswith("render tune")]), 3)
+        k2 = os.path.join(d, "02-cx")
+        self.assertEqual(os.stat(os.path.join(k2, "b", "still-0800.png")).st_nlink, 1)
+        self.assertIsNotNone(tm.load(os.path.join(k2, "scores.json"))["arms"][1]["scores"]["whiteout"])
+        self.assertTrue(os.path.exists(os.path.join(k2, "sheet.jpg")))
+
+    def test_rerun_keeps_linked_arms(self):
+        """A knob run again renders into new files, so the arms linked to its old ones keep their pictures."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day")
+        run = lambda *a: self.repo.run("tune", rid, *a)
+        zoom_of = lambda *p: tm.load(os.path.join(d, *p, "config.json"))["FRAME_ZOOM"]
+        still = lambda *p: tm.read_bytes(os.path.join(d, *p, "still-0800.png"))
+        run("--next")
+        run("--pick", "zoom=c", "--why", "the city fills the space above the panel")
+        run("--next")
+        cx_b = still("02-cx", "b")
+        self.assertEqual(cx_b, still("01-zoom", "c"))
+        # Arm b of the re-run is the old c, linked; c is rendered again at 1.28.
+        run("--knob", "zoom")
+        self.assertEqual([zoom_of("01-zoom", x) for x in "abc"], [1.04, 1.16, 1.28])
+        self.assertEqual(still("01-zoom", "b"), cx_b)
+        self.assertEqual((zoom_of("02-cx", "b"), still("02-cx", "b")), (1.16, cx_b))
+        # Run again with b picked last: b is that arm already, kept rather than emptied.
+        run("--pick", "zoom=b", "--why", "1.16 still fills the space")
+        self.repo.clear_calls()
+        run("--knob", "zoom")
+        self.assertEqual(len([c for c in self.repo.calls() if c.startswith("render tune")]), 2)
+        self.assertEqual((zoom_of("01-zoom", "b"), still("01-zoom", "b")), (1.16, cx_b))
+
+    def test_pick_after_a_rerun(self):
+        """--apply compares a pick with what the recipe renders, not with arm b of the knob's latest run."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day", "04-trailmin")
+        run = lambda *a: self.repo.run("tune", rid, *a)
+        recipe = lambda: self.repo.read_json(f"cities/recipes/{rid}.json")["override"]["variant_render"]
+        run("--next")
+        run("--pick", "zoom=b", "--why", "the city fills the space above the panel")
+        run("--knob", "trailmin")
+        run("--pick", "trailmin=c", "--why", "60 min keeps the corridors continuous")
+        # The re-run's b is that pick, which the recipe (40 min, the page's own) has never had.
+        run("--knob", "trailmin")
+        self.assertEqual([a["value"] for a in tm.load(os.path.join(d, "scores.json"))["arms"]], [40, 60, 90])
+        run("--pick", "trailmin=b", "--why", "60 min still, after the re-run")
+        # With the zoom arms gone every arm left renders TRAIL_MINUTES: the value the pass kept decides.
+        self.assertEqual(tm.load(os.path.join(os.path.dirname(d), "state.json"))["page"]["TRAIL_MINUTES"], 40)
+        shutil.rmtree(os.path.join(os.path.dirname(d), "01-zoom"))
+        self.assertIn("variant_render.day.TRAIL_MINUTES=60", run("--apply").stdout)
+        self.assertEqual(recipe()["day"]["TRAIL_MINUTES"], 60)
+        # Back to 40 once the recipe holds 60: a change again, so it is written.
+        run("--knob", "trailmin")
+        run("--pick", "trailmin=a", "--why", "40 min after all")
+        run("--apply")
+        self.assertEqual(recipe()["day"]["TRAIL_MINUTES"], 40)
+        # A pick the recipe already renders writes nothing: zoom=b is 1.05 through variety.zoom.
+        self.assertIn("nothing differs", run("--apply").stdout)
+        self.assertNotIn("FRAME_ZOOM", recipe()["day"])
+        # A pass tuned before the page values were kept, no arm left without the key: written, and said so.
+        sp = os.path.join(os.path.dirname(d), "state.json")
+        st = tm.load(sp)
+        del st["page"]
+        with open(sp, "w", encoding="utf-8") as fh:
+            json.dump(st, fh)
+        r = self.repo.read_json(f"cities/recipes/{rid}.json")
+        del r["override"]["variant_render"]["day"]["TRAIL_MINUTES"]
+        self.repo.write_json(f"cities/recipes/{rid}.json", r)
+        out = run("--apply").stdout
+        self.assertIn("variant_render.day.TRAIL_MINUTES=40", out)
+        self.assertIn("maybe unchanged: trailmin", out)
+
     def test_rush_and_week_passes(self):
         out = self.repo.run("tune", "test-centre", "--variant", "week", "--auto").stdout
         self.assertIn("every knob of the week pass has a pick", out)
@@ -400,10 +534,20 @@ class EndToEnd(tm.Scratch):
         self.assertNotEqual(res.returncode, 0)
         self.repo.run("tune", "test-north", "--variant", "rush", "--knob", "zoom")
         self.repo.run("tune", "test-north", "--variant", "rush", "--pick", "zoom=c", "--why", "a real close-up")
+        # The rush tunes its own dot size on its own clip; the pick stays in the rush's block.
+        self.repo.run("tune", "test-north", "--variant", "rush", "--knob", "dotcore")
+        rush = os.path.join(self.repo.root, "build/test-north/tune/rush")
+        dots = tm.load(os.path.join(rush, "10-dotcore", "scores.json"))
+        self.assertEqual([a["value"] for a in dots["arms"]], [1.8, 2.4, 3.0])
+        self.assertIsNotNone(dots["arms"][0]["scores"]["strobe"])
+        self.assertTrue(os.path.exists(os.path.join(rush, "10-dotcore", "motion.jpg")))
+        self.repo.run("tune", "test-north", "--variant", "rush", "--pick", "dotcore=a", "--why",
+                      "no strobe at the peak")
         self.repo.run("tune", "test-north", "--variant", "rush", "--apply")
         r = self.repo.read_json("cities/recipes/test-north.json")
-        self.assertEqual(r["override"]["variant_render"], {"rush": {"FRAME_ZOOM": 1.1}})
-        self.assertEqual(r["override"]["_why"], {"rush.FRAME_ZOOM": "a real close-up"})
+        self.assertEqual(r["override"]["variant_render"], {"rush": {"FRAME_ZOOM": 1.1, "BUS_CORE_R": 1.8}})
+        self.assertEqual(r["override"]["_why"], {"rush.FRAME_ZOOM": "a real close-up",
+                                                 "rush.BUS_CORE_R": "no strobe at the peak"})
 
 
 if __name__ == "__main__":
