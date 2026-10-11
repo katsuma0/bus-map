@@ -80,7 +80,7 @@ function main() {
   const PINS = [
     ['lake', '00853e', -0.12, '3fab61', '006e32'], ['lake', 'ed1c24', -0.12, 'df695e', 'a04038'],
     ['lake', '0058a9', 0, '83bbff', '3e7cc5'], ['lake', 'e31837', 0, 'ff9592', 'bb5756'],
-    ['sodium', 'f6bc26', 0.10, 'ffcc5b', 'b78e2f'], ['sodium', '62361b', -0.20, '9b6a4f', '825438'],
+    ['sodium', 'f6bc26', 0.10, 'ffcc5b', 'b78e2f'], ['sodium', 'ae5f2f', -0.20, 'ae5f2f', '984b17'],
     ['sodium', '000099', -0.12, '608bea', '3d5da4'],
   ];
   for (const [name, src, dL, trail, line] of PINS) {

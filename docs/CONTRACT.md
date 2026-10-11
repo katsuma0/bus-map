@@ -1686,7 +1686,8 @@ with a warning; make.py never sends both.
 **Pins.** `normalise(source, env, bg, dL)`: the B5 envelope with both lightnesses shifted (trail at
 `trailL + dL`, dormant line at `lineL + dL`), chroma clamped as always, then lifted until it keeps
 `minContrast`. A pin is relative to the batch theme, so one value gives one colour in every video of
-the batch: GO `#00853e` at -0.12 is trail `#3fab61`, line `#006e32` in all eleven GTA videos with GO;
+the batch: GO `#00853e` at -0.12 is trail `#3fab61`, line `#006e32` in all nine GTA videos with a GO
+group (Oshawa and Whitby draw GO in the Other grey: next to DRT's light green it read as one green);
 TTC `#ed1c24` at -0.12 is `#df695e`, `#a04038`; `dL` 0 pins the source step (YRT `#83bbff`, Züm
 `#ff9592`). `trailL + dL` is clamped to 0.92 (the ladder's ceiling) with a warning.
 
@@ -1705,8 +1706,9 @@ contrast 3, else the farthest with a warning. The greys are placed first, so no 
 them. Recipe order, not share order, so a feed refresh that swaps two shares never repaints a city.
 A pin or neutral under 0.08 from a colour before it is a warning naming both, never an error. The
 theme's city line is measured, not placed: each trail's `dCity` under 0.08 is a warning (placing it
-would move New York's B/D/F/M off its checked source step, 0.069 from the amber line). In the 22
-checked plans every pair of trails is at least 0.098 apart.
+would move New York's B/D/F/M off its checked source step, 0.069 from the amber line; Chicago's
+Orange Line, turned toward orange so it does not read as a second Red Line, is 0.067 from it). In
+the 22 checked plans every pair of trails is at least 0.098 apart.
 
 **Draw order.** Rail classes after bus, with `other`'s class first within bus and within rail, so
 the grey never covers a city's own colours; then the trips descending, so the group with the fewest
@@ -1736,8 +1738,9 @@ earlier break). If none fits, the last entry is dropped with a `console.error` (
 and the steps run again; the legend never overflows its column, never goes under 18 px and never
 takes a third row, and dropping never repaints a trail. Its sizes decide no colour (unlike the
 chips', which stay as B9 has them). In the preset every checked legend fits one row at 20.4 px, from
-230 px (Brampton, `Local · Züm · GO`) to 419 px (Houston, `Local · Park & Ride · Express · Rail`); at
-`TEXT_SCALE` 1 and weight 500 Houston takes 499 of the 504 px.
+180 px (Oshawa and Whitby, `Local · PULSE`) to 419 px (Houston,
+`Local · Park & Ride · Express · Rail`); at `TEXT_SCALE` 1 and weight 500 Houston takes 499 of the
+504 px.
 
 **With the other parts.** `MODE_CHIPS` and `LEGEND` both on: the legend takes the row and the chips
 are not drawn, with a warning (`busmap.chips` null). On a group network the chips never fold a group
