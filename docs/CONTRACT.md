@@ -470,6 +470,10 @@ Additions made while implementing (they extend, never change, the formats below)
   its scores and sheets read (`config.json`, each still with its `bg-` and the am-peak `rt-still-`,
   each frame with its `bgframe-`, and the clip's round trip); a pick whose PNGs were deleted to save
   disk is rendered again, and a sheet tile whose image is missing is a red outline, never an error;
+* the rush pass also runs `dotcore` (10, BUS_CORE_R), after `trailmin`: BUS_CORE_R is a variant
+  block key (the week's 0), so a day pick goes to `override.variant_render.day` alone and the rush
+  kept the preset's 2.2 px dots; the rush picks its own on its close-up clip, where its strobe is
+  measured, into `override.variant_render.rush`;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
   render key; `--upload` sends the MP4 last;

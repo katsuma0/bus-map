@@ -40,7 +40,9 @@ KNOBS = [
     (7, "shoulder", "TRAIL_SHOULDER_ALPHA", "look", True, ("day",)),
     (8, "trailalpha", "TRAIL_ALPHA", "look", True, ("day",)),
     (9, "layeralpha", "TRAIL_LAYER_ALPHA", "look", True, ("day",)),
-    (10, "dotcore", "BUS_CORE_R", "look", True, ("day", "week")),
+    # BUS_CORE_R is a variant block key (the week's 0), so a day pick stays in the day; the rush
+    # tunes its own on its close-up clip, whose strobe the day's clip does not measure.
+    (10, "dotcore", "BUS_CORE_R", "look", True, ("day", "rush", "week")),
     (11, "halor", "BUS_HALO_R", "look", True, ("day",)),
     (12, "haloalpha", "BUS_HALO_ALPHA", "look", True, ("day", "week")),
     (13, "routealpha", "ROUTE_ALPHA", "look", False, ("day",)),

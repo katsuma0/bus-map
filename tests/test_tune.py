@@ -158,7 +158,7 @@ class Arms(unittest.TestCase):
         knobs = lambda v: [k[0] for k in tune.KNOBS if v in k[5]]
         # The camera knob (24) runs right after the frame knobs it moves over.
         self.assertEqual(knobs("day"), [1, 2, 3, 24] + list(range(4, 24)))
-        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 19, 22])
+        self.assertEqual(knobs("rush"), [1, 2, 3, 24, 4, 10, 19, 22])
         self.assertEqual(knobs("week"), [24, 4, 10, 12, 17, 19])
         self.assertEqual(tune.BY_NAME["camamp"][2:5], ("CAMERA_AMP", "camera", True))
 
@@ -439,10 +439,20 @@ class EndToEnd(tm.Scratch):
         self.assertNotEqual(res.returncode, 0)
         self.repo.run("tune", "test-north", "--variant", "rush", "--knob", "zoom")
         self.repo.run("tune", "test-north", "--variant", "rush", "--pick", "zoom=c", "--why", "a real close-up")
+        # The rush tunes its own dot size on its own clip; the pick stays in the rush's block.
+        self.repo.run("tune", "test-north", "--variant", "rush", "--knob", "dotcore")
+        rush = os.path.join(self.repo.root, "build/test-north/tune/rush")
+        dots = tm.load(os.path.join(rush, "10-dotcore", "scores.json"))
+        self.assertEqual([a["value"] for a in dots["arms"]], [1.8, 2.4, 3.0])
+        self.assertIsNotNone(dots["arms"][0]["scores"]["strobe"])
+        self.assertTrue(os.path.exists(os.path.join(rush, "10-dotcore", "motion.jpg")))
+        self.repo.run("tune", "test-north", "--variant", "rush", "--pick", "dotcore=a", "--why",
+                      "no strobe at the peak")
         self.repo.run("tune", "test-north", "--variant", "rush", "--apply")
         r = self.repo.read_json("cities/recipes/test-north.json")
-        self.assertEqual(r["override"]["variant_render"], {"rush": {"FRAME_ZOOM": 1.1}})
-        self.assertEqual(r["override"]["_why"], {"rush.FRAME_ZOOM": "a real close-up"})
+        self.assertEqual(r["override"]["variant_render"], {"rush": {"FRAME_ZOOM": 1.1, "BUS_CORE_R": 1.8}})
+        self.assertEqual(r["override"]["_why"], {"rush.FRAME_ZOOM": "a real close-up",
+                                                 "rush.BUS_CORE_R": "no strobe at the peak"})
 
 
 if __name__ == "__main__":
