@@ -1085,7 +1085,8 @@ inside first, so a split city's buses leave out its trains' feeds and a neighbou
 is credited; a netmeta without them falls back to the feeds with vehicles inside, and `make.py meta`
 rewrites an older netmeta from the network when the network is there. The colours sentence names
 other's grey only when other has `window_trips` (its `share` is the inside share at the morning peak
-minute alone).
+minute alone), and a group whose legend word names a mode (its id, label or singular: `Bus`,
+`trains`) while it draws another mode fails `make.py meta` (San Diego's Coronado ferry in `Bus`).
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
 "credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],

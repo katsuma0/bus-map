@@ -108,6 +108,10 @@ name), `route_ids` (without the feed prefix) and `brand` (the routes A10 gives a
 its rules and line brands too, or exactly one rule). `{}` matches every route and only a
 `rest` group may use it. Every route lands in exactly one group: the first group without
 `rest` with a matching clause, else the first `rest` group with one, else `other`.
+A legend word that names a mode (`Bus`, `Trains`, a mode id) must hold that mode alone:
+`make.py meta` fails when the video draws another mode's trips in such a group, as San
+Diego's Coronado ferry took the MTS navy of `Bus` while the title said ferry. Give the
+mode a group of its own, or leave it out of the recipe's `modes`.
 
 `make.py` refuses, with the key and the reason: an unknown key (a `route_desc`,
 `route_color`, `route_long_name` or `trips` rule says why it is not supported), a scheme

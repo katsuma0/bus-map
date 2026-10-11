@@ -288,6 +288,34 @@ def credit_lines(netmeta, licences, templates, data_dates=None):
     return lines
 
 
+def legend_mode_faults(netmeta, modes):
+    """A colour group whose legend word names a mode ("Bus") while the video draws another mode's trips
+    in it: San Diego's Coronado ferry took the MTS navy of the Bus group, so the title named a ferry the
+    legend had no word for and the map drew it as a bus. Needs window_modes, so an older netmeta passes."""
+    if netmeta.get("color_by") != "group":
+        return []
+    word_mode, label, singular = {}, {}, {}
+    for m in modes:
+        label[m["id"]] = m.get("label") or m["id"]
+        singular[m["id"]] = m.get("singular") or m["id"]
+        for w in (m["id"], m.get("label"), m.get("singular")):
+            if w:
+                word_mode[w.strip().lower()] = m["id"]
+    out = []
+    for g in netmeta.get("groups") or []:
+        lg = g.get("legend")
+        word = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])
+        mode = word_mode.get(word.strip().lower())
+        drawn = g.get("window_modes") or {}
+        stray = sorted(k for k, n in drawn.items() if k != mode and n > 0)
+        if mode and stray:
+            trips = ", ".join(f"{drawn[k]} {singular.get(k, k)} trips" for k in stray)
+            out.append(f"group {g['id']} reads {word!r} in the legend, but the video draws "
+                       f"{join_words(label.get(k, k) for k in stray)} in its colour ({trips}); give them a group of "
+                       f"their own in the recipe's colors, or leave their mode out of the recipe's modes")
+    return out
+
+
 def hashtag_list(batch, place):
     tags = []
     seen = set()
@@ -357,6 +385,9 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         for f in netmeta.get("feeds", []):
             if f.get("month_used") and month_name(f["month_used"]) == mlabel:
                 year = f["month_used"][:4]
+    faults = legend_mode_faults(netmeta, batch["modes"])
+    if faults:
+        raise MetaError("; ".join(faults))
     credits = credit_lines(netmeta, licences, templates, data_dates)
     values = {
         "place": place, "modes_singular": singular, "modes_plural": plural,

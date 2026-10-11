@@ -508,6 +508,36 @@ class Review(unittest.TestCase):
         next(f for f in nm["feeds"] if f["id"] == "go")["licence_id"] = "metra-gtfs"
         self.assertNotIn("as of", self.meta("gta-toronto", "day", nm=nm, recipe=recipe)["description"])
 
+    def test_legend_word_names_one_mode(self):
+        b = json.loads(json.dumps(self.batch))
+        b["modes"].append({"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4]})
+        recipe = self.pl.recipe("gta-markham", self.batch)
+
+        def nm_with(groups):
+            nm = dict(netmeta(b, recipe, "day"), color_by="group",
+                      groups=[{"id": i, "label": lab, "legend": lg, "window_modes": wm, "window_trips": sum(wm.values())}
+                              for i, lab, lg, wm in groups])
+            nm["modes"], nm["modes_present"] = b["modes"], ["bus", "rail", "ferry"]
+            return nm
+
+        sd = [("bus", "Bus", True, {"bus": 5801, "ferry": 90}), ("rapid", "Rapid", True, {"bus": 940}),
+              ("blue_line", "Blue Line", "Trolley", {"rail": 295})]
+        with self.assertRaises(sm.MetaError) as cm:
+            self.meta("gta-markham", "day", nm=nm_with(sd), batch=b)
+        self.assertIn("group bus reads 'Bus' in the legend, but the video draws ferries in its colour (90 ferry trips)",
+                      str(cm.exception))
+        # The ferry in a group of its own: title, legend and colours sentence all name it.
+        sd[0] = ("bus", "Bus", True, {"bus": 5801})
+        m = self.meta("gta-markham", "day", nm=nm_with(sd + [("ferry", "Ferry", True, {"ferry": 90})]), batch=b)
+        self.assertEqual(m["title"], "Every bus, train and ferry in Markham in 24 hours")
+        self.assertIn("Colours: Bus, Rapid, Trolley and Ferry.", m["description"])
+        # A mode id is a mode word too, and a group that mixes modes under a word that names none passes.
+        with self.assertRaises(sm.MetaError):
+            self.meta("gta-markham", "day", nm=nm_with([("rail", "Rail", True, {"rail": 700, "streetcar": 20})]), batch=b)
+        self.meta("gta-markham", "day", nm=nm_with([("go", "GO", True, {"bus": 900, "rail": 350})]), batch=b)
+        # An older netmeta has no window_modes and passes as it did.
+        self.meta("gta-markham", "day", nm=nm_with([("bus", "Bus", True, {})]), batch=b)
+
 
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
