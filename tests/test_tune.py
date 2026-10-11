@@ -197,6 +197,26 @@ class Arms(unittest.TestCase):
                 tune.check_why(bad)
 
 
+class Sheets(unittest.TestCase):
+    def test_missing_image_is_an_outlined_tile(self):
+        with tempfile.TemporaryDirectory() as td:
+            ok = os.path.join(td, "still-0800.png")
+            Image.new("RGB", (1080, 1920), (40, 120, 200)).save(ok)
+            out = tune.tile_sheet([("b: BUS_CORE_R=2.2", [(ok, "08:00"), (None, "12:30"),
+                                                         (os.path.join(td, "gone.png"), "17:30")])],
+                                  os.path.join(td, "sheet.jpg"), cols=3)
+            with Image.open(out) as im:
+                self.assertEqual(im.size, (tune.GAP + 3 * (tune.TILE_W + tune.GAP),
+                                           tune.HEADER + tune.TILE_H + tune.GAP))
+                y = tune.HEADER + 100
+                self.assertGreater(im.getpixel((tune.GAP + 100, y))[2], 150)
+                for i in (1, 2):
+                    x0 = tune.GAP + i * (tune.TILE_W + tune.GAP)
+                    r, g, _b = im.getpixel((x0, y))
+                    self.assertGreater(r - g, 40, "the red outline")
+                    self.assertLess(max(im.getpixel((x0 + 100, y))), 60, "nothing inside it")
+
+
 class CardKnobs(tm.Scratch):
     """B10: the card knobs join a pass only when the video shows the card."""
 
@@ -388,6 +408,25 @@ class EndToEnd(tm.Scratch):
         # G-2: no data step ran and no stamp changed
         self.assertFalse([c for c in self.repo.calls() if c.split()[0] in ("build_area", "trim", "basemap", "fetch_overture")])
         self.assertEqual(self.stamps(), before)
+
+    def test_picked_arm_without_its_frames(self):
+        """A picked arm whose PNGs were deleted to save disk is rendered again rather than linked as arm b."""
+        rid = "test-centre"
+        d = os.path.join(self.repo.root, "build", rid, "tune", "day")
+        self.repo.run("tune", rid, "--next")
+        self.repo.run("tune", rid, "--pick", "zoom=b", "--why", "the city fills the space above the panel")
+        k1 = os.path.join(d, "01-zoom")
+        for root, _d, names in os.walk(k1):
+            for n in names:
+                if n.endswith(".png"):
+                    os.remove(os.path.join(root, n))
+        self.repo.clear_calls()
+        self.repo.run("tune", rid, "--next")
+        self.assertEqual(len([c for c in self.repo.calls() if c.startswith("render tune")]), 3)
+        k2 = os.path.join(d, "02-cx")
+        self.assertEqual(os.stat(os.path.join(k2, "b", "still-0800.png")).st_nlink, 1)
+        self.assertIsNotNone(tm.load(os.path.join(k2, "scores.json"))["arms"][1]["scores"]["whiteout"])
+        self.assertTrue(os.path.exists(os.path.join(k2, "sheet.jpg")))
 
     def test_rush_and_week_passes(self):
         out = self.repo.run("tune", "test-centre", "--variant", "week", "--auto").stdout

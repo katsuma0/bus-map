@@ -456,15 +456,22 @@ def tile_sheet(groups, out, cols=5, tile=(TILE_W, TILE_H), crop=None):
         for i, (path, label) in enumerate(tiles):
             x0 = GAP + (i % cols) * (tw + GAP)
             y0 = y + HEADER + (i // cols) * (th + GAP)
-            try:
-                with Image.open(path) as im:
-                    im = im.convert("RGB")
-                    if crop:
-                        im = im.crop(crop(im))
-                    im = im.resize((tw, th), Image.LANCZOS)
-                sheet.paste(im, (x0, y0))
-            except (OSError, ValueError):
+            # A tile whose image is gone (none found for that time, or the PNGs deleted to save disk)
+            # gets the red outline, so a sheet with a hole still reaches the judge.
+            tile_im = None
+            if path:
+                try:
+                    with Image.open(path) as im:
+                        im = im.convert("RGB")
+                        if crop:
+                            im = im.crop(crop(im))
+                        tile_im = im.resize((tw, th), Image.LANCZOS)
+                except (OSError, ValueError):
+                    pass
+            if tile_im is None:
                 draw.rectangle([x0, y0, x0 + tw - 1, y0 + th - 1], outline=(200, 60, 60))
+            else:
+                sheet.paste(tile_im, (x0, y0))
             if label:
                 tb = draw.textbbox((0, 0), label, font=f_lab)
                 draw.rectangle([x0, y0 + th - (tb[3] - tb[1]) - 10, x0 + tb[2] - tb[0] + 10, y0 + th], fill=(0, 0, 0))
@@ -627,8 +634,27 @@ class Tuner:
         with open(os.path.join(out, "arm.json"), "w", encoding="utf-8") as fh:
             json.dump(self.arm_sig(query, bh, times, frames, clip), fh, sort_keys=True)
 
+    def arm_whole(self, d, times, frames, clip):
+        """Whether arm d still has every file its scores and sheets read. A picked knob's PNGs may be
+        deleted to save disk, which leaves arm.json behind, so the signature alone does not say so."""
+        if not os.path.exists(os.path.join(d, "config.json")):
+            return False
+        if times and not self.find(d, "rt-still", times[0]):
+            return False
+        for t in times:
+            if not (self.find(d, "still", t) and self.find(d, "bg", t)):
+                return False
+        for f in frames:
+            if not all(os.path.exists(os.path.join(d, f"{p}-{f:04d}.png")) for p in ("frame", "bgframe")):
+                return False
+        # Two round-trip frames are the least the motion and strobe scores need.
+        if clip and len([p for p in os.listdir(d) if re.match(r"^rt-clip-\d+\.png$", p)]) < 2:
+            return False
+        return True
+
     def reuse_previous(self, out, query, bh, times, frames, clip):
-        """Arm b is the previous knob's chosen arm when that arm rendered the same query and files."""
+        """Arm b is the previous knob's chosen arm when that arm rendered the same query and files and
+        still has them."""
         for h in reversed(self.state["history"]):
             if h.get("picked") is None:
                 continue
@@ -640,6 +666,8 @@ class Tuner:
                 return False
             want = self.arm_sig(query, bh, times, frames, clip)
             if json.loads(json.dumps(sig, sort_keys=True)) != json.loads(json.dumps(want, sort_keys=True)):
+                return False
+            if not self.arm_whole(src, times, frames, clip):
                 return False
             if os.path.isdir(out):
                 shutil.rmtree(out)

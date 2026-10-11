@@ -466,6 +466,10 @@ Additions made while implementing (they extend, never change, the formats below)
   with `CARD` on; `panelalpha` (22) is scored by text contrast over the stills of the day and the
   rush passes, against P99 of the background under each box rather than P90, so the few bright dots
   and lines that cross the text, which the backdrop is there for, count;
+* tuning arm b reuses the previous knob's chosen arm (G1) only while that arm still holds the files
+  its scores and sheets read (`config.json`, each still with its `bg-` and the am-peak `rt-still-`,
+  each frame with its `bgframe-`, and the clip's round trip); a pick whose PNGs were deleted to save
+  disk is rendered again, and a sheet tile whose image is missing is a red outline, never an error;
 * release asset labels read `<file> key:<16 hex>` (GitHub lists the label in place of the file
   name), and a video counts as done only when its MP4, `.json` and `.netmeta.json` all carry its
   render key; `--upload` sends the MP4 last;
