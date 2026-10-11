@@ -944,6 +944,13 @@ Precedence, lowest first: CONFIG default, LARGE_FRAME profile (frames of 60 km a
 preset (`web/presets/<name>.json` `render`), theme tokens, `meta.theme` keys, `meta.render`,
 `meta.variants[v].render`, `render=` query JSON, single query knobs (pinned, as today).
 
+The shorts preset carries the LARGE_FRAME trail and dot values (12-minute trails, 3 px core, 12 px
+shoulder, 2.2 px dots with an 8 px halo at 0.12, bounded blending) for every frame size. Below 60 km
+the CONFIG defaults are Tsukuba's 36 km glow (25-minute trails, 6 px core, 22 px shoulder, 3 px dots
+with an 11 px halo at 0.35), which on a rush close-up reads as soft blobs; the large-frame look is the
+one the owner picked from the Tokyo trains and GTA videos. Variant blocks (the rush's 8 minutes, the
+week's 30) still apply on top.
+
 #### 2.11 busmap API additions (B implements; C and D call)
 
 Every existing member stays. Added:
