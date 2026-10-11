@@ -39,5 +39,45 @@
   "_why": {
    "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads"
   }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "miway",
+    "rest": true,
+    "verified": true,
+    "source": "miway.zip routes.txt route_color D33517 on all 59 non-express routes (MiLocal)"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#026bcd",
+    "match": [
+     {
+      "feed": "miway",
+      "short": "^1\\d\\d$"
+     }
+    ],
+    "verified": true,
+    "source": "miway.zip routes.txt route_color 026BCD on 101, 103, 107, 108, 109, 110, 126, 135 (MiExpress; cities/brands.json miway alt)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

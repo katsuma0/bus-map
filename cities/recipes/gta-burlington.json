@@ -32,11 +32,47 @@
  "override": {
   "render": {},
   "variant_render": {},
-  "brand_colors": {
-   "burlington": "#890a07"
-  },
-  "_why": {
-   "brand_colors.burlington": "Burlington's second route colour in burlington.zip; its blue reads as one colour with Oakville blue"
-  }
+  "brand_colors": {},
+  "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "frequent",
+    "label": "Frequent",
+    "hex": "#890a07",
+    "match": [
+     {
+      "feed": "burlington",
+      "short": "^(1|2|3|10|11|25)$"
+     }
+    ],
+    "verified": true,
+    "source": "burlington.zip routes.txt route_color 890A07 on exactly 1, 2, 3, 10, 11, 25, the six routes Burlington's 2026 Ride Guide lists as Frequent (Ride Guide read by the scout through a search summary)"
+   },
+   {
+    "id": "regular",
+    "label": "Regular",
+    "brand": "burlington",
+    "rest": true,
+    "verified": true,
+    "source": "burlington.zip routes.txt route_color 00447C on 4, 6, 12, 80, 81, 87 (Regular routes)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

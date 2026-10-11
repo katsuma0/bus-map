@@ -40,5 +40,55 @@
    "OUTSIDE_DIM": "0.95 makes the Markham grid stand out; at 0.8 the TTC grid south of Steeles is as loud as Markham's own red lines",
    "CARD_LINES": "line 1 reads in one line and the rush card hides 33% of vehicles, not 40%; it also differs from Richmond Hill's 0"
   }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": true,
+  "groups": [
+   {
+    "id": "yrt",
+    "label": "YRT",
+    "brand": "yrt",
+    "rest": true,
+    "verified": false,
+    "source": "cities/brands.json yrt 0058A9 (in yrt.zip on routes 004, 007, 032, 055 only, no agency majority); York Region's logo guide gives PMS 287C #00539B (scout, search summary), which lands on the same trail (dE 0.002)"
+   },
+   {
+    "id": "ttc",
+    "label": "TTC",
+    "brand": "ttc",
+    "verified": true,
+    "source": "ttc.zip routes.txt route_color ED1C24 on 146 bus and 11 streetcar routes (cities/brands.json ttc); pinned batch-wide at dL -0.12 (trail #df695e) so TTC is one red in every GTA video"
+   },
+   {
+    "id": "viva",
+    "label": "Viva Purple",
+    "hex": "#9461a8",
+    "match": [
+     {
+      "feed": "yrt",
+      "route_ids": [
+       "603",
+       "60301"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "yrt.zip routes.txt route_color 9461A8 on route_id 603 VIVA PURPLE (60301 Purple A carries the filler A3248F and takes 9461A8 by rule)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

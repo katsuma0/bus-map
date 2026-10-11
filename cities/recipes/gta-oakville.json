@@ -35,5 +35,45 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "oakville",
+    "rest": true,
+    "verified": true,
+    "source": "oakville.zip routes.txt route_color 004B8C on 32 of 35 routes (cities/brands.json oakville)"
+   },
+   {
+    "id": "school",
+    "label": "School",
+    "hex": "#f2b705",
+    "match": [
+     {
+      "feed": "oakville",
+      "short": "^(7\\d|8\\d)[A-Z]?$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: school-bus yellow (trail #e3ae28, mustard); oakville.zip colours the school specials 004B8C like every route"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

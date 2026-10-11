@@ -44,5 +44,53 @@
    "CARD_LINES": "line 2 is two short lines that read at a glance; the trains video after it opens on line 1",
    "OUTSIDE_DIM": "0.75 drops Mississauga and York Region to a faint hint, so Toronto reads 4.2x brighter than its neighbours (b: 2.9x)"
   }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "ttc",
+    "rest": true,
+    "verified": true,
+    "source": "ttc.zip routes.txt route_color ED1C24 on 146 bus and 11 streetcar routes (cities/brands.json ttc); pinned batch-wide at dL -0.12 (trail #df695e) so TTC is one red in every GTA video"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#00a651",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^9\\d\\d$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_color 00A651 on all 28 routes 900-996 (TTC Express Network green)"
+   },
+   {
+    "id": "streetcar",
+    "label": "Streetcar",
+    "hex": "#9a7bd1",
+    "match": [
+     {
+      "feed": "ttc",
+      "mode": [
+       "streetcar"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: calm lavender; ttc.zip gives streetcars the bus red ED1C24 (day) and Blue Night 0054A6 (night), so there is no streetcar colour"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

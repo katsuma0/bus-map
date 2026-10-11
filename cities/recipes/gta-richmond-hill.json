@@ -39,5 +39,48 @@
   "_why": {
    "OUTSIDE_DIM": "outside vehicles outnumber the city's 8.8 to 1 at the am peak"
   }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": true,
+  "groups": [
+   {
+    "id": "yrt",
+    "label": "YRT",
+    "brand": "yrt",
+    "rest": true,
+    "verified": false,
+    "source": "cities/brands.json yrt 0058A9 (in yrt.zip on routes 004, 007, 032, 055 only, no agency majority); York Region's logo guide gives PMS 287C #00539B (scout, search summary), which lands on the same trail (dE 0.002)"
+   },
+   {
+    "id": "viva",
+    "label": "Viva Blue",
+    "hex": "#009cdb",
+    "match": [
+     {
+      "feed": "yrt",
+      "route_ids": [
+       "601",
+       "60102"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "yrt.zip routes.txt route_color 009CDB on route_id 601 VIVA BLUE (60102 Blue B carries the filler A3248F and takes 009CDB by rule); placed after YRT, the B6 ladder draws it at dL -0.12 (#069ddd)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }

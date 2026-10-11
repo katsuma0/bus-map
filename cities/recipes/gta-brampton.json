@@ -39,5 +39,39 @@
   "_why": {
    "OUTSIDE_DIM": "0.9 drops the grey Mississauga grid and outside GO lines to a hint so Brampton stands alone; at 0.7 they compete"
   }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "brampton",
+    "rest": true,
+    "verified": false,
+    "source": "cities/brands.json brampton 0067B1, Brampton Transit livery blue, approximate (brampton.zip has no route_color)"
+   },
+   {
+    "id": "zum",
+    "label": "Züm",
+    "brand": "brampton:zum",
+    "verified": false,
+    "source": "cities/brands.json brampton rule zum: livery red, approximate (brampton.zip has no route_color; CPTDB: silver bus with a red front and roofline); pinned at the source step (trail #ff9592) in Brampton and Vaughan"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
  }
 }
