@@ -2,6 +2,7 @@
  "id": "gta-oakville",
  "batch": "gta",
  "place": "Oakville",
+ "limits": "town",
  "boundary": {
   "name": "Oakville",
   "subtypes": [

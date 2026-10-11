@@ -2,6 +2,7 @@
  "id": "gta-whitby",
  "batch": "gta",
  "place": "Whitby",
+ "limits": "town",
  "boundary": {
   "name": "Whitby",
   "subtypes": [
