@@ -1,0 +1,41 @@
+{
+ "file": "usa-san-diego-day.mp4",
+ "title": "Every bus, train and ferry in San Diego in 24 hours",
+ "description": "Every bus, train and ferry running in San Diego on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the San Diego city limits. The faded ones are just outside. Colours: Bus, Rapid, Trolley and Ferry.\n\nBusiest moment: 281 vehicles at 3:43 pm.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nSan Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #sandiego",
+ "tags": [
+  "San Diego",
+  "San Diego MTS",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "California"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#sandiego"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "San Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement."
+ ],
+ "licences": [
+  {
+   "feed": "mts",
+   "licence_id": "mts-developer",
+   "commercial": "check",
+   "note": "non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "licence_flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "publish_order": 10,
+ "meta_key": "7a1aa77810a589f1ba87b100e9a9822c1c4326eb91680ef8705732138f007c2a"
+}

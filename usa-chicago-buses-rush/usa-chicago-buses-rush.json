@@ -1,0 +1,38 @@
+{
+ "name": "usa-chicago-buses-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 18,
+ "kbps": 9143,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 50.8,
+ "query": "record=1&data=../build/usa-chicago-buses/day/network.json.gz&basemap=../build/usa-chicago-buses/basemap.json.gz&variant=rush&render=%7B%22BUS_CORE_R%22%3A1.2%2C%22CAMERA_PATH%22%3A%22pull-out-west%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A0.9%2C%22LEGEND%22%3Atrue%2C%22PANEL_ALPHA%22%3A1.15%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TITLE_SCRIM%22%3A1.3%2C%22TRAIL_MINUTES%22%3A9%2C%22TRAIL_SHOULDER_W%22%3A8%7D&paint=%7B%22express%22%3A%7B%22hex%22%3A%22b71234%22%7D%2C%22frequent%22%3A%7B%22hex%22%3A%220065bd%22%7D%7D",
+ "network_sha256": "994b35ea3c4d7343025d3046ae7326024915c30fb69a4c4f69699585a5df5e39",
+ "basemap_sha256": "ad6dab7b8c42913514a3e8d19ed14c5f537a281b31d2c17b6e2f826514bc1ac7",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001717, 4 cpus",
+ "started_at": "2026-10-11T22:22:28.678Z",
+ "key": "59cf3dde42744eb2fc53e95693145127929fb9e4e66dfee640d28760615f7ac0",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 9143
+  }
+ ]
+}

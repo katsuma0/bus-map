@@ -1,0 +1,37 @@
+{
+ "file": "usa-houston-rush.mp4",
+ "title": "Morning rush in Houston: every bus and train, 6:30 to 9:30 am",
+ "description": "The morning rush in Houston, 6:30 to 9:30 am, in 25 seconds. Every bus and train inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Houston city limits are faded and not counted. Colours: Local, Park & Ride, Express and Rail.\n\nBusiest moment of the morning: 559 vehicles at 7:35 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nHouston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #houston",
+ "tags": [
+  "Houston",
+  "Houston METRO",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "Texas"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#houston"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Houston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO."
+ ],
+ "licences": [
+  {
+   "feed": "houmetro",
+   "licence_id": "houston-metro-data",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 13,
+ "meta_key": "3ca10ee8192f36a0bb8e650ebaa482b1be06c41511c9dcd6f9605635af263df4"
+}

@@ -1,0 +1,42 @@
+{
+ "name": "usa-houston-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 16,
+ "kbps": 9762,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 65.7,
+ "query": "record=1&data=../build/usa-houston/week/network.json.gz&basemap=../build/usa-houston/basemap.json.gz&variant=week&render=%7B%22CAMERA_PATH%22%3A%22pull-out-north%22%2C%22CARD_LINES%22%3A2%2C%22FRAME_ZOOM%22%3A1.05%2C%22LEGEND%22%3Atrue%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22express%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22a864a2%22%7D%2C%22local%22%3A%7B%22hex%22%3A%22004080%22%7D%2C%22pnr%22%3A%7B%22hex%22%3A%22009675%22%7D%2C%22rail%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ef0000%22%7D%7D",
+ "network_sha256": "a9b8fb9ce423754882a5b5ad167eb4e0036dd7b463bedfcc11f196d269b396b6",
+ "basemap_sha256": "97b75821b717388c14e3e5c372f523766b93616b5e481e6d2c38de5e959f1562",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001728, 4 cpus",
+ "started_at": "2026-10-11T22:25:27.537Z",
+ "key": "9474a8f44f19ed6a594f0cb9062b1e464e9452b48aaa8b0fdbb5cb8db33d2cc9",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7655
+  },
+  {
+   "crf": 16,
+   "kbps": 9762
+  }
+ ]
+}

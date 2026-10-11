@@ -1,0 +1,46 @@
+{
+ "name": "usa-chicago-trains-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 14,
+ "kbps": 10245,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 56.5,
+ "query": "record=1&data=../build/usa-chicago-trains/day/network.json.gz&basemap=../build/usa-chicago-trains/basemap.json.gz&variant=rush&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22CAMERA_PATH%22%3A%22pull-out-east%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_DY_KM%22%3A-2.55%2C%22FRAME_ZOOM%22%3A0.9%2C%22LEGEND%22%3Afalse%2C%22PANEL_ALPHA%22%3A1.32%2C%22TITLE_SCRIM%22%3A1.3%2C%22TRAIL_MINUTES%22%3A9%7D&paint=%7B%22blue%22%3A%7B%22hex%22%3A%2200a1de%22%7D%2C%22brown%22%3A%7B%22dL%22%3A-0.2%2C%22hex%22%3A%22ae5f2f%22%7D%2C%22green%22%3A%7B%22hex%22%3A%22009b3a%22%7D%2C%22orange%22%3A%7B%22dL%22%3A0%2C%22hex%22%3A%22ff9558%22%7D%2C%22pink%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22e27ea6%22%7D%2C%22red%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22c60c30%22%7D%7D",
+ "network_sha256": "08871f780d5274c22b294ed6f3bacf544bb21c51cb52e4ce8b2d40651ca220ee",
+ "basemap_sha256": "ad6dab7b8c42913514a3e8d19ed14c5f537a281b31d2c17b6e2f826514bc1ac7",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001722, 4 cpus",
+ "started_at": "2026-10-11T22:22:39.872Z",
+ "key": "005ebe6716dfcfee56ee758b94b385f628b380e04a3c4ff1b28914bb4187a843",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 6129
+  },
+  {
+   "crf": 16,
+   "kbps": 7908
+  },
+  {
+   "crf": 14,
+   "kbps": 10245
+  }
+ ]
+}

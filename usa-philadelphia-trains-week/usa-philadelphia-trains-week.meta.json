@@ -1,0 +1,51 @@
+{
+ "file": "usa-philadelphia-trains-week.mp4",
+ "title": "A week of every train in Philadelphia",
+ "description": "A week of every train in Philadelphia, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Philadelphia city limits are faded and not counted. Colours: Regional Rail, B and L, with everything else in grey.\n\nBusiest moment: 63 trains, Thursday at 5:35 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night. SEPTA Regional Rail changed its timetables during October, so its Tuesday, Wednesday, Saturday and Sunday each use one typical date.\n\nSEPTA Bus and Metro (Southeastern Pennsylvania Transportation Authority): SEPTA License Agreement.\nSEPTA Regional Rail (Southeastern Pennsylvania Transportation Authority): SEPTA License Agreement.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #philadelphia",
+ "tags": [
+  "Philadelphia",
+  "SEPTA Bus and Metro",
+  "SEPTA Regional Rail",
+  "transit map",
+  "train map",
+  "GTFS",
+  "Pennsylvania"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#philadelphia"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "SEPTA Bus and Metro (Southeastern Pennsylvania Transportation Authority): SEPTA License Agreement.",
+  "SEPTA Regional Rail (Southeastern Pennsylvania Transportation Authority): SEPTA License Agreement."
+ ],
+ "licences": [
+  {
+   "feed": "septa-bus",
+   "licence_id": "septa-licence",
+   "commercial": "check",
+   "note": "non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one",
+   "allow_nc": null
+  },
+  {
+   "feed": "septa-rail",
+   "licence_id": "septa-licence",
+   "commercial": "check",
+   "note": "non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "SEPTA Bus and Metro: check the licence (septa-licence): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one",
+  "SEPTA Regional Rail: check the licence (septa-licence): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one"
+ ],
+ "licence_flags": [
+  "SEPTA Bus and Metro: check the licence (septa-licence): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one",
+  "SEPTA Regional Rail: check the licence (septa-licence): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no fee today, though SEPTA keeps the right to charge one"
+ ],
+ "publish_order": 26,
+ "meta_key": "9b32990bcbf880ef754f4d95a6873507e80349fbe555e57909e5c2f0aaf90084"
+}

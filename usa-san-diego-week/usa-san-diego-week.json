@@ -1,0 +1,50 @@
+{
+ "name": "usa-san-diego-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 12,
+ "kbps": 9394,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 48.2,
+ "query": "record=1&data=../build/usa-san-diego/week/network.json.gz&basemap=../build/usa-san-diego/basemap.json.gz&variant=week&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22CAMERA_PATH%22%3A%22pull-out-south%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A1.05%2C%22LEGEND%22%3Atrue%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22blue_line%22%3A%7B%22hex%22%3A%220000ff%22%7D%2C%22bus%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22000099%22%7D%2C%22ferry%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%2200a3ad%22%7D%2C%22green_line%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22009900%22%7D%2C%22orange_line%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ff6600%22%7D%2C%22rapid%22%3A%7B%22hex%22%3A%22cc0000%22%7D%7D",
+ "network_sha256": "48579b7cba2c872944cbb6f8ac3ada681bcd7d1f90aa54c7221c6fd67d934338",
+ "basemap_sha256": "64587b8ffecc9b4fbd5e092c042c098dc131aaeb389881571588343891e9eca0",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001735, 4 cpus",
+ "started_at": "2026-10-11T22:26:54.669Z",
+ "key": "f4ee95228dfa7e99d56ee5e26f83024a4b3ee99c70133155215ec90983076677",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 4455
+  },
+  {
+   "crf": 16,
+   "kbps": 5698
+  },
+  {
+   "crf": 14,
+   "kbps": 7301
+  },
+  {
+   "crf": 12,
+   "kbps": 9394
+  }
+ ]
+}

@@ -1,0 +1,95 @@
+{
+ "file": "usa-new-york-buses-day.mp4",
+ "title": "Every bus in New York City in 24 hours",
+ "description": "Every bus running in New York City on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the New York City limits. The faded ones are just outside. Colours: Local, Express and Select Bus.\n\nBusiest moment: 3,679 buses at 8:00 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nMTA Brooklyn Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMTA Bus Company: MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMTA Bronx Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMTA Manhattan Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMTA Queens Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMTA Staten Island Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #newyorkcity",
+ "tags": [
+  "New York City",
+  "MTA Brooklyn Bus",
+  "MTA Bus Company",
+  "MTA Bronx Bus",
+  "MTA Manhattan Bus",
+  "MTA Queens Bus",
+  "MTA Staten Island Bus",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "New York"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#newyorkcity"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "MTA Brooklyn Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "MTA Bus Company: MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "MTA Bronx Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "MTA Manhattan Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "MTA Queens Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "MTA Staten Island Bus (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA."
+ ],
+ "licences": [
+  {
+   "feed": "bus-bk",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "busco",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "bus-bx",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "bus-mn",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "bus-qn",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "bus-si",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "MTA Brooklyn Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Bus Company: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Bronx Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Manhattan Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Queens Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Staten Island Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement"
+ ],
+ "licence_flags": [
+  "MTA Brooklyn Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Bus Company: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Bronx Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Manhattan Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Queens Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "MTA Staten Island Bus: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement"
+ ],
+ "publish_order": 4,
+ "meta_key": "d2284a4eff56bc5bc7d1dd80041838997d70eeeeaecdee101c5834510b192dfa"
+}

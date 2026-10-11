@@ -1,0 +1,52 @@
+{
+ "file": "usa-chicago-trains-week.mp4",
+ "title": "A week of every train in Chicago",
+ "description": "A week of every train in Chicago, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Chicago city limits are faded and not counted. Colours: Red Line, Blue Line, Brown Line, Green Line, Orange Line and Pink Line, with everything else in grey.\n\nBusiest moment: 148 trains, Monday at 8:10 am.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night. Metra ran a reduced timetable on October 24, so that Saturday is left out.\n\nChicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority.\nMetra (Northeast Illinois Regional Commuter Railroad Corporation): Metra GTFS License Agreement. Not sponsored, affiliated or operated by Metra.\nMetra timetables as of October 4, 2026.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #chicago",
+ "tags": [
+  "Chicago",
+  "Chicago Transit Authority",
+  "Metra",
+  "transit map",
+  "train map",
+  "GTFS",
+  "Illinois"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#chicago"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Chicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority.",
+  "Metra (Northeast Illinois Regional Commuter Railroad Corporation): Metra GTFS License Agreement. Not sponsored, affiliated or operated by Metra.",
+  "Metra timetables as of October 4, 2026."
+ ],
+ "licences": [
+  {
+   "feed": "cta",
+   "licence_id": "cta-developer",
+   "commercial": "check",
+   "note": "licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own",
+   "allow_nc": null
+  },
+  {
+   "feed": "metra",
+   "licence_id": "metra-gtfs",
+   "commercial": "check",
+   "note": "use, reproduce and redistribute with no non-commercial clause; the terms also ask for the date the data was last updated, which the description gives from the lock's MDB dataset date (data_date)",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own",
+  "Metra: check the licence (metra-gtfs): use, reproduce and redistribute with no non-commercial clause; the terms also ask for the date the data was last updated, which the description gives from the lock's MDB dataset date (data_date)"
+ ],
+ "licence_flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own",
+  "Metra: check the licence (metra-gtfs): use, reproduce and redistribute with no non-commercial clause; the terms also ask for the date the data was last updated, which the description gives from the lock's MDB dataset date (data_date)"
+ ],
+ "publish_order": 22,
+ "meta_key": "c439c11e5fd0c2ee6419be9346732d39f7fd6c78a505ec0cdc329a0a62164f47"
+}

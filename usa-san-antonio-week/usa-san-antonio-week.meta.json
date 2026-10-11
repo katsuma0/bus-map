@@ -1,0 +1,40 @@
+{
+ "file": "usa-san-antonio-week.mp4",
+ "title": "A week of every bus in San Antonio",
+ "description": "A week of every bus in San Antonio, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the San Antonio city limits are faded and not counted. Colours: Standard and Frequent.\n\nBusiest moment: 296 buses, Monday at 4:25 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night.\n\nVIA Metropolitan Transit: VIA Developer's License Agreement. Data provided by VIA.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #sanantonio",
+ "tags": [
+  "San Antonio",
+  "VIA Metropolitan Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Texas"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#sanantonio"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VIA Metropolitan Transit: VIA Developer's License Agreement. Data provided by VIA."
+ ],
+ "licences": [
+  {
+   "feed": "via",
+   "licence_id": "via-developer",
+   "commercial": "check",
+   "note": "use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "VIA Metropolitan Transit: check the licence (via-developer): use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA"
+ ],
+ "licence_flags": [
+  "VIA Metropolitan Transit: check the licence (via-developer): use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA"
+ ],
+ "publish_order": 28,
+ "meta_key": "bcf2358147172610eb16a336b0fa30b7c8dfbe40427e08c41813614fd7709e3c"
+}

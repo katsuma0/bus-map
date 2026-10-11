@@ -1,0 +1,41 @@
+{
+ "file": "usa-san-diego-rush.mp4",
+ "title": "Morning rush in San Diego: every bus, train and ferry, 6:30 to 9:30 am",
+ "description": "The morning rush in San Diego, 6:30 to 9:30 am, in 25 seconds. Every bus, train and ferry inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the San Diego city limits are faded and not counted. Colours: Bus, Rapid, Trolley and Ferry.\n\nBusiest moment of the morning: 257 vehicles at 7:53 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nSan Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #sandiego",
+ "tags": [
+  "San Diego",
+  "San Diego MTS",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "California"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#sandiego"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "San Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement."
+ ],
+ "licences": [
+  {
+   "feed": "mts",
+   "licence_id": "mts-developer",
+   "commercial": "check",
+   "note": "non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "licence_flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "publish_order": 20,
+ "meta_key": "9d08a04ebe4135a5968f1159ac0f91f19d3b1df1ac83e443a408ad256028f553"
+}

@@ -1,0 +1,62 @@
+{
+ "file": "usa-new-york-trains-day.mp4",
+ "title": "Every train in New York City in 24 hours",
+ "description": "Every train running in New York City on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the New York City limits. The faded ones are just outside. Colours: B/D/F/M, 4/5/6, 1/2/3, N/Q/R/W, A/C/E and 7, with everything else in grey.\n\nBusiest moment: 590 trains at 8:25 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nNYC Subway (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nLong Island Rail Road (MTA Long Island Rail Road): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMetro-North Railroad (MTA Metro-North Railroad): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #newyorkcity",
+ "tags": [
+  "New York City",
+  "NYC Subway",
+  "Long Island Rail Road",
+  "Metro-North Railroad",
+  "transit map",
+  "train map",
+  "GTFS",
+  "New York"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#newyorkcity"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "NYC Subway (MTA New York City Transit): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "Long Island Rail Road (MTA Long Island Rail Road): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA.",
+  "Metro-North Railroad (MTA Metro-North Railroad): MTA Data Feed Terms and Conditions. Schedule data obtained from the MTA; not licensed or endorsed by the MTA."
+ ],
+ "licences": [
+  {
+   "feed": "subway",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "lirr",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  },
+  {
+   "feed": "mnr",
+   "licence_id": "mta-data-feeds",
+   "commercial": "check",
+   "note": "developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "NYC Subway: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "Long Island Rail Road: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "Metro-North Railroad: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement"
+ ],
+ "licence_flags": [
+  "NYC Subway: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "Long Island Rail Road: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement",
+  "Metro-North Railroad: check the licence (mta-data-feeds): developer terms with no non-commercial clause: the data is free, may be stored and shared from your own server and must not be altered; MTA charges only for its logos, maps and symbols, so use none and never imply MTA endorsement"
+ ],
+ "publish_order": 1,
+ "meta_key": "c2b1575fb482c0a13d440d82e38afd63d7bdcbb57ed3b78c454e477c76c9baa6"
+}

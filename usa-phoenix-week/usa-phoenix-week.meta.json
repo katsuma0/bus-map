@@ -1,0 +1,37 @@
+{
+ "file": "usa-phoenix-week.mp4",
+ "title": "A week of every bus and train in Phoenix",
+ "description": "A week of every bus and train in Phoenix, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Phoenix city limits are faded and not counted. Colours: Local, Express and Rail, with everything else in grey.\n\nBusiest moment: 314 vehicles, Monday at 4:45 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12).\n\nValley Metro (Valley Metro, via City of Phoenix Open Data): Open Data Commons Attribution License 1.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #phoenix",
+ "tags": [
+  "Phoenix",
+  "Valley Metro",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "Arizona"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#phoenix"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Valley Metro (Valley Metro, via City of Phoenix Open Data): Open Data Commons Attribution License 1.0."
+ ],
+ "licences": [
+  {
+   "feed": "valleymetro",
+   "licence_id": "odc-by-1.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 25,
+ "meta_key": "0a70c329546883c3a7332b9aa17b31aaa01b5c032eb3bce815fbcec81de5d7db"
+}

@@ -1,0 +1,50 @@
+{
+ "name": "usa-san-diego-day",
+ "variant": "day",
+ "tier": "final",
+ "frames": 1500,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 50,
+ "crf": 12,
+ "kbps": 9861,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 46.3,
+ "query": "record=1&data=../build/usa-san-diego/day/network.json.gz&basemap=../build/usa-san-diego/basemap.json.gz&variant=day&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22BUS_CORE_R%22%3A1.6%2C%22CAMERA_PATH%22%3A%22pull-out-south%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A1.05%2C%22LEGEND%22%3Atrue%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TRAIL_MINUTES%22%3A18%7D&paint=%7B%22blue_line%22%3A%7B%22hex%22%3A%220000ff%22%7D%2C%22bus%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22000099%22%7D%2C%22ferry%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%2200a3ad%22%7D%2C%22green_line%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22009900%22%7D%2C%22orange_line%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ff6600%22%7D%2C%22rapid%22%3A%7B%22hex%22%3A%22cc0000%22%7D%7D",
+ "network_sha256": "c183d7cdf9289db7fbb56361435b854921073c0f4353f1c56bd92a64d5346ba6",
+ "basemap_sha256": "64587b8ffecc9b4fbd5e092c042c098dc131aaeb389881571588343891e9eca0",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001716, 4 cpus",
+ "started_at": "2026-10-11T22:22:39.771Z",
+ "key": "e0144af05f9b6e727b9f6487b2d8ee0c63fef72d122af4eee9d5193644635c4d",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 4936
+  },
+  {
+   "crf": 16,
+   "kbps": 6205
+  },
+  {
+   "crf": 14,
+   "kbps": 7803
+  },
+  {
+   "crf": 12,
+   "kbps": 9861
+  }
+ ]
+}

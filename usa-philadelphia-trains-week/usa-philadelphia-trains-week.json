@@ -1,0 +1,42 @@
+{
+ "name": "usa-philadelphia-trains-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 16,
+ "kbps": 10151,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 34.8,
+ "query": "record=1&data=../build/usa-philadelphia-trains/week/network.json.gz&basemap=../build/usa-philadelphia-trains/basemap.json.gz&variant=week&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22CAMERA_PATH%22%3A%22drift-orbit%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A0.95%2C%22LEGEND%22%3Afalse%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22b%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22f26100%22%7D%2C%22l%22%3A%7B%22hex%22%3A%220097d6%22%7D%2C%22rr%22%3A%7B%22hex%22%3A%224f758b%22%7D%7D",
+ "network_sha256": "b10f24ba9cfca74204d196e8faec3b1111e1eb77e795aafb6e7ab02645a7924a",
+ "basemap_sha256": "a6b72863c1bcaa0e085599e9d314431e5e66f997c02568ef398d29bbe6b80c2b",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "62ae4149077bdab52e5ba9b342a7b87ce42f5947",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001731, 4 cpus",
+ "started_at": "2026-10-11T22:25:42.357Z",
+ "key": "5f95f1762ff4d87f67051d4c20b2bc7f5fcb7b7202bdc81f3b129df17620f320",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7628
+  },
+  {
+   "crf": 16,
+   "kbps": 10151
+  }
+ ]
+}

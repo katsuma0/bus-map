@@ -1,0 +1,41 @@
+{
+ "file": "usa-san-diego-week.mp4",
+ "title": "A week of every bus, train and ferry in San Diego",
+ "description": "A week of every bus, train and ferry in San Diego, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the San Diego city limits are faded and not counted. Colours: Bus, Rapid, Trolley and Ferry.\n\nBusiest moment: 281 vehicles, Thursday at 3:43 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night.\n\nSan Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #sandiego",
+ "tags": [
+  "San Diego",
+  "San Diego MTS",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "California"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#sandiego"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "San Diego MTS (San Diego Metropolitan Transit System): MTS Developer License Agreement."
+ ],
+ "licences": [
+  {
+   "feed": "mts",
+   "licence_id": "mts-developer",
+   "commercial": "check",
+   "note": "non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "licence_flags": [
+  "San Diego MTS: check the licence (mts-developer): non-exclusive, revocable right to use, reproduce and redistribute; no non-commercial clause; no MTS trademarks"
+ ],
+ "publish_order": 30,
+ "meta_key": "59dcdf3b8f97d7984dcc991126ba05f5b22661d7dd178e63c85bee95d801119d"
+}

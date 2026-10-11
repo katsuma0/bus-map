@@ -1,0 +1,40 @@
+{
+ "file": "usa-chicago-buses-week.mp4",
+ "title": "A week of every bus in Chicago",
+ "description": "A week of every bus in Chicago, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Chicago city limits are faded and not counted. Colours: Frequent and Express, with Local in grey.\n\nBusiest moment: 1,229 buses, Monday at 4:43 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night.\n\nChicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #chicago",
+ "tags": [
+  "Chicago",
+  "Chicago Transit Authority",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Illinois"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#chicago"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Chicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority."
+ ],
+ "licences": [
+  {
+   "feed": "cta",
+   "licence_id": "cta-developer",
+   "commercial": "check",
+   "note": "licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own"
+ ],
+ "licence_flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own"
+ ],
+ "publish_order": 27,
+ "meta_key": "ef5e884e126618c1fbb1c20a60ecee0566e39977cd71cf5a33f2daafdc2a5a19"
+}

@@ -1,0 +1,40 @@
+{
+ "file": "usa-chicago-buses-rush.mp4",
+ "title": "Morning rush in Chicago: every bus, 6:30 to 9:30 am",
+ "description": "The morning rush in Chicago, 6:30 to 9:30 am, in 25 seconds. Every bus inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Chicago city limits are faded and not counted. Colours: Frequent and Express, with Local in grey.\n\nBusiest moment of the morning: 1,159 buses at 8:10 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nChicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #chicago",
+ "tags": [
+  "Chicago",
+  "Chicago Transit Authority",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Illinois"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#chicago"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Chicago Transit Authority: CTA Developer License Agreement. Data provided by Chicago Transit Authority."
+ ],
+ "licences": [
+  {
+   "feed": "cta",
+   "licence_id": "cta-developer",
+   "commercial": "check",
+   "note": "licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own"
+ ],
+ "licence_flags": [
+  "Chicago Transit Authority: check the licence (cta-developer): licence to use, reproduce, distribute and make derivative works for assisting riders or promoting public transportation; no non-commercial clause; no CTA logos or implied endorsement; the data may not be sold on its own"
+ ],
+ "publish_order": 17,
+ "meta_key": "4fd6c83d131100641e470d9e1f60edfb7718cc5d217c1401b6046dadfba7ef11"
+}

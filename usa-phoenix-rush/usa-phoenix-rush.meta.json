@@ -1,0 +1,37 @@
+{
+ "file": "usa-phoenix-rush.mp4",
+ "title": "Morning rush in Phoenix: every bus and train, 6:30 to 9:30 am",
+ "description": "The morning rush in Phoenix, 6:30 to 9:30 am, in 25 seconds. Every bus and train inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Phoenix city limits are faded and not counted. Colours: Local, Express and Rail, with everything else in grey.\n\nBusiest moment of the morning: 296 vehicles at 7:30 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nValley Metro (Valley Metro, via City of Phoenix Open Data): Open Data Commons Attribution License 1.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #phoenix",
+ "tags": [
+  "Phoenix",
+  "Valley Metro",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "Arizona"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#phoenix"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Valley Metro (Valley Metro, via City of Phoenix Open Data): Open Data Commons Attribution License 1.0."
+ ],
+ "licences": [
+  {
+   "feed": "valleymetro",
+   "licence_id": "odc-by-1.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 15,
+ "meta_key": "78c65096d0b50b8165063b0f0350483715f6d9225441f95d8557fa140fa53b1f"
+}

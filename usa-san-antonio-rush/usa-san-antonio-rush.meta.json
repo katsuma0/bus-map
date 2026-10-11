@@ -1,0 +1,40 @@
+{
+ "file": "usa-san-antonio-rush.mp4",
+ "title": "Morning rush in San Antonio: every bus, 6:30 to 9:30 am",
+ "description": "The morning rush in San Antonio, 6:30 to 9:30 am, in 25 seconds. Every bus inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the San Antonio city limits are faded and not counted. Colours: Standard and Frequent.\n\nBusiest moment of the morning: 275 buses at 9:05 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nVIA Metropolitan Transit: VIA Developer's License Agreement. Data provided by VIA.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #sanantonio",
+ "tags": [
+  "San Antonio",
+  "VIA Metropolitan Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Texas"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#sanantonio"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VIA Metropolitan Transit: VIA Developer's License Agreement. Data provided by VIA."
+ ],
+ "licences": [
+  {
+   "feed": "via",
+   "licence_id": "via-developer",
+   "commercial": "check",
+   "note": "use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "VIA Metropolitan Transit: check the licence (via-developer): use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA"
+ ],
+ "licence_flags": [
+  "VIA Metropolitan Transit: check the licence (via-developer): use, reproduce and redistribute for assisting riders or furthering public transportation; no non-commercial clause; the credit must read Data provided by VIA"
+ ],
+ "publish_order": 18,
+ "meta_key": "287ed3c42011b42a372b8c3eb439863760167714af8ae6044bfc72f000eae0ba"
+}

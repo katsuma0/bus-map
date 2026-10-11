@@ -1,0 +1,37 @@
+{
+ "file": "usa-houston-week.mp4",
+ "title": "A week of every bus and train in Houston",
+ "description": "A week of every bus and train in Houston, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Houston city limits are faded and not counted. Colours: Local, Park & Ride, Express and Rail.\n\nBusiest moment: 617 vehicles, Monday at 5:00 pm.\nThe daily averages use every October 2026 date in each timetable and leave out Columbus Day (October 12). October 31 is left out because the clocks change that night.\n\nHouston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #houston",
+ "tags": [
+  "Houston",
+  "Houston METRO",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "Texas"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#houston"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Houston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO."
+ ],
+ "licences": [
+  {
+   "feed": "houmetro",
+   "licence_id": "houston-metro-data",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 23,
+ "meta_key": "144ed15a7628a80563a217fb3ba6ceb522c06632869829921f71a80c5f91f879"
+}

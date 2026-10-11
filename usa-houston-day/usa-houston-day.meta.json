@@ -1,0 +1,37 @@
+{
+ "file": "usa-houston-day.mp4",
+ "title": "Every bus and train in Houston in 24 hours",
+ "description": "Every bus and train running in Houston on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Houston city limits. The faded ones are just outside. Colours: Local, Park & Ride, Express and Rail.\n\nBusiest moment: 617 vehicles at 5:00 pm.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Columbus Day (October 12).\n\nHouston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #houston",
+ "tags": [
+  "Houston",
+  "Houston METRO",
+  "transit map",
+  "bus map",
+  "train map",
+  "GTFS",
+  "Texas"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#houston"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Houston METRO (Metropolitan Transit Authority of Harris County): METRO Data Use Agreement. Route and arrival data provided by permission of METRO."
+ ],
+ "licences": [
+  {
+   "feed": "houmetro",
+   "licence_id": "houston-metro-data",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 3,
+ "meta_key": "881ef376813a330f995f8324aaaff0e5be786e5dd69db739baf6d879bd8b6da8"
+}
