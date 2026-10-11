@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "phoenix",
+ "files": {
+  "2026-09-23.1/divisions/US-AZ-phoenix.geojson": {
+   "sha256": "06f5644053f14816387138f0fe8f8eb1e8a5aa0283755fd40c64d3dd4549e70b",
+   "bytes": 1833185,
+   "parts": [
+    "2026-09-23.1/divisions/US-AZ-phoenix.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/phoenix/segments.geojson": {
+   "sha256": "5449df0fc8bf4aceddd6301db6c6d95f9cd495561783a5c4d50ccf721eb201dd",
+   "bytes": 308009511,
+   "parts": [
+    "2026-09-23.1/phoenix/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/phoenix/water.geojson": {
+   "sha256": "e9eccf70779251a9e0124682a6a4bed1c7989ab573881bd6ed2a5fcca818ab46",
+   "bytes": 70385379,
+   "parts": [
+    "2026-09-23.1/phoenix/water.geojson.gz.000"
+   ]
+  }
+ }
+}
