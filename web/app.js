@@ -2452,9 +2452,11 @@ function buildColorsBrand(network) {
 // group colouring: the trip and shape lists the ribbons and the dots draw
 // from. sources are [{trail, line, rail, rank, other}], sourceOf(route) a
 // route's source index or -1 for its mode's own colour. Rail classes after
-// the others, then (on a group network) other first, then by trips ascending,
-// so lines lie over buses, the grey never covers a city's own colours and the
-// busiest bus colour is on top of the bus layer.
+// the others, then (on a group network) other first, so lines lie over buses
+// and the grey never covers a city's own colours. A brand network then puts
+// the busiest class on top; a group network puts the one with the fewest
+// trips on top, because the groups a video is about (an express network, a
+// rapid line) share streets with the base grid and would be buried under it.
 function buildColorClasses(network, sources, sourceOf, foreign, foreignLine) {
   const BC = window.BusmapColor;
   const index = new Map();
@@ -2491,8 +2493,8 @@ function buildColorClasses(network, sources, sourceOf, foreign, foreignLine) {
     if (!used[i]) { fallback = classOf(foreign, foreignLine, false, 1e6 + 2); break; }
   }
   if (!found.length) classOf(foreign, foreignLine, false, 1e6 + 2);
-  const sorted = found.slice().sort((a, b) => (a.rail - b.rail) || (b.other - a.other) || a.trips - b.trips || a.rank - b.rank
-    || a.order - b.order);
+  const sorted = found.slice().sort((a, b) => (a.rail - b.rail) || (b.other - a.other)
+    || (groupNet ? b.trips - a.trips : a.trips - b.trips) || a.rank - b.rank || a.order - b.order);
   const rank = new Uint16Array(found.length);
   sorted.forEach((c, i) => { rank[c.order] = i; });
   colors = sorted.map((c) => ({ hex: c.trail, css: `#${c.trail}`, lineCss: `#${c.line}`, rgb: BC.parseHex(c.trail), trips: c.trips }));

@@ -20,6 +20,8 @@
 //  chips    nothing folds for colour on a group network, with or without chips=1 at TEXT_SCALE
 //           0.6 and 1; chips=1 with legend=1 draws the legend and not the chips, with a warning
 //  paint    two paint= parameters merge: the second changes only the key it names
+//  order    other draws first however busy, then the bus groups with the fewest trips on
+//           top, then rail over every bus class
 //
 // Usage: node tests/web/v4_groups.mjs [--only gta-toronto-trains,...]
 
@@ -39,15 +41,18 @@ const BASEMAP = 'basemap=../tests/fixtures/v4_tiny/basemap.json';
 const SAFE = { x0: 120, y0: 290, x1: 800, y1: 1440 };
 const MIN_DE = 0.08;
 
-// A group network from the fixture: route alpha:1 and its trips once per group, the groups in
-// the order given (other last when listed), meta.color_by "group".
+// A group network from the fixture: route alpha:1 and its trips once per group (g.copies
+// times when given, in g.mode when given), the groups in the order given (other last when
+// listed), meta.color_by "group".
 function groupNet(name, groups) {
   const net = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'v4_tiny', 'network.json'), 'utf8'));
   const base = net.routes[0];
   const baseTrips = net.trips.filter((t) => t.r === 0);
-  net.routes = groups.map((g, i) => ({ ...base, id: `alpha:g${i}`, short: `g${i}`, group: g.id }));
+  net.routes = groups.map((g, i) => ({ ...base, id: `alpha:g${i}`, short: `g${i}`, group: g.id, mode: g.mode || base.mode }));
   net.trips = [];
-  groups.forEach((_, i) => { for (const t of baseTrips) net.trips.push({ ...t, r: i }); });
+  groups.forEach((g, i) => {
+    for (let k = 0; k < (g.copies || 1); k++) for (const t of baseTrips) net.trips.push({ ...t, r: i });
+  });
   const m = net.meta;
   m.color_by = 'group';
   m.groups = groups.map((g, i) => ({ id: g.id, label: g.label, brand: null, share: i ? 0 : 1, legend: g.legend }));
@@ -237,6 +242,20 @@ try {
     // A paint for a group the network does not list is a warning, not an error.
     const stray = await open(h, `${tq}&${paintQ({ nosuch: { hex: '123456' } })}`);
     ok(stray && !stray.errors.length && stray.warnings.some((w) => w.includes('no group "nosuch"')), 'paint for an unknown group: no warning');
+
+    // Draw order: other first however busy, then the bus groups with the fewest trips on top,
+    // then rail (the busiest group here) over every bus class.
+    const order = [{ id: 'grid', label: 'Grid', legend: true, copies: 3 }, { id: 'rapid', label: 'Rapid', legend: true, copies: 1 },
+      { id: 'express', label: 'Express', legend: true, copies: 2 }, { id: 'rail', label: 'Rail', legend: true, copies: 5, mode: 'rail' },
+      { id: 'other', label: 'Other', legend: false, copies: 4 }];
+    const op = { grid: { hex: '0067b1' }, rapid: { hex: 'e31837' }, express: { hex: '00a651' }, rail: { hex: 'b300b3' } };
+    const d = await open(h, `${groupNet('order', order)}&${paintQ(op)}`);
+    if (d) {
+      const trailOf = new Map(d.groupMap.map((e) => [e.trail, e.id]));
+      const got = d.colors.map((c) => trailOf.get(c.hex)).join(' ');
+      ok(got === 'other grid express rapid rail', `draw order bottom to top: ${got}, want other grid express rapid rail`);
+      console.log(`  draw order               ${got}`);
+    }
   }
 } finally {
   await h.close();

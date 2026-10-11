@@ -1708,9 +1708,13 @@ theme's city line is measured, not placed: each trail's `dCity` under 0.08 is a 
 would move New York's B/D/F/M off its checked source step, 0.069 from the amber line). In the 22
 checked plans every pair of trails is at least 0.098 apart.
 
-**Draw order.** Rail classes after bus, then the trips ascending (busiest on top), with `other`'s
-class first within bus and within rail, so the grey never covers a city's own colours. A group is
-rail when most of its routes are not mode `bus`.
+**Draw order.** Rail classes after bus, with `other`'s class first within bus and within rail, so
+the grey never covers a city's own colours; then the trips descending, so the group with the fewest
+trips is on top. The groups a video is about (Züm on Queen and Main, the TTC and MiWay Express
+networks, Viva, UP beside GO Kitchener) share streets with the base grid and were buried under it
+with the busiest on top; a shared street's dormant line now takes the smaller group's colour all
+day. A brand network keeps the trips ascending. A group is rail when most of its routes are not mode
+`bus`.
 
 **Legend** (`LEGEND`, query `legend`; drawn only with `HUD_LAYOUT 'shorts'` on a group network,
 else a warning). Entries from `meta.groups` in order: a group with `legend` false is left out (`other`
@@ -1759,7 +1763,7 @@ was. Tags do not change.
 **Tests.** `tests/web/v4_groups.mjs` draws every checked plan (`tests/fixtures/colours/plans.json`)
 on a group copy of the fixture and holds each trail and dormant line to the plan's exactly, with the
 placement order, the free groups' distances, Line 6's neutral, the legend's entries, fit steps and
-drops, the chips and two merged `paint=`; `tests/web/color_vectors.mjs` holds the pins;
-`tests/test_make.py`, `tests/test_trim.py`, `tests/test_meta.py` and `tests/test_tune.py` cover
+drops, the chips, two merged `paint=` and the draw order; `tests/web/color_vectors.mjs` holds the
+pins; `tests/test_make.py`, `tests/test_trim.py`, `tests/test_meta.py` and `tests/test_tune.py` cover
 validation, the city config, the keys, the paint, the match rules, the fold to 7, the sentence and the
 tune arms.
