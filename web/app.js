@@ -3683,8 +3683,9 @@ function drawHudShorts(T, a, fade = null) {
     ctx.drawImage(st.panel, st.panelX, st.panelY);
   }
   // A window one period long ends where it starts, so the virtual frame N of
-  // a wrap loop, frame 0 again, shows W0's HUD (an empty sparkline), not W1's.
-  const wrap = (t) => (meta.day_end - meta.day_start >= periodS && t >= meta.day_end ? t - periodS : t);
+  // a loop, frame 0 again, shows W0's HUD (an empty sparkline), not W1's.
+  // Without a loop the last frame and the end hold keep W1's full curve.
+  const wrap = (t) => (CONFIG.LOOP !== 'none' && meta.day_end - meta.day_start >= periodS && t >= meta.day_end ? t - periodS : t);
   const text = hudMode === 'full';
   const zero = fade && fade.s >= 0.5;
   const Tm = wrap(zero ? fade.T : T);

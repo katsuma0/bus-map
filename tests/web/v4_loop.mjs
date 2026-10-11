@@ -11,6 +11,8 @@
 //       every frame, frame 0 included; in the xfade's cross-fade the clock of
 //       the frame and frame 0's clock never both show, and one of them is at
 //       full alpha on every frame (they switch in one frame, no blink)
+//  B-9  LOOP none with an end hold: the last frame and the hold show the full
+//       curve; only a loop's virtual frame N goes back to the empty one
 //  B-4  with ?card=1: card alpha 1 for frames 0 to 26, 0 from 45 to N - 31,
 //       1 at N - 1 (wrap); xfade: 0 from 45 to N - 60, then 1 from N - 30,
 //       where the cross-fade starts, to the end; the card and the HUD never
@@ -195,6 +197,27 @@ async function xfadeChecks(h, card = false) {
   await page.context().close();
 }
 
+// A recipe can turn the loop off and hold the end (variant_render LOOP and
+// HOLD_END): those frames sit at the window end, which only a loop's virtual
+// frame N may show as frame 0.
+async function holdChecks(h) {
+  const render = encodeURIComponent(JSON.stringify({ LOOP: 'none', HOLD_END: 30 }));
+  const page = await h.open(`${TINY}&render=${render}`);
+  await page.evaluate(PAGE_HELPERS);
+  const r = await page.evaluate(() => {
+    const bm = window.busmap;
+    const N = bm.totalFrames;
+    const frames = [N - 31, N - 30, N - 1];
+    return { loop: bm.config.LOOP, hold: bm.config.HOLD_END, frames, rows: frames.map((i) => __sparkRows(i).length), cover: __sparkRows(0).length };
+  });
+  ok(r.loop === 'none' && r.hold === 30, `hold: LOOP ${r.loop}, HOLD_END ${r.hold}`);
+  ok(r.rows.every((n) => n > 1), `hold B-9: the sparkline of frames ${r.frames.join(', ')} draws on ${r.rows.join(', ')} rows (the end hold lost its curve)`);
+  ok(r.cover <= 1, `hold B-9: frame 0's empty sparkline draws on ${r.cover} rows`);
+  console.log(`  hold (LOOP none)   sparkline rows on frames ${r.frames.join(', ')}: ${r.rows.join(', ')}; frame 0: ${r.cover}`);
+  if (page.errors.length) failures.push(`hold: page errors ${page.errors.join('; ')}`);
+  await page.context().close();
+}
+
 // The smoothing's running sum leaves -1e-17 over empty minutes when the
 // counts are fractional; a fractional gamma once made those frames NaN.
 async function gammaChecks(h) {
@@ -231,6 +254,7 @@ try {
   await wrapChecks(h, TINY, 'day');
   await wrapChecks(h, TINY_WEEK, 'week');
   await xfadeChecks(h);
+  await holdChecks(h);
   await wrapChecks(h, TINY, 'day', true);
   await wrapChecks(h, TINY_WEEK, 'week', true);
   await xfadeChecks(h, true);
