@@ -3354,7 +3354,7 @@ class Pipeline:
             flags |= set(m.get("flags", []))
             rows.append(row)
             say("RUNSUMMARY " + json.dumps(row, separators=(",", ":"), ensure_ascii=False))
-        gh.set_notes(rel["id"], self.release_notes(batch, rows, flags))
+        gh.set_notes(rel["id"], self.release_notes(batch, rows, flags), batch["release"]["tag"])
         say(f"published metadata for {len(metas)} videos to the draft release {batch['release']['tag']}")
         return rows
 
