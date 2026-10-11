@@ -2347,6 +2347,13 @@ class Pipeline:
             return [0, 15, 45, n - 31, n - 1]
         return [0, n - 1]
 
+    @staticmethod
+    def query_bool(query, name):
+        """A bool knob in a page query as the page reads it (2.10): the first one counts and only 0 or
+        false is off, so a blank value is on; None when the query does not name it."""
+        vals = [v for k, v in urllib.parse.parse_qsl(query or "", keep_blank_values=True) if k == name]
+        return vals[0] not in ("0", "false") if vals else None
+
     def card_on(self, recipe, variant, meta):
         """Whether the video opens on the card (B10): CARD in the page's preset, then the network's and the
         variant's render blocks and the recipe's render query, the page's own precedence (2.10)."""
@@ -2403,8 +2410,8 @@ class Pipeline:
             stem = stem_of(rid, v)
             times = self.still_times(meta, v)
             # A ?card= in the extra query wins, as the page pins every query knob (B2 step 1).
-            card = dict(urllib.parse.parse_qsl(extra_query or "")).get("card")
-            card = self.card_on(recipe, v, meta) if card is None else card not in ("0", "false")
+            card = self.query_bool(extra_query, "card")
+            card = self.card_on(recipe, v, meta) if card is None else card
             frames = self.still_frames(v, n, card)
             base = self.common_render_args(recipe, v, meta)
             q = extra_query or ""

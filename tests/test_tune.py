@@ -217,6 +217,16 @@ class CardKnobs(tm.Scratch):
         self.assertEqual(make.Pipeline.still_frames("day", 1500, card=True), [0, 15, 45, 1469, 1499])
         self.assertEqual(make.Pipeline.still_frames("week", 1800, card=True), [0, 1799])
 
+    def test_query_card(self):
+        """make.py reads ?card= in an extra query the way the page does: a blank value is on."""
+        q = make.Pipeline.query_bool
+        self.assertIsNone(q("", "card"))
+        self.assertIsNone(q("zoom=1.1", "card"))
+        for on in ("card=", "card=1", "card=true", "zoom=1&card=yes"):
+            self.assertIs(q(on, "card"), True, on)
+        for off in ("card=0", "card=false", "card=0&card=1"):
+            self.assertIs(q(off, "card"), False, off)
+
 
 class EndToEnd(tm.Scratch):
     """G-1, G-2 and G-4 with the render stub."""
