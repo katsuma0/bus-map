@@ -3,8 +3,9 @@
 Everything here reads the batch, the recipe, cities/templates/shorts_en.json,
 cities/licences.json and one video's <stem>.netmeta.json, so make.py can rebuild
 the metadata of a whole release from the small netmeta files alone. Every
-number comes from the netmeta's `peak` and feeds, the same values the card and
-the peak label on screen show.
+number comes from the netmeta's `peak` and feeds, the same values the count
+line on screen reaches at the peak (and the card and the peak label, when a
+render turns them on).
 
 Library only; make.py meta and make.py release --publish call it.
 """

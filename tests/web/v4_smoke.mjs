@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // The busmap API of spec 2.11 on the v4 fixture (tests/fixtures/v4_tiny/), for
-// the day, rush and week variants, plus the startup errors of B14 and the
-// inert members on a legacy file.
+// the day, rush and week variants, plus the card's alpha with ?card=1 (the
+// shorts preset has it off), the startup errors of B14 and the inert members
+// on a legacy file.
 //
 // With --via-render it also renders the fixture through
 // scripts/render_video.mjs --tier stills (part C) and checks the PNGs equal
@@ -52,15 +53,11 @@ async function api(h, query, variant, keys) {
     bm.renderAt(am);
     const none = sum(Math.floor(clock.x0), Math.floor(clock.y0), Math.ceil(clock.x1), Math.ceil(clock.y1));
     bm.setHud('full');
-    const a0 = bm.cardAlpha(0);
-    bm.setCard(false);
-    const a0off = bm.cardAlpha(0);
-    bm.setCard(true);
     const T5 = bm.renderFrame(5);
     return {
       variant: bm.variant, window: bm.window, safe: bm.safe, zones: bm.zones, totalFrames: bm.totalFrames, st, T, T5,
       frameTime5: bm.frameTime(5), boxes, veh: Array.from(veh), isF32: veh instanceof Float32Array, count, full, notext, none,
-      a0, a0off, brandMap: bm.brandMap, peak: bm.meta.variants[bm.variant].peak,
+      brandMap: bm.brandMap, peak: bm.meta.variants[bm.variant].peak,
       countText: (boxes.find((b) => b.name === 'count') || {}).text,
     };
   });
@@ -78,7 +75,9 @@ async function api(h, query, variant, keys) {
   for (const [k, t] of Object.entries(r.st)) ok(t >= r.window.start && t < r.window.end, `${tag}: stillTimes.${k} ${t} outside the window`);
   ok(typeof r.T === 'number' && r.T === r.count.total, `${tag}: renderAt returns the count line's number (${r.T}, ${r.count.total})`);
   ok(r.T5 === r.frameTime5, `${tag}: renderFrame(5) returns its time (${r.T5} vs frameTime ${r.frameTime5})`);
-  ok(r.boxes.length > 5, `${tag}: hudBoxes has ${r.boxes.length} boxes`);
+  // The title, the subtitle, the clock, the count line and the credit at least.
+  ok(r.boxes.length >= 5 && ['title', 'subtitle', 'clock', 'count', 'credit'].every((n) => r.boxes.some((b) => b.name === n)),
+    `${tag}: hudBoxes has ${r.boxes.map((b) => b.name)}`);
   for (const b of r.boxes) {
     ok(NAMES.has(b.name), `${tag}: unexpected box name ${b.name}`);
     ok(['x0', 'y0', 'x1', 'y1', 'size'].every((k) => Number.isFinite(b[k])) && b.x1 > b.x0 && b.y1 > b.y0
@@ -91,7 +90,6 @@ async function api(h, query, variant, keys) {
   ok(r.countText && r.countText.startsWith(String(r.count.total)), `${tag}: count line "${r.countText}" vs countAt ${r.count.total}`);
   ok(r.full > r.notext, `${tag}: notext leaves the clock box darker (${r.full} vs ${r.notext})`);
   ok(r.notext !== r.none, `${tag}: notext draws the panel backdrop, none does not (${r.notext} vs ${r.none})`);
-  ok(r.a0 === 1 && r.a0off === 0, `${tag}: cardAlpha(0) ${r.a0}, after setCard(false) ${r.a0off}`);
   ok(Array.isArray(r.brandMap) && r.brandMap.length === 2 && r.brandMap.every((e) => e.placed
     && /^[0-9a-f]{6}$/.test(e.trail) && /^[0-9a-f]{6}$/.test(e.line) && typeof e.how === 'string'), `${tag}: brandMap ${JSON.stringify(r.brandMap)}`);
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join('; ')}`);
@@ -144,6 +142,27 @@ try {
   const week = await api(h, TINY_WEEK, 'week', ['am', 'noon', 'pm', 'sat', 'sun']);
   ok(week.boxes.some((b) => b.name === 'weekday' && b.text === 'MONDAY'), 'week: weekday line MONDAY at the am peak');
   ok(week.window.end - week.window.start === 604800 && week.totalFrames === 1800, `week window ${JSON.stringify(week.window)}`);
+
+  // B10: the card is off in the shorts preset, so frame 0 is the full HUD;
+  // ?card=1 brings it back, and setCard(false) takes it off again.
+  for (const [q, tag] of [[TINY, 'day'], [TINY_WEEK, 'week']]) {
+    const off = await h.open(q);
+    const a = await off.evaluate(() => ({ a0: window.busmap.cardAlpha(0), card: window.busmap.config.CARD }));
+    ok(a.a0 === 0 && a.card === false, `${tag}: with the preset's card off, cardAlpha(0) ${a.a0}, CARD ${a.card}`);
+    await off.context().close();
+    const on = await h.open(`${q}&card=1`);
+    const b = await on.evaluate(() => {
+      const bm = window.busmap;
+      const a0 = bm.cardAlpha(0);
+      bm.setCard(false);
+      const a0off = bm.cardAlpha(0);
+      bm.setCard(true);
+      return { a0, a0off, a0back: bm.cardAlpha(0) };
+    });
+    ok(b.a0 === 1 && b.a0off === 0 && b.a0back === 1, `${tag} card=1: cardAlpha(0) ${b.a0}, after setCard(false) ${b.a0off}, back ${b.a0back}`);
+    if (on.errors.length) failures.push(`${tag} card=1: page errors ${on.errors.join('; ')}`);
+    await on.context().close();
+  }
 
   // B14: an unknown variant (and theme) is a startup error, reported like an
   // unknown ?city: busmap.ready rejects and the page logs a console.error.

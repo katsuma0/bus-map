@@ -178,6 +178,21 @@ const CONFIG = {
   BASE_ROADS_GAIN: 1,
   BASE_WATER_GAIN: 1,
   WEEKEND_BAND: false,
+  // Shorts HUD text (B9): one scale for every size and gap of the HUD, each
+  // size stopping at its MIN_SIZE floor, and the weights of the title, the
+  // clock (the weekday too), the body (the count line, the week's clock, the
+  // chips and the peak label), the subtitle and the small print (the credit
+  // and the axis). The subtitle has its own: the credit, the smallest text,
+  // can need more weight to survive the transcode than a 30 px line does.
+  // The sparkline's labels are its window ends, midnight, the hours of the
+  // rush and the week's day letters.
+  TEXT_SCALE: 1,
+  TITLE_WEIGHT: 700,
+  CLOCK_WEIGHT: 800,
+  BODY_WEIGHT: 600,
+  SUBTITLE_WEIGHT: 400,
+  SMALL_WEIGHT: 400,
+  SPARK_LABELS: true,
   // Camera (B18): a slow drone move over the map layers only, periodic over
   // the whole video so the loop has no seam. Off unless a preset turns it on.
   // CAMERA_ZOOM is the push-in at frame 0 over the fitted frame, CAMERA_DRIFT
@@ -1611,15 +1626,35 @@ const ZONES = {
   // stays inside.
   textX: SAFE.x0 + 12,
   textW: SAFE.x1 - SAFE.x0 - 24,
-  // Baselines: the 64 px title's cap top sits 30 px under SAFE.y0.
-  titleY: SAFE.y0 + 76,
-  subtitleY: SAFE.y0 + 130,
+  // The title block at TEXT_SCALE 1: the 64 px title's cap top 30 px under
+  // SAFE.y0, the subtitle's baseline 54 px under the title's and a wrapped
+  // subtitle's second line 42 px under its first. The scale shrinks the gaps
+  // with the text, so a smaller title block keeps its proportions, and a gap
+  // next to a size held at its floor shrinks only as far as that size did.
+  titleTop: 30,
+  subtitleGap: 54,
+  subtitleDy: 42,
   scrimH: SAFE.y0 + 220,
-  // Panel heights over SAFE.y1, from 28 px above the first row's cap top: the
-  // week adds the weekday line, a split count line one more row.
+  // The band over SAFE.y1 the panel takes at TEXT_SCALE 1 with every row on,
+  // from 28 px above the first row's cap top: the week adds the weekday line,
+  // a split count line one more row. The fit box ends at the day's, whatever
+  // the panel holds, so no knob here moves a framed city (fit_box, D3.2).
   panelH: { day: 360, week: 390, split: 44 },
-  // The panel's rows as heights over SAFE.y1.
-  row: { clock: 268, clockWeek: 262, count: 218, chips: 180, sparkTop: 166, sparkBottom: 114, axis: 84, credit: 50, credit2: 24 },
+  // The panel's rows from the bottom up at TEXT_SCALE 1, as gaps between
+  // baselines and the sparkline's edges; each shrinks with the rows on both
+  // sides of it, as far as the one that shrank least (a row at its floor
+  // stops its gaps there too, or 18 px credit lines would overlap under 0.7
+  // with gaps of 26 x k). The last credit line stands 24 px over SAFE.y1,
+  // lines 26 apart; the axis 34 over the first credit line; the sparkline's
+  // floor 30 over the axis, or 38 over the credit without one, and the
+  // sparkline 52 tall; the chips 14 over its top; the count line 38 over the
+  // chips, or 30 over the sparkline without them, and a split one 44 more;
+  // the clock 50 over the count line (44 in the week, where it is small) and
+  // the weekday 50 over it.
+  gap: {
+    credit: 24, creditLine: 26, axis: 34, sparkOverAxis: 30, sparkOverCredit: 38, spark: 52, chips: 14,
+    countOverChips: 38, countOverSpark: 30, split: 44, clock: 50, clockWeek: 44, weekday: 50,
+  },
 };
 // The band no text covers: as wide as SAFE, from under the subtitle to the
 // day panel's top. make.py fits the city into it (cities/defaults.json
@@ -1633,10 +1668,13 @@ ZONES.card = { y0: ZONES.fit.y1 - 40, y1: SAFE.y1 - 20 };
 // What a tall phone hides, for the ?safe=1 overlay: each side's crop and the
 // button column.
 ZONES.phone = { crops: [{ aspect: '19.5:9', x: 97 }, { aspect: '20:9', x: 108 }], buttons: { x0: 811, x1: 972 } };
-// Smallest size each HUD and card text may take (B9 asserts).
+// Smallest size each HUD and card text may take (B9 asserts), and the floor
+// TEXT_SCALE stops each HUD size at. A 1080 px frame is about 390 pt wide on
+// a phone, so 1 pt is about 2.8 px: the credit's 18 px is 6.4 pt, fine print
+// that still reads, the subtitle's 26 px 9.3 pt.
 const MIN_SIZE = {
-  title: 48, subtitle: 32, weekday: 64, clock: 40, count: 36, count2: 36, chips: 24, peak: 26, axis: 26,
-  credit: 22, credit2: 22, card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30,
+  title: 44, subtitle: 26, weekday: 48, clock: 30, count: 28, count2: 28, chips: 20, peak: 20, axis: 20,
+  credit: 18, credit2: 18, card_title: 72, card_title2: 72, card_line0: 40, card_line0b: 40, card_line1: 30,
   card_line1b: 30,
 };
 const DAY_NAMES = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -1674,6 +1712,10 @@ const V4_KNOBS = [
   ['camera', 'CAMERA', 'bool'], ['campath', 'CAMERA_PATH', 'enum'], ['camzoom', 'CAMERA_ZOOM', 'num'],
   ['camdrift', 'CAMERA_DRIFT', 'num'], ['camamp', 'CAMERA_AMP', 'num'], ['camspeed', 'CAMERA_MAX_SPEED', 'num'],
   ['cambase', 'CAMERA_BASE', 'enum'], ['cambound', 'CAMERA_BOUND_MIN', 'num'],
+  ['textscale', 'TEXT_SCALE', 'num'], ['titleweight', 'TITLE_WEIGHT', 'num'], ['clockweight', 'CLOCK_WEIGHT', 'num'],
+  ['bodyweight', 'BODY_WEIGHT', 'num'], ['subweight', 'SUBTITLE_WEIGHT', 'num'], ['smallweight', 'SMALL_WEIGHT', 'num'],
+  ['sparklabels', 'SPARK_LABELS', 'bool'],
+  ['weekend', 'WEEKEND_BAND', 'bool'],
 ];
 // Brand distinctness ladder (B6): [name, lightness shift, hue rotation in
 // degrees]. Lightness comes before hue so a known colour keeps its hue, and
@@ -1766,6 +1808,23 @@ function checkV4Config() {
       console.warn(`${key} = ${JSON.stringify(CONFIG[key])} is not one of ${allowed.join(', ')}; using ${JSON.stringify(defaults[key])}`);
       CONFIG[key] = defaults[key];
     }
+  }
+  // Every face is variable from 100 to 900 (web/fonts), so any weight in that
+  // range draws as asked; one outside it would draw as the nearest end.
+  for (const key of ['TITLE_WEIGHT', 'CLOCK_WEIGHT', 'BODY_WEIGHT', 'SUBTITLE_WEIGHT', 'SMALL_WEIGHT']) {
+    const v = Math.min(900, Math.max(100, Math.round(CONFIG[key])));
+    if (v !== CONFIG[key]) {
+      console.warn(`${key} = ${CONFIG[key]} drawn as ${v}: weights run 100 to 900`);
+      CONFIG[key] = v;
+    }
+  }
+  // Above 1 the chips, fitted at the old sizes because they decide the trail
+  // colours, could overflow their line; under 0.6 every size but the day's
+  // clock is at its floor, so the HUD would hardly get smaller.
+  const ts = Math.min(1, Math.max(0.6, CONFIG.TEXT_SCALE));
+  if (ts !== CONFIG.TEXT_SCALE) {
+    console.warn(`TEXT_SCALE = ${CONFIG.TEXT_SCALE} drawn as ${ts}: the scale runs 0.6 to 1`);
+    CONFIG.TEXT_SCALE = ts;
   }
 }
 
@@ -2202,10 +2261,13 @@ async function initV4(basemap, network) {
   // Fonts come before the colours: the chips line is measured to know which
   // groups keep their own colour (B6, B9).
   const F = fontsV4();
+  // Every face is variable, so one weight loads a family's whole file; the
+  // list names the weights the HUD draws anyway.
+  const wt = { t: CONFIG.TITLE_WEIGHT, c: CONFIG.CLOCK_WEIGHT, b: CONFIG.BODY_WEIGHT, u: CONFIG.SUBTITLE_WEIGHT, s: CONFIG.SMALL_WEIGHT };
   const faces = CONFIG.HUD_LAYOUT === 'shorts'
-    ? [`700 ${CONFIG.TITLE_SIZE}px ${F.mont}`, `400 36px ${F.mont}`, `800 80px ${F.mont}`, `500 26px ${F.mont}`,
-      `700 26px ${F.mont}`, `800 132px ${F.mont}`, `800 88px ${F.tnum}`, `600 40px ${F.tnum}`, `500 26px ${F.tnum}`,
-      `500 24px ${F.tnum}`, `600 26px ${F.tnum}`, `400 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
+    ? [`${wt.t} ${CONFIG.TITLE_SIZE}px ${F.mont}`, `${wt.u} 36px ${F.mont}`, `${wt.c} 80px ${F.mont}`, `${wt.s} 26px ${F.mont}`,
+      `800 132px ${F.mont}`, `${wt.c} 88px ${F.tnum}`, `${wt.b} 40px ${F.tnum}`, `500 24px ${F.tnum}`,
+      `${wt.s} 22px ${F.inter}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`]
     : ['600 58px Montserrat', '400 38px Montserrat', '800 108px MontserratTnum', '600 32px Montserrat',
       '500 24px Montserrat', '600 32px MontserratTnum', '500 24px MontserratTnum', '500 20px Montserrat', '400 18px Inter',
       `800 132px ${F.mont}`, `500 44px ${F.inter}`, `400 32px ${F.inter}`];
@@ -2213,8 +2275,11 @@ async function initV4(basemap, network) {
   await document.fonts.ready;
 
   buildModesV4(network);
+  // The groups the chips line folds into "other" draw in the foreign colour
+  // (B6) whether or not the chips show, and at the line's own TEXT_SCALE 1
+  // sizes: a text knob or the chips knob never repaints a city's trails.
   chipMerged = new Set();
-  if (CONFIG.HUD_LAYOUT === 'shorts' && CONFIG.MODE_CHIPS && Array.isArray(meta.groups) && meta.groups.length) {
+  if (CONFIG.HUD_LAYOUT === 'shorts' && Array.isArray(meta.groups) && meta.groups.length) {
     chipMerged = new Set(fitChips(chipParts(meta.groups, () => null), F, SHORTS_TEXT_W).merged);
   }
   const brand = CONFIG.COLOR_BY === 'brand' || (CONFIG.COLOR_BY === '' && meta.color_by === 'brand');
@@ -2872,37 +2937,69 @@ function modesInWindow() {
   return list.length ? list : modes;
 }
 
+// A HUD size at TEXT_SCALE (B9): its size at scale 1, scaled to a tenth of a
+// pixel, never under the element's MIN_SIZE floor.
+function hudPx(base, name) {
+  return Math.max(MIN_SIZE[name] || 0, Math.round(base * CONFIG.TEXT_SCALE * 10) / 10);
+}
+
+// The sizes a fit tries, largest first: from `from` down to `to` in steps of
+// `by`, `to` included, and only `to` when the floor has caught up with `from`.
+function sizesDown(from, to, by) {
+  const out = [];
+  for (let s = from; s > to; s = Math.round((s - by) * 10) / 10) out.push(s);
+  out.push(to);
+  return out;
+}
+
 // Shorts HUD geometry (B9). Text sizes are fitted once here, on the widest
-// text the window can produce, so nothing changes size between frames.
+// text the window can produce, so nothing changes size between frames. Every
+// fit runs between its scale 1 sizes times TEXT_SCALE, and the rows stack up
+// from SAFE.y1 with gaps that shrink with the text, so the panel is only as
+// tall as what it shows. A gap scales by the larger of its two rows' factors:
+// k, or for a row held at its floor its drawn size over its scale 1 size, as
+// that row shrank less than k and its gaps must too.
 function buildShortsLayout() {
   const F = fontsV4();
+  const k = CONFIG.TEXT_SCALE;
+  // Off its floor a size is within the tenth hudPx rounds to of base x k,
+  // and its factor is k itself, so the gaps round as they always have.
+  const kOf = (px, base) => (px > base * k + 0.05 ? px / base : k);
+  const at = Math.round;
   const week = meta.timeline && meta.timeline.kind === 'week';
   const side = CONFIG.PANEL_SIDE || (HUD_OVERRIDE === 'left' || HUD_OVERRIDE === 'right' ? HUD_OVERRIDE : '')
     || (meta.panel && (meta.panel.side === 'left' || meta.panel.side === 'right') ? meta.panel.side : 'left');
   // The panel sits against SAFE's left or right side; its text is 28 px in.
   const dx = side === 'right' ? SAFE.x1 - SAFE.x0 - SHORTS_PANEL_W : 0;
   const px0 = SAFE.x0 + dx;
-  const L = { F, week, side, dx, textX: px0 + SHORTS_PAD, rightX: px0 + SHORTS_PANEL_W - SHORTS_PAD, textW: SHORTS_TEXT_W };
+  const L = { F, k, week, side, dx, textX: px0 + SHORTS_PAD, rightX: px0 + SHORTS_PANEL_W - SHORTS_PAD, textW: SHORTS_TEXT_W };
+  const wt = { title: CONFIG.TITLE_WEIGHT, clock: CONFIG.CLOCK_WEIGHT, body: CONFIG.BODY_WEIGHT, sub: CONFIG.SUBTITLE_WEIGHT,
+    small: CONFIG.SMALL_WEIGHT };
 
-  let ts = Math.round(CONFIG.TITLE_SIZE);
   const title = meta.title || '';
-  while (ts > 48 && textWidth(title, `700 ${ts}px ${F.mont}`, 0.12 * ts) > ZONES.textW) ts -= 2;
-  L.title = { text: title, size: ts, font: `700 ${ts}px ${F.mont}`, spacing: 0.12 * ts, x: ZONES.textX, y: ZONES.titleY };
+  const titleFont = (px) => `${wt.title} ${px}px ${F.mont}`;
+  const t0 = hudPx(CONFIG.TITLE_SIZE, 'title'), t1 = hudPx(48, 'title');
+  const ts = sizesDown(t0, t1, 2).find((px) => textWidth(title, titleFont(px), 0.12 * px) <= ZONES.textW) || t1;
+  // The baseline comes from the unfitted size: a long name shrinks towards
+  // it, and the subtitle under it stays where every other city has it.
+  const titleY = SAFE.y0 + at(k * ZONES.titleTop + 0.72 * t0);
+  L.title = { text: title, size: ts, font: titleFont(ts), spacing: 0.12 * ts, x: ZONES.textX, y: titleY };
   const subtitle = variantV.label || meta.subtitle || '';
-  const subFont = (px) => `400 ${px}px ${F.mont}`;
-  let ss = 36;
-  while (ss > 32 && textWidth(subtitle, subFont(ss)) > ZONES.textW) ss--;
+  const subFont = (px) => `${wt.sub} ${px}px ${F.mont}`;
+  const s0 = hudPx(36, 'subtitle'), s1 = hudPx(32, 'subtitle');
+  let ss = sizesDown(s0, s1, 1).find((px) => textWidth(subtitle, subFont(px)) <= ZONES.textW) || s1;
   let subLines = [subtitle];
   if (textWidth(subtitle, subFont(ss)) > ZONES.textW) {
-    // Past one line at the 32 px minimum (the rush label, "Morning rush, an
-    // average September weekday", is 747 px there): two lines from 36 px,
-    // broken after the comma when both halves fit, else where the longer
-    // line is shortest. Only the rush wraps, and its zoomed frame runs past
-    // the fit box anyway, so the second line costs no part of a framed city.
+    // Past one line at the smallest size (the rush label, "Morning rush, an
+    // average October weekday", at scale 1; at 0.85 it fits one line): two
+    // lines from the largest, broken after the comma when both halves fit,
+    // else where the longer line is shortest. Only the rush wraps, and its
+    // zoomed frame runs past the fit box anyway, so the second line costs no
+    // part of a framed city.
     const words = subtitle.split(' ');
-    const k = words.findIndex((w, i) => w.endsWith(',') && i < words.length - 1);
-    const atComma = k >= 0 ? [words.slice(0, k + 1).join(' '), words.slice(k + 1).join(' ')] : null;
-    for (let px = 36; px >= 32; px--) {
+    const c = words.findIndex((w, i) => w.endsWith(',') && i < words.length - 1);
+    const atComma = c >= 0 ? [words.slice(0, c + 1).join(' '), words.slice(c + 1).join(' ')] : null;
+    for (const px of sizesDown(s0, s1, 1)) {
       const fits = atComma && atComma.every((l) => textWidth(l, subFont(px)) <= ZONES.textW);
       const lines = fits ? atComma : wrapText(subtitle, subFont(px), ZONES.textW, 2, 'balanced');
       if (lines) {
@@ -2912,7 +3009,9 @@ function buildShortsLayout() {
       }
     }
   }
-  L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX, y: ZONES.subtitleY, dy: 42 };
+  const kSub = kOf(s0, 36);
+  L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX,
+    y: titleY + at(Math.max(kOf(t0, CONFIG.TITLE_SIZE), kSub) * ZONES.subtitleGap), dy: at(kSub * ZONES.subtitleDy) };
   // The title scrim reaches as far under a second subtitle line as under the
   // first, and holds full strength down to the last line's descenders: at
   // half strength the rush's second line over dense trails reads at 2.2:1.
@@ -2923,34 +3022,55 @@ function buildShortsLayout() {
   const present = modesInWindow();
   L.nounMode = present.length === 1 ? present[0] : null;
   L.peakCount = variantV.peak ? variantV.peak.count : 0;
-  const peakText = `${withCommas(L.peakCount)} ${countNoun(L, L.peakCount)} in ${meta.place || ''}`;
-  let cs = 40;
-  while (cs > 36 && textWidth(peakText, `600 ${cs}px ${F.tnum}`) > L.textW) cs--;
-  L.split = textWidth(peakText, `600 ${cs}px ${F.tnum}`) > L.textW;
-  if (L.split) {
-    cs = 40;
-    const a = `${withCommas(L.peakCount)} ${countNoun(L, L.peakCount)}`, b = `in ${meta.place || ''}`;
-    while (cs > 36 && Math.max(textWidth(a, `600 ${cs}px ${F.tnum}`), textWidth(b, `600 ${cs}px ${F.tnum}`)) > L.textW) cs--;
-  }
-  L.count = { size: cs, font: `600 ${cs}px ${F.tnum}` };
-  // Rows stand on SAFE.y1; a split count line lifts every row above it by one.
-  const y1 = SAFE.y1, R = ZONES.row;
-  const up = L.split ? ZONES.panelH.split : 0;
-  L.clockY = y1 - (week ? R.clockWeek : R.clock) - up;
-  L.clock = week ? { size: 40, font: `600 40px ${F.tnum}` } : { size: 88, font: `800 88px ${F.tnum}` };
-  if (week) {
-    let ws = 80;
-    while (ws > 64 && textWidth('WEDNESDAY', `800 ${ws}px ${F.mont}`) > L.textW) ws -= 2;
-    L.weekday = { size: ws, font: `800 ${ws}px ${F.mont}`, y: L.clockY - 50 };
-  }
-  L.countY = y1 - R.count - up;
-  L.count2Y = y1 - R.count;
-  const auto = y1 - (week ? ZONES.panelH.week : ZONES.panelH.day) - up;
-  L.panel = { x0: px0, x1: px0 + SHORTS_PANEL_W, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : auto, y1 };
+  const countFont = (px) => `${wt.body} ${px}px ${F.tnum}`;
+  const fitCount = (lines) => sizesDown(hudPx(40, 'count'), hudPx(36, 'count'), 1)
+    .find((px) => lines.every((l) => textWidth(l, countFont(px)) <= L.textW));
+  const nounAtPeak = countNoun(L, L.peakCount);
+  let cs = fitCount([`${withCommas(L.peakCount)} ${nounAtPeak} in ${meta.place || ''}`]);
+  L.split = !cs;
+  if (L.split) cs = fitCount([`${withCommas(L.peakCount)} ${nounAtPeak}`, `in ${meta.place || ''}`]) || hudPx(36, 'count');
+  L.count = { size: cs, font: countFont(cs) };
 
+  // The credit, to know how many lines the bottom row takes.
+  const credit = meta.credit || (Array.isArray(meta.attribution) ? meta.attribution.join(' ') : '');
+  const creditFont = (px) => `${wt.small} ${px}px ${F.inter}`;
+  L.creditSize = hudPx(22, 'credit');
+  L.creditFont = creditFont(L.creditSize);
+  // In the panel's column, under the sparkline: one line when it fits there,
+  // else two. Past the column a long line hangs off the backdrop (a left
+  // panel's ends at x 680), and shrinking it to fit would give one city
+  // smaller fine print than the rest of the series.
+  L.credit = wrapText(credit, L.creditFont, L.textW, 2, 'greedy');
+  // Two lines read best broken between the data and the map credit, where
+  // the line break takes the place of the separator dot.
+  const dot = credit.indexOf(' · ');
+  if (L.credit && L.credit.length === 2 && dot > 0) {
+    const pair = [credit.slice(0, dot), credit.slice(dot + 3)];
+    if (pair.every((l) => textWidth(l, L.creditFont) <= L.textW)) L.credit = pair;
+  }
+  if (!L.credit) {
+    console.error(`credit "${credit}" needs more than two lines of ${L.textW} px at ${L.creditSize} px`);
+    L.credit = wrapText(credit, L.creditFont, L.textW, 99, 'greedy') || [credit];
+  }
+
+  // The rows, from SAFE.y1 up (ZONES.gap), each gap at the larger factor of
+  // the rows on its two sides.
+  const G = ZONES.gap, y1 = SAFE.y1;
+  const nc = L.credit.length;
+  const kCredit = kOf(L.creditSize, 22);
+  L.creditY = L.credit.map((_, i) => at(y1 - kCredit * (G.credit + (nc - 1 - i) * G.creditLine)));
+  L.labels = CONFIG.SPARK_LABELS;
+  L.axisSize = hudPx(26, 'axis');
+  const kAxis = kOf(L.axisSize, 26);
+  L.axisY = L.labels ? at(L.creditY[0] - Math.max(kAxis, kCredit) * G.axis) : null;
+  const sparkY1 = L.labels ? L.axisY - kAxis * G.sparkOverAxis : L.creditY[0] - kCredit * G.sparkOverCredit;
+  L.spark = { x0: L.textX, x1: L.rightX, y0: at(sparkY1 - k * G.spark), y1: at(sparkY1) };
   // Chips: groups (else modes) with their means; fitted at each one's maximum
-  // over the window.
+  // over the window, at the scale 1 sizes the colours were decided at, and
+  // drawn scaled, which can only be narrower.
   L.chips = null;
+  const kCount = kOf(L.count.size, 40);
+  let countY = L.spark.y0 - kCount * G.countOverSpark;
   if (CONFIG.MODE_CHIPS) {
     const C = CONFIG.COLORS;
     let parts;
@@ -2965,31 +3085,44 @@ function buildShortsLayout() {
     }
     const { list, size, gap, merged, tried } = fitChips(parts, F, L.textW);
     if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
-    L.chips = { parts: list, size, gap, font: `500 ${size}px ${F.tnum}`, y: y1 - R.chips, merged, tried };
+    const px = hudPx(size, 'chips');
+    // Never bolder than the 500 the line was fitted at. Its dots and gaps
+    // scale with its text, which is never larger than the fit's, so the
+    // line still fits.
+    const weight = Math.min(500, wt.body);
+    const kc = kOf(px, size);
+    L.chips = { parts: list, fit: { size, gap }, size: px, gap: gap * kc, dot: 26 * kc, r: 9 * kc, weight,
+      font: `${weight} ${px}px ${F.tnum}`, y: at(L.spark.y0 - kc * G.chips), merged, tried };
+    countY = L.chips.y - Math.max(kc, kCount) * G.countOverChips;
   }
-  L.spark = { x0: L.textX, x1: L.rightX, y0: y1 - R.sparkTop, y1: y1 - R.sparkBottom };
-  L.axisY = y1 - R.axis;
-  L.creditY = [y1 - R.credit, y1 - R.credit2];
-  L.axisFont = `500 26px ${F.mont}`;
-  L.axisBold = `700 26px ${F.mont}`;
-  L.peakFont = `600 26px ${F.tnum}`;
+  // A split count line lifts every row above it by one.
+  const up = L.split ? kCount * G.split : 0;
+  L.count2Y = at(countY);
+  L.countY = at(countY - up);
+  const clockBase = week ? 40 : 88;
+  const cpx = hudPx(clockBase, 'clock');
+  L.clock = { size: cpx, font: week ? `${wt.body} ${cpx}px ${F.tnum}` : `${wt.clock} ${cpx}px ${F.tnum}` };
+  const kClock = kOf(cpx, clockBase);
+  L.clockY = at(countY - up - Math.max(kCount, kClock) * (week ? G.clockWeek : G.clock));
+  if (week) {
+    const wf = (s) => `${wt.clock} ${s}px ${F.mont}`;
+    const w1 = hudPx(64, 'weekday');
+    const ws = sizesDown(hudPx(80, 'weekday'), w1, 2).find((s) => textWidth('WEDNESDAY', wf(s)) <= L.textW) || w1;
+    L.weekday = { size: ws, font: wf(ws), y: at(L.clockY - Math.max(kClock, kOf(ws, 80)) * G.weekday) };
+  }
+  // 28 px over the first row's cap top, as the text is 28 px in from the sides.
+  const top = week ? L.weekday.y - 0.72 * L.weekday.size : L.clockY - 0.72 * L.clock.size;
+  L.panel = { x0: px0, x1: px0 + SHORTS_PANEL_W, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : Math.floor(top) - SHORTS_PAD, y1 };
+
+  L.axisFont = `${wt.small} ${L.axisSize}px ${F.mont}`;
+  L.axisBold = `${Math.min(900, wt.small + 300)} ${L.axisSize}px ${F.mont}`;
+  L.peakSize = hudPx(26, 'peak');
+  // The label's offsets from its dot and the box follow its own size.
+  L.kPeak = kOf(L.peakSize, 26);
+  L.peakFont = `${wt.body} ${L.peakSize}px ${F.tnum}`;
   // Constant over the video, so measured once rather than on every frame after the peak.
   const peakLabel = `peak ${withCommas(variantV.peak ? variantV.peak.count : 0)}`;
   L.peakLabel = { label: peakLabel, w: textWidth(peakLabel, L.peakFont) };
-  L.creditFont = `400 22px ${F.inter}`;
-  const credit = meta.credit || (Array.isArray(meta.attribution) ? meta.attribution.join(' ') : '');
-  L.credit = wrapText(credit, L.creditFont, L.textW, 2, 'greedy');
-  // Two lines read best broken between the data and the map credit, where
-  // the line break takes the place of the separator dot.
-  const dot = credit.indexOf(' · ');
-  if (L.credit && L.credit.length === 2 && dot > 0) {
-    const pair = [credit.slice(0, dot), credit.slice(dot + 3)];
-    if (pair.every((l) => textWidth(l, L.creditFont) <= L.textW)) L.credit = pair;
-  }
-  if (!L.credit) {
-    console.error(`credit "${credit}" needs more than two lines of ${L.textW} px at 22 px`);
-    L.credit = wrapText(credit, L.creditFont, L.textW, 99, 'greedy') || [credit];
-  }
   shorts = L;
 }
 
@@ -3014,15 +3147,15 @@ function chipParts(list, colorOf) {
 
 // Width of a chips line with each part at its maximum over the window, the
 // widest it can be (B9).
-function chipsWidth(list, size, gap, F) {
+function chipsWidth(list, size, gap, F, dot = 26, weight = 500) {
   const W0 = meta.day_start, W1 = meta.day_end;
   const maxOver = (series) => {
     let p = 0;
     for (let m = Math.floor(W0 / 60); m <= Math.ceil(W1 / 60); m++) p = Math.max(p, series[mod(m, histN)] || 0);
     return roundHalfEven(p);
   };
-  return list.reduce((sum, p, k) => sum + (k ? gap : 0) + 26
-    + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `500 ${size}px ${F.tnum}`), 0);
+  return list.reduce((sum, p, k) => sum + (k ? gap : 0) + dot
+    + textWidth(`${withCommas(maxOver(p.series))} ${chipLabel(p, maxOver(p.series))}`, `${weight} ${size}px ${F.tnum}`), 0);
 }
 
 // The chips line (B9), fitted once into textW px. Each set of parts tries
@@ -3323,13 +3456,15 @@ function fillCardTemplate(tpl) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-// Card layout (B10), for the active variant and CARD_LINES.
+// Card layout (B10), for the active variant and CARD_LINES. Off, the card
+// has no layout, so nothing of it is asserted or drawn.
 function buildCard() {
   cardLayout = null;
+  if (!CONFIG.CARD) return;
   const card = meta.card;
   const tpls = card && card.templates && card.templates[CONFIG.VARIANT];
   if (!card || !Array.isArray(tpls) || !tpls.length) {
-    if (CONFIG.CARD) console.warn(`no card templates for variant ${CONFIG.VARIANT}; the card is off`);
+    console.warn(`no card templates for variant ${CONFIG.VARIANT}; the card is off`);
     return;
   }
   const F = fontsV4();
@@ -3527,13 +3662,18 @@ function countAtV4(T) {
   return { total, byGroup };
 }
 
-// The Shorts HUD for a = 1 - card alpha, drawn at upperHalf(a).
-function drawHudShorts(T, a) {
+// The Shorts HUD for a = 1 - card alpha, drawn at upperHalf(a). fade is set
+// in the last second of an xfade loop: { T, a, s }, frame 0's time and HUD
+// alpha and the cross-fade's progress. The map cross-fades under the HUD
+// (drawV4), but text on text cannot (B10), and fading the rows out and back
+// in left the panel empty for a third of a second: the moving rows at T
+// switch to frame 0's in one frame halfway, each at its full alpha, so the
+// last frame carries frame 0's HUD and the seam is one ordinary step.
+function drawHudShorts(T, a, fade = null) {
   a = upperHalf(a);
   const C = CONFIG.COLORS;
   const L = shorts;
   const st = shortsStatics;
-  const text = hudMode === 'full';
   ctx.globalCompositeOperation = 'source-over';
   ctx.textBaseline = 'alphabetic';
   if (a > 0 && st.titleScrim) {
@@ -3547,6 +3687,36 @@ function drawHudShorts(T, a) {
     ctx.globalAlpha = a;
     ctx.drawImage(st.panel, st.panelX, st.panelY);
   }
+  // A window one period long ends where it starts, so the virtual frame N of
+  // a loop, frame 0 again, shows W0's HUD (an empty sparkline), not W1's.
+  // Without a loop the last frame and the end hold keep W1's full curve.
+  const wrap = (t) => (CONFIG.LOOP !== 'none' && meta.day_end - meta.day_start >= periodS && t >= meta.day_end ? t - periodS : t);
+  const text = hudMode === 'full';
+  const zero = fade && fade.s >= 0.5;
+  const Tm = wrap(zero ? fade.T : T);
+  drawHudMoving(Tm, zero ? upperHalf(fade.a) : a);
+  if (text && a > 0) {
+    ctx.globalAlpha = a;
+    ctx.beginPath();
+    ctx.moveTo(spark.x0, spark.y1 + 0.5);
+    ctx.lineTo(spark.x1, spark.y1 + 0.5);
+    ctx.strokeStyle = C.floor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  drawAxisShorts(Tm, a);
+  L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, L.textX, L.creditY[k], L.creditFont, C.credit,
+    L.creditSize, a));
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+// The rows that change with T, at alpha a: the weekday, the clock, the count
+// line, the chips, and the sparkline's curve with its peak marker.
+function drawHudMoving(T, a) {
+  const C = CONFIG.COLORS;
+  const L = shorts;
+  const text = hudMode === 'full';
   const x = L.textX;
   if (L.week) {
     const day = DAY_NAMES[mod(Math.floor(T / 86400), 7)];
@@ -3564,53 +3734,55 @@ function drawHudShorts(T, a) {
   }
   if (L.chips) {
     // One box for the whole line: every part shares the font and colour.
+    const ch = L.chips;
     let cx = x;
-    const y = L.chips.y;
+    const y = ch.y;
     const start = lastBoxes.length;
-    L.chips.parts.forEach((p, k) => {
-      if (k) cx += L.chips.gap;
+    ch.parts.forEach((p, k) => {
+      if (k) cx += ch.gap;
       if (text && a > 0) {
         ctx.globalAlpha = a;
         ctx.fillStyle = p.color;
         ctx.beginPath();
-        ctx.arc(cx + 9, y - 9, 9, 0, Math.PI * 2);
+        ctx.arc(cx + ch.r, y - ch.r, ch.r, 0, Math.PI * 2);
         ctx.fill();
       }
       const v = counts.byGroup[p.id] || 0;
-      hudText('chips', `${withCommas(v)} ${chipLabel(p, v)}`, cx + 26, y, L.chips.font, C.breakdown, L.chips.size, a);
+      hudText('chips', `${withCommas(v)} ${chipLabel(p, v)}`, cx + ch.dot, y, ch.font, C.breakdown, ch.size, a);
       cx = lastBoxes[lastBoxes.length - 1].x1;
     });
     const parts = lastBoxes.splice(start);
     if (parts.length) {
       lastBoxes.push({
         ...parts[0], text: parts.map((b) => b.text).join('  '), x0: x,
-        y0: Math.min(...parts.map((b) => b.y0), y - 18), x1: parts[parts.length - 1].x1, y1: Math.max(...parts.map((b) => b.y1)),
+        y0: Math.min(...parts.map((b) => b.y0), y - 2 * ch.r), x1: parts[parts.length - 1].x1, y1: Math.max(...parts.map((b) => b.y1)),
       });
     }
   }
   drawSparkShorts(T, a, text);
-  drawAxisShorts(T, a);
-  L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, x, L.creditY[k ? 1 : 0], L.creditFont, C.credit, 22, a));
-  ctx.globalAlpha = 1;
-  ctx.textAlign = 'left';
 }
 
+// The sparkline's curve up to T, the weekend band under it and its peak
+// marker; the floor line over them stays put, so drawHudShorts draws it.
 function drawSparkShorts(T, a, text) {
   const C = CONFIG.COLORS;
   const L = shorts;
   const sp = spark;
+  const k = L.k;
   const xCur = sparkX(T);
-  if (text && a > 0) {
-    ctx.globalAlpha = a;
-    if (L.week && CONFIG.WEEKEND_BAND) {
-      const xa = sparkX(5 * 86400), xb = sparkX(7 * 86400);
-      if (xb > xa) {
-        ctx.globalAlpha = a * 0.07;
-        ctx.fillStyle = C.accent;
-        ctx.fillRect(xa, sp.y0, xb - xa, sp.y1 - sp.y0);
-        ctx.globalAlpha = a;
-      }
+  // Under a pixel of curve (frame 0, the cover, and the end of a rush, which
+  // shows frame 0's rows) the round cap of a zero-length stroke would leave a
+  // lone dot over the floor.
+  if (text && a > 0 && xCur - sp.x0 >= 1) {
+    // The band grows with the curve: drawn ahead of it, the weekend is an
+    // empty box for five days of the video.
+    const xa = sparkX(5 * 86400), xb = Math.min(xCur, sparkX(7 * 86400));
+    if (L.week && CONFIG.WEEKEND_BAND && xb > xa) {
+      ctx.globalAlpha = a * 0.07;
+      ctx.fillStyle = C.accent;
+      ctx.fillRect(xa, sp.y0, xb - xa, sp.y1 - sp.y0);
     }
+    ctx.globalAlpha = a;
     const yCur = sparkY(T);
     const last = Math.min(sp.xs.length - 1, Math.floor(xCur - sp.x0));
     ctx.beginPath();
@@ -3626,15 +3798,9 @@ function drawSparkShorts(T, a, text) {
     for (let j = 1; j <= last; j++) ctx.lineTo(sp.xs[j], sp.ys[j]);
     ctx.lineTo(xCur, yCur);
     ctx.strokeStyle = C.accent;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 3 * k;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(sp.x0, sp.y1 + 0.5);
-    ctx.lineTo(sp.x1, sp.y1 + 0.5);
-    ctx.strokeStyle = C.floor;
-    ctx.lineWidth = 1;
     ctx.stroke();
   }
   if (CONFIG.PEAK_MARKER && variantV.peak) {
@@ -3646,14 +3812,15 @@ function drawSparkShorts(T, a, text) {
         ctx.globalAlpha = a;
         ctx.fillStyle = C.accent;
         ctx.beginPath();
-        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.arc(px, py, 5 * k, 0, Math.PI * 2);
         ctx.fill();
       }
       const { label, w } = L.peakLabel;
-      const right = px + 11 + w <= L.rightX;
+      const kp = L.kPeak;
+      const right = px + 11 * kp + w <= L.rightX;
       // On the curve, but never above the box's upper part or below its floor.
-      const by = Math.min(sp.y1, Math.max(sp.y0 + 19, py + 9));
-      const lx = right ? px + 11 : px - 11;
+      const by = Math.min(sp.y1, Math.max(sp.y0 + 19 * kp, py + 9 * kp));
+      const lx = right ? px + 11 * kp : px - 11 * kp;
       if (text && a > 0) {
         // The label sits on the curve it names, in the same accent; an outline
         // in the panel colour keeps the two apart.
@@ -3661,17 +3828,19 @@ function drawSparkShorts(T, a, text) {
         ctx.font = L.peakFont;
         ctx.textAlign = right ? 'left' : 'right';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 6;
+        ctx.lineWidth = 6 * kp;
         ctx.strokeStyle = shortsStatics.panelOpaque;
         ctx.strokeText(label, lx, by);
       }
-      hudText('peak', label, lx, by, L.peakFont, C.accent, 26, a, right ? 'left' : 'right');
+      hudText('peak', label, lx, by, L.peakFont, C.accent, L.peakSize, a, right ? 'left' : 'right');
     }
   }
 }
 
-// Axis under the sparkline (B9): the window's ends and a midnight tick for
-// the day, hourly ticks for a shorter window, day letters for the week.
+// Axis under the sparkline (B9), when SPARK_LABELS is on: the window's ends
+// and a midnight tick for the day, hourly ticks for a shorter window, day
+// letters for the week. The week keeps its midnight ticks without the
+// letters, which is all it takes to tell the days apart on the curve.
 function drawAxisShorts(T, a) {
   const C = CONFIG.COLORS;
   const L = shorts;
@@ -3682,16 +3851,17 @@ function drawAxisShorts(T, a) {
   if (L.week) {
     for (let d = Math.ceil(W0 / 86400); d * 86400 < W1; d++) tick(d * 86400);
     const today = Math.floor(T / 86400);
-    for (let d = Math.floor(W0 / 86400); d * 86400 < W1; d++) {
+    for (let d = Math.floor(W0 / 86400); L.labels && d * 86400 < W1; d++) {
       const xa = sparkX(Math.max(W0, d * 86400)), xb = sparkX(Math.min(W1, (d + 1) * 86400));
       if (xb - xa < 30) continue;
       const cur = d === today;
-      hudText('axis', DAY_LETTERS[mod(d, 7)], (xa + xb) / 2, L.axisY, cur ? L.axisBold : L.axisFont, cur ? C.accent : C.axis, 26, a, 'center');
+      hudText('axis', DAY_LETTERS[mod(d, 7)], (xa + xb) / 2, L.axisY, cur ? L.axisBold : L.axisFont, cur ? C.accent : C.axis,
+        L.axisSize, a, 'center');
     }
-  } else {
-    hudText('axis', clockText(W0), sp.x0, L.axisY, L.axisFont, C.axis, 26, a, 'left');
+  } else if (L.labels) {
+    hudText('axis', clockText(W0), sp.x0, L.axisY, L.axisFont, C.axis, L.axisSize, a, 'left');
     const leftEnd = lastBoxes[lastBoxes.length - 1].x1;
-    hudText('axis', clockText(W1), sp.x1, L.axisY, L.axisFont, C.axis, 26, a, 'right');
+    hudText('axis', clockText(W1), sp.x1, L.axisY, L.axisFont, C.axis, L.axisSize, a, 'right');
     const rightStart = lastBoxes[lastBoxes.length - 1].x0;
     if (W1 - W0 >= periodS) {
       for (let d = Math.ceil(W0 / 86400); d * 86400 < W1; d++) {
@@ -3704,7 +3874,7 @@ function drawAxisShorts(T, a) {
         const xm = sparkX(t);
         const half = textWidth('midnight', L.axisFont) / 2;
         if (xm - sp.x0 >= 120 && sp.x1 - xm >= 120 && xm - half - 12 >= leftEnd && xm + half + 12 <= rightStart) {
-          hudText('axis', 'midnight', xm, L.axisY, L.axisFont, C.axis, 26, a, 'center');
+          hudText('axis', 'midnight', xm, L.axisY, L.axisFont, C.axis, L.axisSize, a, 'center');
         }
       }
     } else {
@@ -3719,7 +3889,7 @@ function drawAxisShorts(T, a) {
     for (const x of ticks) {
       const xr = Math.round(x) + 0.5;
       ctx.moveTo(xr, sp.y1);
-      ctx.lineTo(xr, sp.y1 + 8);
+      ctx.lineTo(xr, sp.y1 + 8 * L.k);
     }
     ctx.stroke();
   }
@@ -3866,13 +4036,21 @@ function drawMapV4(T, cm = null) {
 }
 
 // The whole frame at T with the HUD at hudAlpha and the card at cardA, the
-// map under the camera at phase u (B18).
-function drawV4(T, hudAlpha, cardA, u) {
+// map under the camera at phase u (B18). fade, in the last second of an xfade
+// loop, lays frame 0's map over this one at fade.s before the HUD goes on
+// (drawHudShorts switches the HUD's own moving rows).
+function drawV4(T, hudAlpha, cardA, u, fade = null) {
   lastBoxes = [];
   drawMapV4(T, cameraAt(u));
+  if (fade) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = fade.s;
+    ctx.drawImage(fade.map, 0, 0);
+    ctx.globalAlpha = 1;
+  }
   const n = roundHalfEven(histRaw(T / 60));
   if (hudMode !== 'none') {
-    if (shorts) drawHudShorts(T, hudAlpha);
+    if (shorts) drawHudShorts(T, hudAlpha, fade);
     else drawHUD(T, n);
     drawCard(cardA);
   }
@@ -3904,13 +4082,19 @@ function renderFrameV4(i) {
   const idx = Math.min(Math.max(Math.floor(i), 0), N);
   const T = frameTimeV4(idx);
   let s = 0;
+  const a0 = cardAlphaV4(0);
   if (CONFIG.LOOP === 'xfade') {
     // The cross-fade to frame 0 reaches 1 at the virtual frame N, so the
-    // step from N - 1 back to 0 is one ordinary fade step.
+    // step from N - 1 back to 0 is one ordinary fade step. It runs over
+    // CARD_FADE_IN frames, the card's own fade-in when the card is on.
     s = smoothstep(clamp01((idx - (N - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN));
     if (s > 0 && !loopSnapshot) {
-      const a0 = cardAlphaV4(0);
+      // The Shorts HUD switches its own moving rows, so its snapshot is frame
+      // 0's map alone; the panel layout's HUD goes with the whole frame.
+      const keep = hudMode;
+      if (shorts) hudMode = 'none';
       drawV4(frameTimeV4(0), 1 - a0, a0, 0);
+      hudMode = keep;
       loopSnapshot = document.createElement('canvas');
       loopSnapshot.width = W;
       loopSnapshot.height = H;
@@ -3918,8 +4102,8 @@ function renderFrameV4(i) {
     }
   }
   const a = cardAlphaV4(idx);
-  drawV4(T, 1 - a, a, idx / N);
-  if (s > 0) {
+  drawV4(T, 1 - a, a, idx / N, s > 0 && shorts ? { map: loopSnapshot, s, T: frameTimeV4(0), a: 1 - a0 } : null);
+  if (s > 0 && !shorts) {
     ctx.globalAlpha = s;
     ctx.drawImage(loopSnapshot, 0, 0);
     ctx.globalAlpha = 1;
@@ -3977,8 +4161,9 @@ function checkLayoutV4() {
   const probe = [];
   // The widest numbers the panel can show: the peak count and each chip at its maximum.
   if (L.chips) {
-    const w = chipsWidth(L.chips.parts, L.chips.size, L.chips.gap, L.F);
-    probe.push({ name: 'chips', x0: L.textX, x1: L.textX + w, y0: L.chips.y - 18, y1: L.chips.y, size: L.chips.size });
+    const c = L.chips;
+    const w = chipsWidth(c.parts, c.size, c.gap, L.F, c.dot, c.weight);
+    probe.push({ name: 'chips', x0: L.textX, x1: L.textX + w, y0: c.y - 2 * c.r, y1: c.y, size: c.size });
   }
   const problems = [];
   for (const b of lastBoxes.concat(probe)) {
@@ -4051,12 +4236,12 @@ const busmap = {
   stillTimes: () => stillTimesV4(),
   get brandMap() { return brandMap; },
   countAt: (T) => countAtV4(T),
-  // The chips line's fit (B9): the parts shown, their size, every width
-  // tried on the way, and the groups folded into "other", which B6 then
-  // draws in the foreign colour.
+  // The chips line's fit (B9): the parts shown, their size and gap at
+  // TEXT_SCALE 1 (drawn scaled), every width tried on the way, and the groups
+  // folded into "other", which B6 then draws in the foreign colour.
   get chips() {
     const c = shorts && shorts.chips;
-    return c ? { ids: c.parts.map((p) => p.id), size: c.size, gap: c.gap, merged: c.merged.slice(), width: shorts.textW,
+    return c ? { ids: c.parts.map((p) => p.id), size: c.fit.size, gap: c.fit.gap, merged: c.merged.slice(), width: shorts.textW,
       tried: c.tried.map((t) => ({ ...t })) } : null;
   },
   // The camera (B18), or null when it is off: path, zoom amplitude, drift in
