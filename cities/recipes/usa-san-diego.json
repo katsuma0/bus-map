@@ -128,6 +128,22 @@
     ],
     "verified": true,
     "source": "mts.zip routes.txt route_color FF6600 on route_id 520 (Copper B87333 joins it); drawn at dL -0.12 (#d86c3b), away from Rapid red"
+   },
+   {
+    "id": "ferry",
+    "label": "Ferry",
+    "hex": "#00a3ad",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "mts",
+      "mode": [
+       "ferry"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: harbour teal; MTS gives the Coronado Ferry (route COR, route_type 4) the bus navy 000099 in GTFS, so it has no colour of its own; pinned at dL +0.10 (trail #6eeaf4) to clear the Blue Line, 0.116 at the source step and 0.154 pinned (0.070 and 0.127 for deuteranopes)"
    }
   ]
  }
