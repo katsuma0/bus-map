@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "san-antonio",
+ "files": {
+  "2026-09-23.1/divisions/US-TX-san-antonio.geojson": {
+   "sha256": "4da9842109cfdff26047c883b0aeffdc961e3445f2f4e857f2a5c43c66e6c6a3",
+   "bytes": 1655561,
+   "parts": [
+    "2026-09-23.1/divisions/US-TX-san-antonio.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/san-antonio/segments.geojson": {
+   "sha256": "d22570d15346b8ef9862d528d5013cc53a002314f0b02388b08b94e07975e1eb",
+   "bytes": 226159445,
+   "parts": [
+    "2026-09-23.1/san-antonio/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/san-antonio/water.geojson": {
+   "sha256": "5eacfd16f67cda53b7ccd941009f1b36817124f6530aa8782e9cb095693be82b",
+   "bytes": 29197696,
+   "parts": [
+    "2026-09-23.1/san-antonio/water.geojson.gz.000"
+   ]
+  }
+ }
+}
