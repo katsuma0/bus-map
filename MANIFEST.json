@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "san-diego",
+ "files": {
+  "2026-09-23.1/divisions/US-CA-san-diego.geojson": {
+   "sha256": "b1dbde3ef3cbc333dff866e12c770ad8ad1e78bd814abbe7757bedb843f925df",
+   "bytes": 1323908,
+   "parts": [
+    "2026-09-23.1/divisions/US-CA-san-diego.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/san-diego/segments.geojson": {
+   "sha256": "d47b86cfe74f1face95ec4cb76d0c57196acb1e86145b027884d17786942b091",
+   "bytes": 311139341,
+   "parts": [
+    "2026-09-23.1/san-diego/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/san-diego/water.geojson": {
+   "sha256": "c650332e43fcfee19652477bdca0a08bd48fe8dfb952260239e40d4ba9cdc2e1",
+   "bytes": 18819747,
+   "parts": [
+    "2026-09-23.1/san-diego/water.geojson.gz.000"
+   ]
+  }
+ }
+}
