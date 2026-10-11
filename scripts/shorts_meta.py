@@ -90,6 +90,14 @@ def range_label(dates):
     return f"{MONTHS[lo.month - 1]} {lo.day} to {MONTHS[hi.month - 1]} {hi.day}"
 
 
+def dates_label(dates):
+    """October 10 and 11; October 31 and November 1."""
+    ds = [iso_date(d) for d in sorted(dates)]
+    if len({(d.year, d.month) for d in ds}) == 1:
+        return f"{MONTHS[ds[0].month - 1]} {join_words(str(d.day) for d in ds)}"
+    return join_words(date_label(d) for d in sorted(dates))
+
+
 def month_name(ym):
     return MONTHS[int(ym[5:7]) - 1]
 
@@ -246,26 +254,48 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
     if dst:
         labels = join_words(date_label(d) for d in sorted(dst))
         out.append(fmt(s["dst_one" if len(dst) == 1 else "dst_many"], {"dates": labels}, "sentences"))
+    # Each caveat once: a feed's reduced days in one sentence, and feeds with the same caveat in one
+    # sentence. A GTA week had four sentences on GO alone (October 10, October 11, a timetable change,
+    # too few weekend dates), and New York's trains said the same two things of LIRR and Metro-North.
+    low = []
     for f in feeds:
-        for x in sorted((x for x in f.get("excluded", []) or [] if x.get("why") == "low"), key=lambda x: x["date"]):
-            out.append(fmt(s["low"], {"feed": clean(f["name"]), "date": date_label(x["date"]),
-                                      "weekday": DAYS[iso_date(x["date"]).weekday()]}, "sentences"))
+        days = tuple(sorted({x["date"] for x in f.get("excluded", []) or [] if x.get("why") == "low"}))
+        if days:
+            low.append((days, clean(f["name"])))
+    for days, names in grouped(low):
+        if len(days) == 1:
+            out.append(fmt(s["low"], {"feed": join_words(names), "date": date_label(days[0]),
+                                      "weekday": DAYS[iso_date(days[0]).weekday()]}, "sentences"))
+        else:
+            out.append(fmt(s["low_many"], {"feed": join_words(names), "dates": dates_label(days)}, "sentences"))
+    median = []
     for f in feeds:
         rule, dates = f.get("rule"), f.get("dates")
         if isinstance(rule, dict):
             classes = [k for k in CLASS_ORDER if rule.get(k) == "median-date"]
         else:
             classes = ["wd"] if rule == "median-date" else []
-        few = [k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3]
-        changed = [k for k in classes if k not in few]
-        for group, key in ((changed, "median_changed"), (few, "median_few")):
-            if not group:
-                continue
-            out.append(fmt(s[key], {"feed": clean(f["name"]), "month": mname,
-                                    "days": join_words(CLASS_DAYS[k][0] for k in group),
-                                    "days_plural": join_words(CLASS_DAYS[k][1] for k in group),
-                                    "verb": s["verb_one" if len(group) == 1 else "verb_many"]}, "sentences"))
+        few = tuple(k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3)
+        changed = tuple(k for k in classes if k not in few)
+        if classes:
+            median.append(((changed, few), clean(f["name"])))
+    for (changed, few), names in grouped(median):
+        n = "many" if len(names) > 1 else "one"
+        days = [k for k in CLASS_ORDER if k in changed or k in few]
+        key = "median_both" if changed and few else "median_changed" if changed else "median_few"
+        out.append(fmt(s[key], {"feed": join_words(names), "month": mname, "its": s[f"its_{n}"], "has": s[f"has_{n}"],
+                                "days": join_words(CLASS_DAYS[k][0] for k in days),
+                                "days_plural": join_words(CLASS_DAYS[k][1] for k in few),
+                                "verb": s["verb_one" if len(days) == 1 else "verb_many"]}, "sentences"))
     return " ".join(out)
+
+
+def grouped(items):
+    """[(key, name)] as [(key, [names])], in the order each key first comes."""
+    out = {}
+    for key, name in items:
+        out.setdefault(key, []).append(name)
+    return list(out.items())
 
 
 def licence_entry(feed, licences, allow_nc=False):

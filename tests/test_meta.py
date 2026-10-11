@@ -199,9 +199,8 @@ class GTA(unittest.TestCase):
         w = self.metas["gta-toronto-week"]["description"]
         self.assertIn("October 31 is left out because the clocks change that night.", w)
         self.assertIn("GO Transit ran a reduced timetable on October 10, so that Saturday is left out.", w)
-        self.assertIn("GO Transit changed its timetables during October, so its Tuesday uses one typical date.", w)
-        self.assertIn("GO Transit has fewer than three usable October Saturdays and Sundays, so its Saturday and "
-                      "Sunday each use one typical date.", w)
+        self.assertIn("GO Transit changed its timetables during October and has fewer than three usable October "
+                      "Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use one typical date.", w)
         # Only feeds with vehicles inside the city are mentioned.
         self.assertNotIn("Burlington", self.metas["gta-toronto-day"]["description"])
 
@@ -592,12 +591,16 @@ class GTAReview(unittest.TestCase):
         recipe = self.pl.recipe("gta-burlington", self.batch)
         nm = netmeta(self.batch, recipe, "day")
         for f in nm["feeds"]:
-            f["window_trips"] = 500 if f["id"] == "burlington" else 0
+            if f["id"] != "burlington":
+                f.update(window_trips=0, inside_share=0.0, inside_vehicle_minutes=0.0)
+            else:
+                f.update(window_trips=500, excluded=[{"date": "2026-11-11", "why": "holiday", "name": "A holiday"}])
         d = self.meta("gta-burlington", "day", nm=nm)["description"]
         self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 27 for it. I kept", d)
-        self.assertIn("The weekday average uses every weekday in that range and leaves out Thanksgiving "
-                      "(October 12).", d)
+        self.assertIn("The weekday average uses every weekday in that range and leaves out A holiday "
+                      "(November 11).", d)
         self.assertNotIn("the other", d)
+        self.assertNotIn("October 2026", d)
 
     def test_minor_fallback_stays_a_caveat(self):
         """Burlington Transit's few buses in Oakville leave the label at October: the batch month leads and the
@@ -614,6 +617,37 @@ class GTAReview(unittest.TestCase):
                       "Thanksgiving (October 12). Burlington Transit has no October timetable, so it uses November "
                       "2 to 27.", d)
 
+    def test_each_caveat_once(self):
+        """A feed's reduced days make one sentence, a feed's median-date classes make one, and feeds with the
+        same caveats share one."""
+        recipe = self.pl.recipe("gta-toronto", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        same = {"mon": "median-date", "fri": "median-date"}
+        for f in nm["feeds"]:
+            if f["id"] == "go":
+                f["excluded"].append({"date": "2026-10-11", "why": "low", "trips": 1200, "median": 1392})
+            if f["id"] in ("yrt", "miway"):
+                f["rule"] = same
+                f["dates"] = dict(f["dates"], mon=["2026-10-19"], fri=["2026-10-02", "2026-10-09", "2026-10-16"])
+        w = self.meta("gta-toronto", "week", nm=nm)["description"]
+        dates = w.split("\n\n")[2]
+        self.assertIn("GO Transit ran a reduced timetable on October 10 and 11, so those days are left out. ", dates)
+        self.assertIn("GO Transit changed its timetables during October and has fewer than three usable October "
+                      "Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use one typical date.", dates)
+        self.assertIn("MiWay and York Region Transit changed their timetables during October and have fewer than "
+                      "three usable October Mondays, so their Monday and Friday each use one typical date.", dates)
+        self.assertEqual(dates.count("GO Transit"), 2)
+        self.assertEqual(dates.count("reduced timetable"), 1)
+        self.assertEqual(dates.count("York Region Transit"), 1)
+        # One feed with one kind of caveat reads as before.
+        for f in nm["feeds"]:
+            if f["id"] == "miway":
+                f["rule"] = {"mon": "median-date"}
+        w = self.meta("gta-toronto", "week", nm=nm)["description"]
+        self.assertIn("York Region Transit changed its timetables during October and has fewer than three usable "
+                      "October Mondays, so its Monday and Friday each use one typical date.", w)
+        self.assertIn("MiWay has fewer than three usable October Mondays, so its Monday uses one typical date.", w)
+
 
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
@@ -623,6 +657,9 @@ class Formatting(unittest.TestCase):
         self.assertEqual(sm.range_label(["2026-11-02", "2026-11-27"]), "November 2 to 27")
         self.assertEqual(sm.range_label(["2026-10-28", "2026-11-24"]), "October 28 to November 24")
         self.assertEqual(sm.join_words(["bus", "streetcar", "train"]), "bus, streetcar and train")
+        self.assertEqual(sm.dates_label(["2026-10-11", "2026-10-10"]), "October 10 and 11")
+        self.assertEqual(sm.dates_label(["2026-10-03", "2026-10-10", "2026-10-24"]), "October 3, 10 and 24")
+        self.assertEqual(sm.dates_label(["2026-11-01", "2026-10-31"]), "October 31 and November 1")
         self.assertEqual(sm.with_commas(12345), "12,345")
 
 

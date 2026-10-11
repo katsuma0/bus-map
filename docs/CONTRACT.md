@@ -745,7 +745,12 @@ October 2026 timetables, ..."), which, when a major fallback feed sets the label
 reason instead (`timetables_<variant>_fallback` and `fallback_lead`: "Burlington Transit has no
 October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies.");
 `{dates_sentence}` then says "in the other timetables" and leaves that feed's fallback out, so the
-description says it once;
+description says it once. `{dates_sentence}` gives each caveat once: a feed's reduced days in one
+sentence (`low`, `low_many`: "GO Transit ran a reduced timetable on October 10 and 11, so those days
+are left out."), its median-date classes in one (`median_changed`, `median_few`, `median_both`), and
+feeds with the same caveats in one ("Long Island Rail Road and Metro-North Railroad changed their
+timetables during October and have fewer than three usable October Mondays, so their Monday and
+Friday each use one typical date.");
 `{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
 `limits_one_city` for a place whose name has the word City, "the New York City limits", or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
