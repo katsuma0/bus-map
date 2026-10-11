@@ -167,7 +167,11 @@ def colors_sentence(netmeta, templates):
     words, other = [], None
     for g in netmeta.get("groups") or []:
         if g["id"] == "other":
-            other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
+            # The trim lists other when any route it keeps falls in it, and its share is the inside
+            # share at the morning peak minute alone, so neither says whether the video draws anything
+            # grey: Philadelphia's M line has share 0 and runs faded west of the city line all day.
+            if g.get("window_trips", 1) > 0:
+                other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
             continue
         lg = g.get("legend")
         w = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])

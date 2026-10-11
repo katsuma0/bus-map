@@ -462,6 +462,30 @@ class Review(unittest.TestCase):
         nm = netmeta(self.batch, self.pl.recipe("gta-toronto", self.batch), "day")
         self.assertEqual([f["id"] for f in sm.drawn_feeds(nm)], ["ttc", "go", "miway", "yrt", "upx"])
 
+    def test_grey_only_when_other_is_drawn(self):
+        t = self.pl.templates()
+        groups = [{"id": "rr", "label": "Regional Rail", "share": 0.4311, "legend": True, "window_trips": 634},
+                  {"id": "b", "label": "B", "share": 0.3576, "legend": True, "window_trips": 568},
+                  {"id": "l", "label": "L", "share": 0.2113, "legend": True, "window_trips": 332},
+                  {"id": "other", "label": "Other", "share": 0.0, "legend": False, "window_trips": 0}]
+        nm = {"color_by": "group", "groups": groups}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L.")
+        # Share 0 is the inside share at the morning peak alone: Philadelphia's M line runs grey west of the
+        # city line all day, so its grey is named.
+        groups[-1]["window_trips"] = 126
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L, with everything else in grey.")
+        # A netmeta of an older make.py says nothing of the window, so the clause stays as it was.
+        del groups[-1]["window_trips"]
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L, with everything else in grey.")
+        # A named other is dropped the same way.
+        nm = {"color_by": "group", "groups": [{"id": "frequent", "label": "Frequent", "window_trips": 10},
+                                              {"id": "other", "label": "Local", "legend": True, "window_trips": 0}]}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Frequent.")
+        recipe = self.pl.recipe("gta-markham", self.batch)
+        nm = dict(netmeta(self.batch, recipe, "rush"), color_by="group", groups=groups[:3] + [dict(groups[3], window_trips=0)])
+        self.assertIn("are faded and not counted. Colours: Regional Rail, B and L.\n\n",
+                      self.meta("gta-markham", "rush", nm=nm)["description"])
+
 
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):

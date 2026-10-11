@@ -1079,7 +1079,9 @@ boundary or faded outside) and `window_modes` on each group (those trips by mode
 credits, licence flags and licence checks cover the feeds with `window_trips`, those with vehicles
 inside first, so a split city's buses leave out its trains' feeds and a neighbour drawn faded outside
 is credited; a netmeta without them falls back to the feeds with vehicles inside, and `make.py meta`
-rewrites an older netmeta from the network when the network is there.
+rewrites an older netmeta from the network when the network is there. The colours sentence names
+other's grey only when other has `window_trips` (its `share` is the inside share at the morning peak
+minute alone).
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
 "credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],
