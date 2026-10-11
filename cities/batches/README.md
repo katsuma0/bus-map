@@ -39,6 +39,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `batch` | str | yes | | the batch must list this id in `cities` |
 | `area` | str | when the batch has several areas | the only area | |
 | `place` | str | yes | | the name on screen, in the title and the count line; with the word City in it (New York City) the description says "the New York City limits", not "city limits" |
+| `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is: `town` makes the description say "the Oakville town limits" and "inside the town"; a place with the word in its name (New York City) says "the New York City limits"; not with a boundary of several divisions; re-renders nothing |
 | `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |

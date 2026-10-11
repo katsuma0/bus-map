@@ -579,6 +579,18 @@ class Validation(unittest.TestCase):
         r["override"]["variant_render"] = {"night": {"TRAIL_MINUTES": 10}}
         self.assertTrue(any("unknown variant 'night'" in e for e in self.recipe_errors(r)))
 
+    def test_limits(self):
+        """The recipe's limits names what the place is (Oakville is a town); city when it says nothing."""
+        for ok in make.LIMITS:
+            self.assertEqual(self.recipe_errors(dict(self.recipe, limits=ok)), [], ok)
+        for bad in ("Town", "municipality", "", None, 1):
+            self.assertTrue(any("limits: must be one of city, town" in e
+                                for e in self.recipe_errors(dict(self.recipe, limits=bad))), bad)
+        parts = [{"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+                 {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9}]
+        errs = self.recipe_errors(dict(self.recipe, limits="town", boundary=parts))
+        self.assertTrue(any("limits: a boundary of several divisions" in e for e in errs), errs)
+
     def test_unknown_licence(self):
         b = json.loads(json.dumps(self.batch))
         b["areas"][0]["feeds"][3]["licence_id"] = "ogl-yorkshire"
@@ -1033,6 +1045,11 @@ class Derivation(Scratch):
         self.assertEqual(self.pl.render_key(self.batch, r2, "day", self.lock), k)
         b2 = dict(self.batch, title="Another title", hashtags=["#x"], category="Education")
         self.assertEqual(self.pl.render_key(b2, recipe, "day", self.lock), k)
+        # The limits word is the description's alone: it keys the metadata, not the render.
+        town = dict(recipe, limits="town")
+        self.assertEqual(self.pl.render_key(self.batch, town, "day", self.lock), k)
+        self.assertNotEqual(self.pl.meta_key(self.batch, town, "day", self.lock),
+                            self.pl.meta_key(self.batch, recipe, "day", self.lock))
         b3 = dict(self.batch, render_epoch=1)
         self.assertNotEqual(self.pl.render_key(b3, recipe, "day", self.lock), k)
         self.assertNotEqual(self.pl.render_key(self.batch, recipe, "rush", self.lock), k)

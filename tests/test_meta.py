@@ -673,6 +673,25 @@ class GTAReview(unittest.TestCase):
         with self.assertRaisesRegex(sm.MetaError, "Grand Theft Auto"):
             self.meta("gta-markham", "day", batch=b)
 
+    def test_town_limits(self):
+        """Oakville and Whitby are towns: their recipes say limits town, and the city limits stay the default."""
+        for rid, place in (("gta-oakville", "Oakville"), ("gta-whitby", "Whitby")):
+            self.assertEqual(self.pl.recipe(rid, self.batch).get("limits"), "town", rid)
+            d = {v: self.meta(rid, v)["description"] for v in ("day", "rush", "week")}
+            self.assertIn(f"only includes vehicles inside the {place} town limits. The faded ones", d["day"])
+            self.assertIn("Every bus and train inside the town on an average October weekday.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} town limits are faded and not counted.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} town limits are faded and not counted.", d["week"])
+            for text in d.values():
+                self.assertNotIn("city", text.split("\n\n")[1].lower(), rid)
+        self.assertIn("inside the Markham city limits.", self.meta("gta-markham", "day")["description"])
+        self.assertIn("Every bus and train inside the city on", self.meta("gta-markham", "rush")["description"])
+        # A place that names its kind says it once, for a town as for New York City.
+        recipe = dict(self.pl.recipe("gta-oakville", self.batch), place="Oakville Town")
+        self.assertIn("inside the Oakville Town limits.", self.meta("gta-oakville", "day", recipe=recipe)["description"])
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), place="New York City")
+        self.assertIn("inside the New York City limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
+
 
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):

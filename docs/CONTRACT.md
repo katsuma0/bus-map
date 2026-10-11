@@ -537,6 +537,7 @@ does today).
 | `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
+| `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; not with a boundary of several divisions; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
@@ -752,9 +753,10 @@ feeds with the same caveats in one ("Long Island Rail Road and Metro-North Railr
 timetables during October and have fewer than three usable October Mondays, so their Monday and
 Friday each use one typical date.");
 `{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
-`limits_one_city` for a place whose name has the word City, "the New York City limits", or
+with the recipe's `limits` for `{kind}`: "the Oakville town limits"; `limits_one_city` for a place
+whose name has that word, "the New York City limits"; or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
-Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
+Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city" or "the town",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
 each mode the title names (`bus map`, `streetcar map`, `train map`). The first tag and the
 video's own hashtag name the place without a lowercase leading article, and `place_tags` spells out

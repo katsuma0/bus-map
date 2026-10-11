@@ -152,17 +152,19 @@ def count_noun(netmeta, modes, n):
 
 
 def limits_words(recipe, place, templates):
-    """Where the counted vehicles are: one city's limits, or the divisions a union boundary joins."""
+    """Where the counted vehicles are: one place's limits, or the divisions a union boundary joins."""
     s = templates["sentences"]
     b = recipe.get("boundary")
     if isinstance(b, list) and len(b) > 1:
         parts = join_words(clean(p["name"]) for p in b)
         return (fmt(s["limits_many"], {"place": place, "parts": parts}, "limits_many"),
                 fmt(s["the_city_many"], {"place": place}, "the_city_many"))
-    # A place that already says City (New York City, Mexico City) would read "the New York City city limits".
-    key = "limits_one_city" if re.search(r"\bcity\b", place, re.IGNORECASE) else "limits_one"
-    return (fmt(s[key], {"place": place}, key),
-            fmt(s["the_city_one"], {"place": place}, "the_city_one"))
+    # The recipe's limits says what the place is: Oakville and Whitby are towns. A place that already
+    # says it (New York City, Mexico City) would read "the New York City city limits".
+    kind = recipe.get("limits") or "city"
+    key = "limits_one_city" if re.search(rf"\b{re.escape(kind)}\b", place, re.IGNORECASE) else "limits_one"
+    return (fmt(s[key], {"place": place, "kind": kind}, key),
+            fmt(s["the_city_one"], {"place": place, "kind": kind}, "the_city_one"))
 
 
 def colors_sentence(netmeta, templates):

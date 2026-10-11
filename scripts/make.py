@@ -401,7 +401,9 @@ def camera_paths(ids, chosen=None):
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
 RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "frame", "variants", "rush", "variety",
-               "override", "colors"}
+               "override", "colors", "limits"}
+# What a recipe's place is, for the description's "the Oakville town limits"; city when it says nothing.
+LIMITS = ("city", "town", "township", "village")
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
@@ -609,6 +611,12 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
             errors.append(f"{where}: area is required because the batch has {len(area_ids)} areas")
     if not isinstance(recipe.get("place", ""), str) or not recipe.get("place", "x").strip():
         errors.append(f"{where}: place must be a non-empty string")
+    if "limits" in recipe:
+        if recipe["limits"] not in LIMITS:
+            errors.append(f"{where}.limits: must be one of {', '.join(LIMITS)}")
+        elif isinstance(recipe.get("boundary"), list) and len(recipe["boundary"]) > 1:
+            errors.append(f"{where}.limits: a boundary of several divisions is described by their names; "
+                          f"leave limits out")
     b = recipe.get("boundary")
     if b is not None:
         if isinstance(b, list):
@@ -1141,9 +1149,10 @@ def label_key(label):
 
 def strip_why(recipe):
     """The recipe as the render key holds it: a reason line changes no pixel, nor does a colour
-    group's scheme, source or verified flag."""
+    group's scheme, source or verified flag, nor the description's limits word (the meta key holds it)."""
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
+    r.pop("limits", None)
     colors = r.get("colors")
     if isinstance(colors, dict):
         colors.pop("scheme", None)
@@ -1679,7 +1688,7 @@ class Pipeline:
         return sha256_json({"render_key": rk, "templates": self.templates(), "licences": self.licences(),
                             "shorts_meta": self.sha("scripts/shorts_meta.py"),
                             "hashtags": batch.get("hashtags", []), "category": batch.get("category"),
-                            "cities": batch["cities"],
+                            "cities": batch["cities"], "limits": recipe.get("limits"),
                             "publish_order": self.publish_order(batch, recipe["id"], variant, lock),
                             "data_dates": lock_data_dates(lock, self.area_of(batch, recipe)["id"])})
 
