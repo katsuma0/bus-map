@@ -1770,8 +1770,10 @@ was. Tags do not change.
 
 **Tests.** `tests/web/v4_groups.mjs` draws every checked plan (`tests/fixtures/colours/plans.json`)
 on a group copy of the fixture and holds each trail and dormant line to the plan's exactly, with the
-placement order, the free groups' distances, Line 6's neutral, the legend's entries, fit steps and
-drops, the chips, two merged `paint=` and the draw order; `tests/web/color_vectors.mjs` holds the
-pins; `tests/test_make.py`, `tests/test_trim.py`, `tests/test_meta.py` and `tests/test_tune.py` cover
-validation, the city config, the keys, the paint, the match rules, the fold to 7, the sentence and the
-tune arms.
+placement order, the free groups' distances, Line 6's neutral (with and without a hex), the legend's
+entries, fit steps, drawn width and drops, the chips, two merged `paint=` and the draw order of a
+group and of a brand network; `tests/web/color_vectors.mjs` holds the pins; `tests/web/v4_hud.mjs`
+fails a real build whose `meta.groups` or paint warnings show it is older than its recipe;
+`tests/test_make.py`, `tests/test_trim.py`, `tests/test_meta.py` and `tests/test_tune.py` cover
+validation, the city config, the keys, the paint, the match rules, the fold to 7 (`fold_groups`, and
+the trim's fold with its limit lowered to 3), the sentence and the tune arms.

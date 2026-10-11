@@ -459,6 +459,15 @@ COLOR_GROUPS = [
 ]
 
 
+# The trim with its colour limit at 3, so the fixture's four used groups (rest, rail, tram and other) fold.
+FOLD_TRIM = """import sys
+sys.path.insert(0, {scripts!r})
+import trim_network
+trim_network.MAX_COLOR_GROUPS = 3
+trim_network.main()
+"""
+
+
 class ColorGroups(unittest.TestCase):
     """A trim with the recipe's colour groups: every used route in exactly one, nothing lost."""
 
@@ -472,13 +481,16 @@ class ColorGroups(unittest.TestCase):
         U.run("build_area.py", "--config", acfg, "--out", cls.store)
         frame = U.fit_frame(U.boundary_bbox_km(BOUNDARY, ORIGIN))
         base = U.city_config("fx-stable", "Fixture", ORIGIN, BOUNDARY, frame, ["day", "rush"], "day", batch="fx", area="fx")
+        fold = os.path.join(cls.tmp, "fold_trim.py")
+        with open(fold, "w", encoding="utf-8") as fh:
+            fh.write(FOLD_TRIM.format(scripts=U.SCRIPTS))
         cls.res = {}
-        for name, cfg in (("brand", base), ("group", dict(base, colors={"groups": COLOR_GROUPS}))):
+        groups = dict(base, colors={"groups": COLOR_GROUPS})
+        for name, cfg, script in (("brand", base, "trim_network.py"), ("group", groups, "trim_network.py"), ("fold", groups, fold)):
             path = os.path.join(cls.tmp, f"city.{name}.json")
             U.dump_json(path, cfg)
             out = os.path.join(cls.tmp, name, "day", "network.json.gz")
-            p, _s, _g = U.run("trim_network.py", "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64,
-                              check=False)
+            p, _s, _g = U.run(script, "--config", path, "--area", cls.store, "--out", out, "--key", "k" * 64, check=False)
             cls.res[name] = (p, out)
 
     @classmethod
@@ -509,6 +521,25 @@ class ColorGroups(unittest.TestCase):
         for i, h in enumerate(net["hist"]):
             self.assertLessEqual(abs(sum(m["hist_by_group"][g][i] for g in m["hist_by_group"]) - h), 0.021, i)
         self.assertAlmostEqual(sum(g["share"] for g in m["groups"]), 1.0, delta=0.001)
+
+    def test_fold_to_the_colour_limit(self):
+        """Over the limit, the smallest declared group joins other: in meta.groups, the routes and the counts."""
+        full, fold = self.net("group"), self.net("fold")
+        share = {g["id"]: g["share"] for g in full["meta"]["groups"]}
+        self.assertEqual(sorted(share), ["other", "rail", "rest", "tram"])
+        named = [gid for gid in share if gid != "other"]
+        gone = min(reversed(named), key=lambda gid: share[gid])
+        self.assertIn(f"warning: group {gone} joined other: 4 colours, the limit is 3", self.res["fold"][0].stderr)
+        m = fold["meta"]
+        self.assertEqual([g["id"] for g in m["groups"]], [gid for gid in named if gid != gone] + ["other"])
+        self.assertAlmostEqual(m["groups"][-1]["share"], share["other"] + share[gone], delta=0.0002)
+        was = {r["id"]: r["group"] for r in full["routes"]}
+        self.assertEqual({r["id"]: r["group"] for r in fold["routes"]},
+                         {rid: "other" if gid == gone else gid for rid, gid in was.items()})
+        self.assertEqual(sorted(m["hist_by_group"]), sorted(g["id"] for g in m["groups"]))
+        for i, h in enumerate(fold["hist"]):
+            self.assertLessEqual(abs(sum(m["hist_by_group"][g][i] for g in m["hist_by_group"]) - h), 0.021, i)
+        self.assertEqual(fold["hist"], full["hist"])
 
     def test_brands_and_brand_networks_stay(self):
         """The colour groups change no brand, and a trim without them is the agency-auto one."""

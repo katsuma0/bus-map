@@ -15,7 +15,8 @@
 //           none neutral
 //  legend   legend=1 draws each plan's legend_items on one row at 20.4 px in the preset (San
 //           Diego's Trolley one entry with its three line dots), inside the safe zone and at
-//           18 px or more; Houston fits at step 1 or 2 at TEXT_SCALE 1 and weight 500; long
+//           18 px or more, its drawn row as wide as the fit measured it (a shared word's extra
+//           dots counted); Houston fits at step 1 or 2 at TEXT_SCALE 1 and weight 500; long
 //           labels walk the fit steps in order to two rows; seven 16-character labels drop
 //           entries with one console.error each and still end inside the 504 px column;
 //           legend=0 draws no legend and the HUD of a brand network
@@ -23,7 +24,8 @@
 //           0.6 and 1; chips=1 with legend=1 draws the legend and not the chips, with a warning
 //  paint    two paint= parameters merge: the second changes only the key it names
 //  order    other draws first however busy, then the bus groups with the fewest trips on
-//           top, then rail over every bus class
+//           top, then rail over every bus class; a brand network keeps its busiest bus class
+//           on top, rail still last
 //
 // Usage: node tests/web/v4_groups.mjs [--only gta-toronto-trains,...]
 
@@ -61,6 +63,32 @@ function groupNet(name, groups) {
   m.hist_by_group = Object.fromEntries(groups.map((g, i) => [g.id, i ? net.hist.map(() => 0) : net.hist.slice()]));
   m.trips_total = net.trips.length;
   const rel = path.join('build', 'test_web', `groups-${name}.json`);
+  fs.mkdirSync(path.join(ROOT, 'build', 'test_web'), { recursive: true });
+  fs.writeFileSync(path.join(ROOT, rel), JSON.stringify(net));
+  return `data=../${rel}&${BASEMAP}`;
+}
+
+// A brand network from the fixture (meta.color_by "brand"): one agency brand and chip group per
+// entry, each with route alpha:1 and its trips b.copies times, rail when b.rail.
+function brandNet(name, list) {
+  const net = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'v4_tiny', 'network.json'), 'utf8'));
+  const base = net.routes[0];
+  const baseTrips = net.trips.filter((t) => t.r === 0);
+  const hexes = ['0067b1', 'e31837', '00a651', 'b300b3'];
+  net.routes = list.map((b, i) => ({ ...base, id: `${b.id}:1`, short: `${i}`, brand: i, mode: b.rail ? 'rail' : base.mode }));
+  net.trips = [];
+  list.forEach((b, i) => {
+    for (let k = 0; k < b.copies; k++) for (const t of baseTrips) net.trips.push({ ...t, r: i });
+  });
+  const total = list.reduce((s, b) => s + b.copies, 0);
+  const m = net.meta;
+  m.color_by = 'brand';
+  m.brands = list.map((b, i) => ({ id: b.id, label: b.id.toUpperCase(), hex: hexes[i], kind: 'agency', entry: b.id, rail: Boolean(b.rail),
+    share: b.copies / total, verified: true, alt: null, source: 'fixture' }));
+  m.groups = list.map((b) => ({ id: b.id, label: b.id.toUpperCase(), brand: b.id, share: b.copies / total }));
+  m.hist_by_group = Object.fromEntries(list.map((b, i) => [b.id, i ? net.hist.map(() => 0) : net.hist.slice()]));
+  m.trips_total = net.trips.length;
+  const rel = path.join('build', 'test_web', `brands-${name}.json`);
   fs.mkdirSync(path.join(ROOT, 'build', 'test_web'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, rel), JSON.stringify(net));
   return `data=../${rel}&${BASEMAP}`;
@@ -142,7 +170,11 @@ try {
           `${tag}: legend ${lg.entries.map((e) => e.label).join(' · ')}, plan ${plan.legend_items.join(' · ')}`);
         ok(!lg.dropped.length, `${tag}: legend dropped ${lg.dropped.join(', ')}`);
       }
-      ok(legendBoxes(tag, r).length === 1, `${tag}: want one legend box`);
+      const rows = legendBoxes(tag, r);
+      ok(rows.length === 1, `${tag}: want one legend box`);
+      // The fit's width is what decided the row fits the column, so the drawn row must be that wide.
+      if (lg) ok(rows.length && Math.abs(Math.max(...rows.map((b) => b.x1 - b.x0)) - lg.width) <= 1,
+        `${tag}: legend drawn ${rows.map((b) => (b.x1 - b.x0).toFixed(1)).join(', ')} px wide, fitted at ${lg.width}`);
       if (plan.id === 'usa-san-diego' && lg) {
         const t = lg.entries.find((e) => e.label === 'Trolley');
         ok(t && JSON.stringify(t.ids) === JSON.stringify(['blue_line', 'green_line', 'orange_line']), `${tag}: Trolley entry ${JSON.stringify(t)}`);
@@ -201,6 +233,8 @@ try {
     if (r2) {
       const rows = legendBoxes('long labels', r2);
       ok(rows.length === 2 && rows[0].y1 < rows[1].y0, `long labels: rows ${rows.map((b) => `${b.name} y ${b.y0.toFixed(0)}..${b.y1.toFixed(0)}`).join(', ')}`);
+      ok(Math.abs(Math.max(...rows.map((b) => b.x1 - b.x0)) - r2.legend.width) <= 1,
+        `long labels: rows ${rows.map((b) => (b.x1 - b.x0).toFixed(1)).join(', ')} px wide, fitted at ${r2.legend.width}`);
       const count = r2.boxes.find((b) => b.name === 'count');
       ok(count && count.y1 < rows[0].y0, 'long labels: the count line does not stand over the top legend row');
     }
@@ -218,6 +252,27 @@ try {
       const rows = legendBoxes('seven labels', r3);
       ok(rows.length && rows.every((b) => b.x1 <= 148 + 504 + 0.5), `seven labels: rows end at ${rows.map((b) => b.x1.toFixed(0))}`);
       console.log(`  seven labels             ${r3.legend.entries.length} drawn, dropped ${r3.legend.dropped.join(', ')}`);
+    }
+
+    // A shared word's dots: three groups under one word, last on the row, with labels that fit one
+    // row at 24 only when those dots are left out, so the fit must step down to 22 to stay inside
+    // the column; a fit that left them out would draw past it.
+    const dots = [{ id: 'g0', label: 'Local', legend: true }, { id: 'g1', label: 'Airport Express', legend: true },
+      { id: 'g2', label: 'Lakeshore West', legend: 'Lakeshore Trains' }, { id: 'g3', label: 'Lakeshore East', legend: 'Lakeshore Trains' },
+      { id: 'g4', label: 'Lakeshore Mid', legend: 'Lakeshore Trains' }];
+    const dp = Object.fromEntries(dots.map((g, i) => [g.id, { hex: ['d33517', '026bcd', '00853e', 'b300b3', 'f2b705'][i] }]));
+    const r4 = await open(h, `${groupNet('dots', dots)}&${paintQ(dp)}&legend=1`);
+    if (r4 && ok(r4.legend, 'shared dots: no legend')) {
+      const rows = legendBoxes('shared dots', r4);
+      const e = r4.legend.entries.find((x) => x.label === 'Lakeshore Trains');
+      ok(e && e.ids.length === 3, `shared dots: entry ${JSON.stringify(e)}`);
+      const t = r4.legend.tried;
+      ok(r4.legend.rows === 1 && r4.legend.base === 22 && t.length === 2 && t[0].w > r4.legend.limit
+        && t[0].w - 40 * 0.85 <= r4.legend.limit, `shared dots: tried ${JSON.stringify(t)} for ${r4.legend.limit} px`);
+      ok(rows.length && Math.abs(Math.max(...rows.map((b) => b.x1 - b.x0)) - r4.legend.width) <= 1
+        && rows.every((b) => b.x1 <= 148 + 504 + 0.5),
+      `shared dots: rows ${rows.map((b) => `x ${b.x0.toFixed(1)}..${b.x1.toFixed(1)}`).join(', ')}, fitted at ${r4.legend.width} of ${r4.legend.limit}`);
+      console.log(`  shared dots              ${r4.legend.rows} rows at ${r4.legend.base}/${r4.legend.gap}, ${r4.legend.width} of ${r4.legend.limit} px, tried ${JSON.stringify(r4.legend.tried)}`);
     }
 
     // legend=0: no legend, and the HUD of the brand network the fixture is.
@@ -264,6 +319,17 @@ try {
       const got = d.colors.map((c) => trailOf.get(c.hex)).join(' ');
       ok(got === 'other grid express rapid rail', `draw order bottom to top: ${got}, want other grid express rapid rail`);
       console.log(`  draw order               ${got}`);
+    }
+    // A brand network keeps its own order: the busiest bus class on top, rail over all of them.
+    const bn = await open(h, brandNet('order', [{ id: 'a', copies: 3 }, { id: 'b', copies: 1 }, { id: 'c', copies: 2 },
+      { id: 'd', copies: 5, rail: true }]));
+    if (bn) {
+      ok(bn.groupMap === null && bn.brandMap && bn.brandMap.every((e) => e.placed), `brand order: ${JSON.stringify(bn.brandMap)}`);
+      const trailOf = new Map((bn.brandMap || []).map((e) => [e.trail, e.id]));
+      // The fixture's shapes no trip uses here draw in a class of their own with no trips.
+      const got = bn.colors.filter((c) => c.trips).map((c) => trailOf.get(c.hex)).join(' ');
+      ok(got === 'b c a d', `brand draw order bottom to top: ${got}, want b c a d`);
+      console.log(`  brand draw order         ${got}`);
     }
   }
 } finally {
