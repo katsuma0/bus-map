@@ -9,8 +9,10 @@
 //           before it; the foreign grey is placed exactly when a route is in other; every
 //           group's trips draw in its own colour class; no page error
 //  line 6   Toronto trains' Line 6 draws its neutral silver b4bac4 (dormant line over the
-//           background at 0.5), never the TTC red; "neutral": true draws the foreign grey; with
-//           no paint at all the page warns and draws every group from its fallback, none neutral
+//           background at 0.5), never the TTC red; "neutral": true draws the foreign grey; a
+//           neutral sent without a hex (make.py's paint of a group with only a neutral) draws the
+//           same; with no paint at all the page warns and draws every group from its fallback,
+//           none neutral
 //  legend   legend=1 draws each plan's legend_items on one row at 20.4 px in the preset (San
 //           Diego's Trolley one entry with its three line dots), inside the safe zone and at
 //           18 px or more; Houston fits at step 1 or 2 at TEXT_SCALE 1 and weight 500; long
@@ -167,6 +169,13 @@ try {
     const b = await open(h, `${q}&${paintQ(paintOf(plan))}&${paintQ({ line6: { neutral: true } })}`);
     const l6b = b && b.groupMap.find((e) => e.id === 'line6');
     ok(l6b && l6b.trail === '8a93a0' && l6b.how === 'neutral', `line 6 neutral true: ${JSON.stringify(l6b)}`);
+    // Without a hex: the paint make.py sends for a group that has only a neutral.
+    for (const neutral of ['b4bac4', true]) {
+      const n = await open(h, `${q}&${paintQ({ ...paintOf(plan), line6: { neutral } })}`);
+      const e = n && n.groupMap.find((x) => x.id === 'line6');
+      ok(n && !n.errors.length && e && e.how === 'neutral' && e.trail === (neutral === true ? '8a93a0' : 'b4bac4') && e.source === null,
+        `line 6 neutral ${neutral} without a hex: ${JSON.stringify(e)} ${n && n.errors.join(' | ')}`);
+    }
     const c = await open(h, q);
     ok(c && c.warnings.some((w) => w.includes('no ?paint')), `no paint: no warning (${c && c.warnings.join(' | ')})`);
     ok(c && c.groupMap.every((e) => e.how !== 'neutral' && !e.how.startsWith('pin')), `no paint: ${c && c.groupMap.map((e) => `${e.id} ${e.how}`).join(', ')}`);

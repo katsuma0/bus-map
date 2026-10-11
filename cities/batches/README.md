@@ -114,10 +114,11 @@ its rules and line brands too, or exactly one rule). `{}` matches every route an
 other than the three, more than 7 groups, a duplicate id or label, `other` not last or
 with a colour or rule, a label or legend word that is empty, over 16 characters, holds a
 `·`, is shared by more than 3 groups or equals another group's label, a group without a
-colour, a hex that is not `#rrggbb`, a colour without hue and no `neutral` (TTC's
-808080), a `dL` out of range or next to `neutral`, a brands.json `dL` out of range, a
-clause with an unknown feed, mode, brand or a regex that does not compile, `{}` outside a
-`rest` group, and `override.brand_colors` next to `colors`.
+colour, a brand without a `color` for a group with no hex or neutral of its own, a hex
+that is not `#rrggbb`, a colour without hue and no `neutral` (TTC's 808080), a `dL` out
+of range or next to `neutral`, a brands.json `dL` out of range, a clause with an unknown
+feed, mode, brand or a regex that does not compile, `{}` outside a `rest` group, and
+`override.brand_colors` next to `colors`.
 
 Colours ride in the render query (`paint=`), never in the network: a colour, pin or
 legend change re-renders but does not re-trim; a rule, label, order or legend change

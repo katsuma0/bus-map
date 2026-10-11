@@ -763,6 +763,9 @@ def validate_colors(recipe, batch, brands, errors):
         if "neutral" in g and not (neutral is True or (isinstance(neutral, str) and STRICT_HEX_RE.match(neutral))):
             errors.append(f"{gw}.neutral: must be #rrggbb or true, got {neutral!r}")
         src = g.get("hex") if "hex" in g else (brand_ref(brands, ref) or {}).get("color")
+        # brands.json does not require a colour, and without one the page would fall back to a mode's.
+        if "neutral" not in g and "hex" not in g and brand_ref(brands, ref) is not None and not src:
+            errors.append(f"{gw}: brand {ref!r} has no color in brands.json; give the group a hex or a neutral")
         if "neutral" not in g and isinstance(src, str) and STRICT_HEX_RE.match(src) and not informative(src):
             _L, a, b = oklab(src.lower().lstrip("#"))
             errors.append(f"{gw}: {src} has OKLCH chroma {math.hypot(a, b):.3f}, under B5's 0.03; "
@@ -2595,7 +2598,8 @@ class Pipeline:
                 continue
             b = brand_ref(brands, g.get("brand")) or {}
             hexv = g.get("hex") or b.get("color") or ""
-            p = {"hex": hexv.lstrip("#").lower()}
+            # A neutral needs no hex, and the page refuses an empty one.
+            p = {"hex": hexv.lstrip("#").lower()} if hexv else {}
             if "neutral" in g:
                 n = g["neutral"]
                 p["neutral"] = n if n is True else n.lstrip("#").lower()

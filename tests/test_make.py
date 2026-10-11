@@ -1168,6 +1168,18 @@ class ColorGroups(Scratch):
         self.write("brands.json", brands)
         self.assertTrue(any("brands.json ttc dL must be a number from -0.3 to 0.14" in e
                             for e in self.errors(self.recipe("gta-toronto", BUSES))))
+        # A rule need not carry a colour, but a group that takes one from it must find one.
+        del brands["agencies"][0]["dL"]
+        zum = brands["agencies"][5]["rules"][0]
+        self.assertEqual(zum["id"], "zum")
+        del zum["color"]
+        self.write("brands.json", brands)
+        self.assertEqual(self.errors(self.recipe("gta-vaughan", VAUGHAN)),
+                         ["recipe gta-vaughan.colors group zum: brand 'brampton:zum' has no color in brands.json; "
+                          "give the group a hex or a neutral"])
+        fixed = json.loads(json.dumps(VAUGHAN))
+        fixed["groups"][3]["hex"] = "#e31837"
+        self.assertEqual(self.errors(self.recipe("gta-vaughan", fixed)), [])
 
     def test_colors_city_config(self):
         cc = self.pl.city_config(self.batch, self.recipe("gta-toronto", BUSES), "day", self.lock)
@@ -1234,6 +1246,13 @@ class ColorGroups(Scratch):
         self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["go"], {"hex": "00853e"}, "null unpins")
         b["groups"][2]["neutral"] = True
         self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["line6"], {"hex": "808080", "neutral": True})
+        # A neutral without a hex sends none: the page refuses an empty hex.
+        del b["groups"][2]["hex"]
+        recipe = self.recipe("gta-toronto", b)
+        self.assertEqual(self.errors(recipe), [])
+        self.assertEqual(self.pl.group_paint(recipe)["line6"], {"neutral": True})
+        b["groups"][2]["neutral"] = "#B4BAC4"
+        self.assertEqual(self.pl.group_paint(self.recipe("gta-toronto", b))["line6"], {"neutral": "b4bac4"})
         self.assertNotIn("other", self.pl.group_paint(self.recipe("gta-toronto", BUSES)))
         recipe = self.recipe("gta-toronto", BUSES)
         meta = {"variants": {"day": {"render": {"DURATION_FRAMES": 1500}}}}

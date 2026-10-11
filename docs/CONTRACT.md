@@ -1218,7 +1218,9 @@ than 7; an id off the pattern or used twice; `other` not last or with a key it d
 label empty, over 16 characters, with `·` or used twice; a legend word with the same faults, shared
 by more than 3 groups or equal to the label of a group that does not carry it; a group with none of
 `brand`, `hex`, `neutral`; a `hex` or `neutral` that is not `#rrggbb` (or true); a `brand` that is
-not an entry or `entry:rule` of `brands_for(area)`; a colour without hue and no `neutral`
+not an entry or `entry:rule` of `brands_for(area)`, or one without a `color` for a group with no
+`hex` or `neutral` of its own (`group zum: brand 'brampton:zum' has no color in brands.json; give the
+group a hex or a neutral`); a colour without hue and no `neutral`
 (`group line6: #808080 has OKLCH chroma 0.000, under B5's 0.03; give it "neutral": "#rrggbb" or
 true`); a `dL` out of -0.30..0.14 or next to `neutral`; a brands.json entry or rule of the area whose
 `dL` is out of range; a `match` that is not a non-empty list of clauses, or none without `brand`;
@@ -1677,11 +1679,11 @@ A network whose `meta.color_by` is `"group"` (2.16) is drawn by group whatever `
 classes (one per trail and dormant line pair, with the trip and shape lists the ribbons and the
 dots' halos draw from). The chips and legend dots take `groupColor`. `busmap.brandMap` is null.
 
-**Paint.** `paint=` (repeatable, merged per group and key) gives each group `hex`, and `dL` or
-`neutral`. A group without paint (a page opened by hand) takes the hex of the `meta.brands` entry
-its `brand` names, else of the brand most of its trips have, else its main mode's `MODE_SOURCES`
-colour, unpinned, with one warning naming such groups. `brandhex=` is ignored on a group network
-with a warning; make.py never sends both.
+**Paint.** `paint=` (repeatable, merged per group and key) gives each group `hex` (a neutral may
+come without one), and `dL` or `neutral`. A group without paint (a page opened by hand) takes the
+hex of the `meta.brands` entry its `brand` names, else of the brand most of its trips have, else its
+main mode's `MODE_SOURCES` colour, unpinned, with one warning naming such groups. `brandhex=` is
+ignored on a group network with a warning; make.py never sends both.
 
 **Pins.** `normalise(source, env, bg, dL)`: the B5 envelope with both lightnesses shifted (trail at
 `trailL + dL`, dormant line at `lineL + dL`), chroma clamped as always, then lifted until it keeps

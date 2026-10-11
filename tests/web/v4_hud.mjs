@@ -85,7 +85,8 @@ function recipeColors(id) {
   for (const g of recipe.colors.groups) {
     if (g.id === 'other') continue;
     const b = ref(g.brand);
-    const p = { hex: (g.hex || b.color || '').replace('#', '').toLowerCase() };
+    const hex = (g.hex || b.color || '').replace('#', '').toLowerCase();
+    const p = hex ? { hex } : {};
     if ('neutral' in g) p.neutral = g.neutral === true ? true : g.neutral.replace('#', '').toLowerCase();
     else {
       const dL = 'dL' in g ? g.dL : b.dL;
