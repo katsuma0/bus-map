@@ -1626,7 +1626,8 @@ const ZONES = {
   // The title block at TEXT_SCALE 1: the 64 px title's cap top 30 px under
   // SAFE.y0, the subtitle's baseline 54 px under the title's and a wrapped
   // subtitle's second line 42 px under its first. The scale shrinks the gaps
-  // with the text, so a smaller title block keeps its proportions.
+  // with the text, so a smaller title block keeps its proportions, and a gap
+  // next to a size held at its floor shrinks only as far as that size did.
   titleTop: 30,
   subtitleGap: 54,
   subtitleDy: 42,
@@ -1637,13 +1638,16 @@ const ZONES = {
   // the panel holds, so no knob here moves a framed city (fit_box, D3.2).
   panelH: { day: 360, week: 390, split: 44 },
   // The panel's rows from the bottom up at TEXT_SCALE 1, as gaps between
-  // baselines and the sparkline's edges; the scale shrinks them with the
-  // text. The last credit line stands 24 px over SAFE.y1, lines 26 apart; the
-  // axis 34 over the first credit line; the sparkline's floor 30 over the
-  // axis, or 38 over the credit without one, and the sparkline 52 tall; the
-  // chips 14 over its top; the count line 38 over the chips, or 30 over the
-  // sparkline without them, and a split one 44 more; the clock 50 over the
-  // count line (44 in the week, where it is small) and the weekday 50 over it.
+  // baselines and the sparkline's edges; each shrinks with the rows on both
+  // sides of it, as far as the one that shrank least (a row at its floor
+  // stops its gaps there too, or 18 px credit lines would overlap under 0.7
+  // with gaps of 26 x k). The last credit line stands 24 px over SAFE.y1,
+  // lines 26 apart; the axis 34 over the first credit line; the sparkline's
+  // floor 30 over the axis, or 38 over the credit without one, and the
+  // sparkline 52 tall; the chips 14 over its top; the count line 38 over the
+  // chips, or 30 over the sparkline without them, and a split one 44 more;
+  // the clock 50 over the count line (44 in the week, where it is small) and
+  // the weekday 50 over it.
   gap: {
     credit: 24, creditLine: 26, axis: 34, sparkOverAxis: 30, sparkOverCredit: 38, spark: 52, chips: 14,
     countOverChips: 38, countOverSpark: 30, split: 44, clock: 50, clockWeek: 44, weekday: 50,
@@ -1811,7 +1815,8 @@ function checkV4Config() {
     }
   }
   // Above 1 the chips, fitted at the old sizes because they decide the trail
-  // colours, could overflow their line; under 0.6 every size is at its floor.
+  // colours, could overflow their line; under 0.6 every size but the day's
+  // clock is at its floor, so the HUD would hardly get smaller.
   const ts = Math.min(1, Math.max(0.6, CONFIG.TEXT_SCALE));
   if (ts !== CONFIG.TEXT_SCALE) {
     console.warn(`TEXT_SCALE = ${CONFIG.TEXT_SCALE} drawn as ${ts}: the scale runs 0.6 to 1`);
@@ -2947,10 +2952,15 @@ function sizesDown(from, to, by) {
 // text the window can produce, so nothing changes size between frames. Every
 // fit runs between its scale 1 sizes times TEXT_SCALE, and the rows stack up
 // from SAFE.y1 with gaps that shrink with the text, so the panel is only as
-// tall as what it shows.
+// tall as what it shows. A gap scales by the larger of its two rows' factors:
+// k, or for a row held at its floor its drawn size over its scale 1 size, as
+// that row shrank less than k and its gaps must too.
 function buildShortsLayout() {
   const F = fontsV4();
   const k = CONFIG.TEXT_SCALE;
+  // Off its floor a size is within the tenth hudPx rounds to of base x k,
+  // and its factor is k itself, so the gaps round as they always have.
+  const kOf = (px, base) => (px > base * k + 0.05 ? px / base : k);
   const at = Math.round;
   const week = meta.timeline && meta.timeline.kind === 'week';
   const side = CONFIG.PANEL_SIDE || (HUD_OVERRIDE === 'left' || HUD_OVERRIDE === 'right' ? HUD_OVERRIDE : '')
@@ -2994,8 +3004,9 @@ function buildShortsLayout() {
       }
     }
   }
-  L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX, y: titleY + at(k * ZONES.subtitleGap),
-    dy: at(k * ZONES.subtitleDy) };
+  const kSub = kOf(s0, 36);
+  L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX,
+    y: titleY + at(Math.max(kOf(t0, CONFIG.TITLE_SIZE), kSub) * ZONES.subtitleGap), dy: at(kSub * ZONES.subtitleDy) };
   // The title scrim reaches as far under a second subtitle line as under the
   // first, and holds full strength down to the last line's descenders: at
   // half strength the rush's second line over dense trails reads at 2.2:1.
@@ -3037,19 +3048,24 @@ function buildShortsLayout() {
     L.credit = wrapText(credit, L.creditFont, L.textW, 99, 'greedy') || [credit];
   }
 
-  // The rows, from SAFE.y1 up (ZONES.gap).
+  // The rows, from SAFE.y1 up (ZONES.gap), each gap at the larger factor of
+  // the rows on its two sides.
   const G = ZONES.gap, y1 = SAFE.y1;
   const nc = L.credit.length;
-  L.creditY = L.credit.map((_, i) => at(y1 - k * (G.credit + (nc - 1 - i) * G.creditLine)));
+  const kCredit = kOf(L.creditSize, 22);
+  L.creditY = L.credit.map((_, i) => at(y1 - kCredit * (G.credit + (nc - 1 - i) * G.creditLine)));
   L.labels = CONFIG.SPARK_LABELS;
-  L.axisY = L.labels ? at(L.creditY[0] - k * G.axis) : null;
-  const sparkY1 = L.labels ? L.axisY - k * G.sparkOverAxis : L.creditY[0] - k * G.sparkOverCredit;
+  L.axisSize = hudPx(26, 'axis');
+  const kAxis = kOf(L.axisSize, 26);
+  L.axisY = L.labels ? at(L.creditY[0] - Math.max(kAxis, kCredit) * G.axis) : null;
+  const sparkY1 = L.labels ? L.axisY - kAxis * G.sparkOverAxis : L.creditY[0] - kCredit * G.sparkOverCredit;
   L.spark = { x0: L.textX, x1: L.rightX, y0: at(sparkY1 - k * G.spark), y1: at(sparkY1) };
   // Chips: groups (else modes) with their means; fitted at each one's maximum
   // over the window, at the scale 1 sizes the colours were decided at, and
   // drawn scaled, which can only be narrower.
   L.chips = null;
-  let countY = L.spark.y0 - k * G.countOverSpark;
+  const kCount = kOf(L.count.size, 40);
+  let countY = L.spark.y0 - kCount * G.countOverSpark;
   if (CONFIG.MODE_CHIPS) {
     const C = CONFIG.COLORS;
     let parts;
@@ -3065,36 +3081,39 @@ function buildShortsLayout() {
     const { list, size, gap, merged, tried } = fitChips(parts, F, L.textW);
     if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
     const px = hudPx(size, 'chips');
-    // Never bolder than the 500 the line was fitted at.
+    // Never bolder than the 500 the line was fitted at. Its dots and gaps
+    // scale with its text, which is never larger than the fit's, so the
+    // line still fits.
     const weight = Math.min(500, wt.body);
-    L.chips = { parts: list, fit: { size, gap }, size: px, gap: gap * k, dot: 26 * k, r: 9 * k, weight,
-      font: `${weight} ${px}px ${F.tnum}`, y: at(L.spark.y0 - k * G.chips), merged, tried };
-    countY = L.chips.y - k * G.countOverChips;
+    const kc = kOf(px, size);
+    L.chips = { parts: list, fit: { size, gap }, size: px, gap: gap * kc, dot: 26 * kc, r: 9 * kc, weight,
+      font: `${weight} ${px}px ${F.tnum}`, y: at(L.spark.y0 - kc * G.chips), merged, tried };
+    countY = L.chips.y - Math.max(kc, kCount) * G.countOverChips;
   }
   // A split count line lifts every row above it by one.
-  const up = L.split ? k * G.split : 0;
+  const up = L.split ? kCount * G.split : 0;
   L.count2Y = at(countY);
   L.countY = at(countY - up);
-  L.clockY = at(countY - up - k * (week ? G.clockWeek : G.clock));
+  const clockBase = week ? 40 : 88;
+  const cpx = hudPx(clockBase, 'clock');
+  L.clock = { size: cpx, font: week ? `${wt.body} ${cpx}px ${F.tnum}` : `${wt.clock} ${cpx}px ${F.tnum}` };
+  const kClock = kOf(cpx, clockBase);
+  L.clockY = at(countY - up - Math.max(kCount, kClock) * (week ? G.clockWeek : G.clock));
   if (week) {
-    const px = hudPx(40, 'clock');
-    L.clock = { size: px, font: `${wt.body} ${px}px ${F.tnum}` };
     const wf = (s) => `${wt.clock} ${s}px ${F.mont}`;
     const w1 = hudPx(64, 'weekday');
     const ws = sizesDown(hudPx(80, 'weekday'), w1, 2).find((s) => textWidth('WEDNESDAY', wf(s)) <= L.textW) || w1;
-    L.weekday = { size: ws, font: wf(ws), y: at(L.clockY - k * G.weekday) };
-  } else {
-    const px = hudPx(88, 'clock');
-    L.clock = { size: px, font: `${wt.clock} ${px}px ${F.tnum}` };
+    L.weekday = { size: ws, font: wf(ws), y: at(L.clockY - Math.max(kClock, kOf(ws, 80)) * G.weekday) };
   }
   // 28 px over the first row's cap top, as the text is 28 px in from the sides.
   const top = week ? L.weekday.y - 0.72 * L.weekday.size : L.clockY - 0.72 * L.clock.size;
   L.panel = { x0: px0, x1: px0 + SHORTS_PANEL_W, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : Math.floor(top) - SHORTS_PAD, y1 };
 
-  L.axisSize = hudPx(26, 'axis');
   L.axisFont = `${wt.small} ${L.axisSize}px ${F.mont}`;
   L.axisBold = `${Math.min(900, wt.small + 300)} ${L.axisSize}px ${F.mont}`;
   L.peakSize = hudPx(26, 'peak');
+  // The label's offsets from its dot and the box follow its own size.
+  L.kPeak = kOf(L.peakSize, 26);
   L.peakFont = `${wt.body} ${L.peakSize}px ${F.tnum}`;
   // Constant over the video, so measured once rather than on every frame after the peak.
   const peakLabel = `peak ${withCommas(variantV.peak ? variantV.peak.count : 0)}`;
@@ -3791,10 +3810,11 @@ function drawSparkShorts(T, a, text) {
         ctx.fill();
       }
       const { label, w } = L.peakLabel;
-      const right = px + 11 * k + w <= L.rightX;
+      const kp = L.kPeak;
+      const right = px + 11 * kp + w <= L.rightX;
       // On the curve, but never above the box's upper part or below its floor.
-      const by = Math.min(sp.y1, Math.max(sp.y0 + 19 * k, py + 9 * k));
-      const lx = right ? px + 11 * k : px - 11 * k;
+      const by = Math.min(sp.y1, Math.max(sp.y0 + 19 * kp, py + 9 * kp));
+      const lx = right ? px + 11 * kp : px - 11 * kp;
       if (text && a > 0) {
         // The label sits on the curve it names, in the same accent; an outline
         // in the panel colour keeps the two apart.
@@ -3802,7 +3822,7 @@ function drawSparkShorts(T, a, text) {
         ctx.font = L.peakFont;
         ctx.textAlign = right ? 'left' : 'right';
         ctx.lineJoin = 'round';
-        ctx.lineWidth = 6 * k;
+        ctx.lineWidth = 6 * kp;
         ctx.strokeStyle = shortsStatics.panelOpaque;
         ctx.strokeText(label, lx, by);
       }

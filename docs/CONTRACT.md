@@ -1242,8 +1242,12 @@ sparkline labels, and smaller, lighter text. What stays: the title, one subtitle
 label, which says the data is an average October weekday or week), the clock, the count line, the
 sparkline and the credit. Every size below is the scale 1 size times k = `TEXT_SCALE` (0.85 in the
 preset), to a tenth of a pixel, and never under its `MIN_SIZE` floor (the asserts' list below);
-every fit runs between its scale 1 sizes times k; every gap between rows is the scale 1 gap times k,
-rounded to the pixel. Numbers in brackets are the preset's.
+every fit runs between its scale 1 sizes times k; every gap between rows is the scale 1 gap times
+the larger factor of the two rows it parts, rounded to the pixel. A row's factor is k, or, when its
+size is held at its floor, that size over its scale 1 size (the credit's 18 px over 22), so a gap
+never shrinks past the text beside it; the chips' dots and gaps and the peak label's offsets take
+their own text's factor. In the preset no row is at its floor, every factor is k and the "k" below
+is exact. Numbers in brackets are the preset's.
 
 | element | font | colour | x | baseline y | fit |
 |---|---|---|---|---|---|
@@ -1310,8 +1314,10 @@ rounded to the pixel. Numbers in brackets are the preset's.
   phone, so 1 pt is about 2.8 px: the 18 px credit is 6.4 pt, the 26 px subtitle 9.3 pt.
   `TEXT_SCALE` runs 0.6 to 1 (outside, a warning and the nearest end): over 1 the chips fitted at
   scale 1 could overflow; going down, the credit reaches its floor under 0.82, the subtitle under
-  0.73, the count line under 0.7 and the title under 0.69. Weights run 100 to 900 (the faces are
-  variable).
+  0.73, the count line under 0.7 and the title under 0.69, and at 0.6 every size but the day's
+  clock is at its floor. The gaps next to a floored row stop with it, so no two rows overlap
+  anywhere in the range (`tests/web/v4_hud.mjs` checks every pair of boxes, at 0.6 too). Weights
+  run 100 to 900 (the faces are variable).
 * `?safe=1`: translucent `rgba(255,0,0,0.18)` boxes over everything outside `SAFE` (y 0..290,
   y 1440..1920, x 0..120 and x 800..1080 between), the button column x 811..972 filled once more and
   outlined, each tall phone's crop (x 97 and 983 for 19.5:9, x 108 and 972 for 20:9) dashed in

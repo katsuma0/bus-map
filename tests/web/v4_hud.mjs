@@ -7,8 +7,9 @@
 //
 //  B-5  every hudBoxes() box inside the tall-phone safe zone x 120..800,
 //       y 290..1440 (busmap.safe) and at or above its minimum size, on every
-//       stillTimes() still and on frames 0 and 15 (the card with ?card=1), and
-//       no console.error from the page's own layout asserts
+//       stillTimes() still and on frames 0 and 15 (the card with ?card=1), no
+//       two rows' boxes overlapping, and no console.error from the page's own
+//       layout asserts
 //  B-6  at V.peak.time the count line equals V.peak.count (and B9: its noun
 //       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
@@ -23,6 +24,10 @@
 // the sparkline's labels, so each network also runs with all four on (FULL):
 // the card and the chips checks run there, and every box of it must still
 // fit the safe zone at TEXT_SCALE 0.85.
+//
+// The fixture, a two-line credit and the long names also run at the low end
+// of TEXT_SCALE (0.6), where most sizes sit at their floors: the gaps between
+// rows must stop shrinking with them.
 //
 // Credit copies of the fixture carry the credits of the GTA batch with the
 // author (B9): each still shows the credit on one line when it fits the
@@ -200,6 +205,20 @@ function checkBoxes(tag, where, boxes) {
   }
 }
 
+// Two rows never share pixels: every box drawn at all against every box of
+// another row (the axis labels and a chips line's parts are one row each).
+function checkOverlap(tag, where, boxes) {
+  const shown = boxes.filter((b) => b.alpha > 0);
+  for (let i = 0; i < shown.length; i++) {
+    for (let j = i + 1; j < shown.length; j++) {
+      const a = shown[i], b = shown[j];
+      if (a.name === b.name) continue;
+      ok(!(a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1),
+        `${tag} ${where}: ${a.name} "${a.text}" y ${a.y0.toFixed(1)}..${a.y1.toFixed(1)} overlaps ${b.name} "${b.text}" y ${b.y0.toFixed(1)}..${b.y1.toFixed(1)}`);
+    }
+  }
+}
+
 async function run(h, name, query, variant) {
   const tag = `${name} ${variant}`;
   const page = await h.open(`${query}&variant=${variant}`, { allowErrors: true });
@@ -210,8 +229,14 @@ async function run(h, name, query, variant) {
   }
   const r = await page.evaluate(inPage);
   ok(JSON.stringify(r.safe) === JSON.stringify(SAFE), `${tag}: busmap.safe ${JSON.stringify(r.safe)}`);
-  for (const [k, boxes] of Object.entries(r.stills)) checkBoxes(tag, `still ${k}`, boxes);
-  for (const [i, boxes] of Object.entries(r.frames)) checkBoxes(tag, `frame ${i}`, boxes);
+  for (const [k, boxes] of Object.entries(r.stills)) {
+    checkBoxes(tag, `still ${k}`, boxes);
+    checkOverlap(tag, `still ${k}`, boxes);
+  }
+  for (const [i, boxes] of Object.entries(r.frames)) {
+    checkBoxes(tag, `frame ${i}`, boxes);
+    checkOverlap(tag, `frame ${i}`, boxes);
+  }
   for (const pair of [['card_line0', 'card_line0b'], ['card_line1', 'card_line1b']]) {
     const lines = r.frames[0].filter((b) => pair.includes(b.name)).map((b) => b.text);
     if (query.includes('card=1')) ok(r.frames[0].some((b) => b.name === 'card_title'), `${tag}: no card on frame 0 with card=1`);
@@ -309,11 +334,16 @@ const CREDITS = [['markham', 'Data: YRT, TTC, GO', false], ['brampton', 'Data: B
 const LONG_NAMES = ['Mississauga', 'Richmond Hill', 'Philadelphia', 'San Antonio', 'San Francisco'];
 const h = await openBrowser();
 try {
-  for (const extra of ['', `&${FULL}`]) {
-    const tag = extra ? 'v4_tiny full' : 'v4_tiny';
+  for (const extra of ['', `&${FULL}`, '&textscale=0.6', `&textscale=0.6&${FULL}`]) {
+    const tag = `v4_tiny${extra.includes('card') ? ' full' : ''}${extra.includes('textscale') ? ' 0.6' : ''}`;
     await run(h, tag, `${TINY}${extra}`, 'day');
     await run(h, tag, `${TINY}${extra}`, 'rush');
     await run(h, tag, `${TINY_WEEK}${extra}`, 'week');
+  }
+  for (const side of ['left', 'right']) {
+    const q = `${credited(TINY, `Data: YRT, TTC, GO · ${MADE_BY}`, 'markham')}&panelside=${side}&textscale=0.6`;
+    await run(h, `credit markham ${side} 0.6`, q, 'day');
+    await run(h, `credit markham ${side} 0.6 full`, `${q}&${FULL}`, 'rush');
   }
   for (const [name, data, oneLine] of CREDITS) {
     for (const side of ['left', 'right']) {
@@ -334,10 +364,11 @@ try {
     }
   }
   for (const place of LONG_NAMES) {
-    for (const extra of ['', `&${FULL}`]) {
-      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY, place)}${extra}`, 'day');
-      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY, place)}${extra}`, 'rush');
-      await run(h, `${place}${extra ? ' full' : ''}`, `${renamed(TINY_WEEK, place)}${extra}`, 'week');
+    for (const extra of ['', `&${FULL}`, `&textscale=0.6&${FULL}`]) {
+      const tag = `${place}${extra.includes('card') ? ' full' : ''}${extra.includes('textscale') ? ' 0.6' : ''}`;
+      await run(h, tag, `${renamed(TINY, place)}${extra}`, 'day');
+      await run(h, tag, `${renamed(TINY, place)}${extra}`, 'rush');
+      await run(h, tag, `${renamed(TINY_WEEK, place)}${extra}`, 'week');
     }
   }
   if (!args.includes('--no-gta')) {
