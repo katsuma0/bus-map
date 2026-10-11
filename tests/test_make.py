@@ -1864,6 +1864,32 @@ class Actions(Scratch):
         self.assertIn(f"pushed {ov['data_tag']}", res.stdout)
         self.assertEqual(git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip(), plain)
 
+    def test_data_date_from_the_lock(self):
+        """A licence that asks for the data date fails make.py meta until the lock gives one, then the
+        description carries it after the feed's credit."""
+        lic = self.repo.read_json("cities/licences.json")
+        lic["licences"]["cc-by-4.0"]["data_date"] = True
+        self.repo.write_json("cities/licences.json", lic)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("metadata checks failed", res.stderr)
+        self.assertIn("tsukubus: licence cc-by-4.0 asks for the date the data was last updated", res.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.repo.root, "out/shorts/test/test-centre-day.meta.json")))
+        b = self.repo.read_json("cities/batches/test.json")
+        for f, ds in zip(b["areas"][0]["feeds"], ("mdb-2854-202610040138", "tld-217-202609160157")):
+            z = os.path.join(self.tmp, "mirror", ds, f"{ds}.zip")
+            os.makedirs(os.path.dirname(z))
+            with open(z, "wb") as fh:
+                fh.write(feed_zip(f["id"]))
+            f["source"] = {"url": "file://" + z, "sha256": make.sha256_file(z)}
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        self.repo.run("meta", "test", "--only", "test-centre-day")
+        m = load(os.path.join(self.repo.root, "out/shorts/test/test-centre-day.meta.json"))
+        self.assertIn("Tsukubus timetables as of 4 October 2026.", m["credits"])
+        self.assertIn("Tsukubane timetables as of 16 September 2026.", m["credits"])
+        self.assertIn("CC BY 4.0.\nTsukubus timetables as of 4 October 2026.\n", m["description"])
+
     def test_netmeta_records_what_the_video_draws(self):
         pl = make.Pipeline(self.repo.root)
         batch = pl.load_batch("test")
@@ -1900,7 +1926,7 @@ class Actions(Scratch):
 
 
 class Draws(unittest.TestCase):
-    """What a video draws in its window (window_draws)."""
+    """What a video draws in its window (window_draws) and the data dates of a lock (lock_data_dates)."""
 
     @staticmethod
     def network(kind, trips):
@@ -1928,6 +1954,17 @@ class Draws(unittest.TestCase):
         self.assertEqual(make.window_draws(net, *tuesday), ({"metra": 1, "cta": 1}, {"other": {"rail": 1, "bus": 1}}))
         self.assertEqual(make.window_draws(net, 28800, 28800 + 604800)[0], {"cta": 2, "metra": 1})
         self.assertIsNone(make.window_draws(dict(net, trips=[]), 0, 86400))
+
+    def test_lock_data_dates(self):
+        base = "https://storage.googleapis.com/mobilitydata-datasets-prod"
+        lock = {"areas": {"chicago": {"feeds": {
+            "metra": {"source": "url", "url": f"{base}/mdb-2854/mdb-2854-202610040138/mdb-2854-202610040138.zip"},
+            "via": {"source": "url", "url": f"{base}/tld-217/tld-217-202610100110/tld-217-202610100110.zip"},
+            "cta": {"source": "tag", "tag": "feeds/x", "path": "gtfs/cta.zip"},
+            "odd": {"source": "url", "url": "https://example.org/feeds/mdb-2854-latest.zip"},
+            "bad": {"source": "url", "url": f"{base}/mdb-1/mdb-1-202613400000/mdb-1-202613400000.zip"}}}}}
+        self.assertEqual(make.lock_data_dates(lock, "chicago"), {"metra": "2026-10-04", "via": "2026-10-10"})
+        self.assertEqual(make.lock_data_dates(lock, "nyc"), {})
 
 
 if __name__ == "__main__":

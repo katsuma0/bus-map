@@ -725,7 +725,11 @@ commercial use").
 
 Each `ogl-*` statement follows the Toronto one with its own licence name ("..." above). An unknown `licence_id` is a validation
 error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; `check` goes into
-`flags`, the CSV's `licence_flags` and the release notes.
+`flags`, the CSV's `licence_flags` and the release notes. A licence with `"data_date": true` (Metra's,
+whose terms ask for the date the data was last updated) puts `sentences.data_date`, "Metra timetables
+as of 4 October 2026.", after the credit of each of its feeds a video draws; the date is the MDB
+dataset stamp of the feed's URL in the lock (`.../mdb-<id>-<YYYYMMDDHHMM>.zip`, `tld-` for a
+Transitland copy), and a feed locked from a tag, a path or any other URL fails `make.py meta`.
 
 `cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
 filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
@@ -1072,7 +1076,7 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 "modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
 window, over the recipe's modes), "groups", "color_by" (the meta's, `"group"` for colour groups), "credit", "seconds",
 "build_key"}`. The sidecar's `query` holds `paint=` as it holds `brandhex=`. `make.py meta` needs only this, the
-batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
+batch, the recipe, the lock and the templates, so metadata can be rebuilt without the network or a re-render.
 The netmeta also carries `netmeta_version` (2) and, from the network's trips, `window_trips` on each
 feed and colour group (the trips the video draws in its window by the page's rule, B7, inside the
 boundary or faded outside) and `window_modes` on each group (those trips by mode). A video's

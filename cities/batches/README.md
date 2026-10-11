@@ -166,7 +166,10 @@ Licences are matched on `licence_id` only. `commercial: no` stops `plan` and
 `meta` unless the feed has `allow_nc`; `check` is printed in the release notes and
 the CSV's `licence_flags`. A video's credits and licence flags cover the feeds it
 draws, inside the boundary or faded outside, so a split city's buses leave out its
-trains' feeds.
+trains' feeds. A licence with `"data_date": true` (Metra's) adds `Metra timetables
+as of 4 October 2026.` after the feed's credit, from the MDB dataset stamp of the
+feed's URL in the lock (`mdb-<id>-<YYYYMMDDHHMM>.zip`); such a feed locked from a
+tag, a path or another URL fails `make.py meta`.
 
 ## Lock: `cities/locks/<batch>.lock.json`
 

@@ -254,7 +254,21 @@ def licence_flags(entries, names):
     return out
 
 
-def credit_lines(netmeta, licences, templates):
+def data_date_line(feed, data_dates, templates):
+    """{feed} timetables as of 4 October 2026: the date a licence asks the credit to give (Metra's)."""
+    iso = (data_dates or {}).get(feed["id"])
+    if not iso:
+        raise MetaError(f"{feed['id']}: licence {feed.get('licence_id')} asks for the date the data was last "
+                        f"updated, and the lock gives none for it; lock the feed from an MDB dataset URL "
+                        f"(.../mdb-<id>-<YYYYMMDDHHMM>.zip), whose stamp is that date")
+    d = iso_date(iso)
+    return fmt(templates["sentences"]["data_date"], {"feed": clean(feed.get("name") or feed["id"]), "day": d.day,
+                                                     "month": MONTHS[d.month - 1], "year": d.year}, "data_date")
+
+
+def credit_lines(netmeta, licences, templates, data_dates=None):
+    """One line per feed the video draws, and after it the data date when its licence asks for one.
+    `data_dates` maps feed ids to the ISO date make.py reads from the lock."""
     lines = []
     s = templates["sentences"]
     for f in drawn_feeds(netmeta):
@@ -269,6 +283,8 @@ def credit_lines(netmeta, licences, templates):
         if lic.get("statement"):
             line += " " + clean(lic["statement"])
         lines.append(line)
+        if lic.get("data_date"):
+            lines.append(data_date_line(f, data_dates, templates))
     return lines
 
 
@@ -322,7 +338,9 @@ def check_text(field, text, banned):
 # ------------------------------------------------------------------ one video
 
 def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish_order, meta_key, sidecar=None,
-               allow_nc=False):
+               allow_nc=False, data_dates=None):
+    """One video's metadata. `data_dates` maps feed ids to the ISO date of their locked data, for a licence
+    that asks the description to give it (make.py lock_data_dates)."""
     variant = netmeta["variant"]
     stem = f"{recipe['id']}-{variant}"
     place = clean(recipe["place"])
@@ -339,7 +357,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         for f in netmeta.get("feeds", []):
             if f.get("month_used") and month_name(f["month_used"]) == mlabel:
                 year = f["month_used"][:4]
-    credits = credit_lines(netmeta, licences, templates)
+    credits = credit_lines(netmeta, licences, templates, data_dates)
     values = {
         "place": place, "modes_singular": singular, "modes_plural": plural,
         "peak_time": clock_text(peak["time"]), "peak_count": with_commas(round(peak["count"])),

@@ -425,6 +425,9 @@ LOCK_KEYS = {"batch", "locked_at", "areas", "boundaries", "tools"}
 LOCK_AREA_KEYS = {"feeds", "overture", "divisions", "dates", "rules"}
 LOCK_FEED_KEYS = {"source", "tag", "commit", "path", "url", "secret", "sha256", "bytes", "feed_version", "valid", "inputs"}
 LOCK_OVERTURE_KEYS = {"release", "bbox", "data_tag", "files"}
+# A MobilityData dataset file, .../mdb-2854-202610040138/mdb-2854-202610040138.zip: feed 2854, stamped
+# 2026-10-04 01:38 UTC. tld- marks MobilityData's copy of a Transitland feed.
+MDB_DATASET_RE = re.compile(r"/(?:mdb|tld)-\d+-(\d{4})(\d{2})(\d{2})\d{4}\.zip$")
 LOCK_DIVISIONS_KEYS = {"key", "sha256", "bbox"}
 LOCK_BOUNDARY_KEYS = {"id", "division_id", "name", "subtype", "area_km2", "frame", "clip", "file", "sha256", "parts",
                       "week_eligible", "week_why"}
@@ -1027,6 +1030,23 @@ def modes_in_window(modes, by_mode, start, end):
     return out
 
 
+def lock_data_dates(lock, area_id):
+    """Feed id to the ISO date its locked data was last updated, for the feeds whose lock URL is a
+    MobilityData dataset (mdb-<id>-<YYYYMMDDHHMM>.zip, or tld- for a Transitland mirror): that stamp is
+    when the catalogue saw the data change. A feed from a tag, a path or another URL has no entry, so
+    a licence that asks for the date (licences.json data_date) fails make.py meta rather than guess."""
+    out = {}
+    for fid, e in sorted(((lock or {}).get("areas", {}).get(area_id, {}).get("feeds") or {}).items()):
+        m = MDB_DATASET_RE.search((e.get("url") or "").split("?", 1)[0])
+        if not m:
+            continue
+        try:
+            out[fid] = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3))).isoformat()
+        except ValueError:
+            continue
+    return out
+
+
 def window_draws(network, start, end):
     """What a variant draws in its window [start, end): trips per feed, and per colour group and mode.
 
@@ -1605,11 +1625,13 @@ class Pipeline:
 
     def meta_key(self, batch, recipe, variant, lock, render_key=None):
         rk = render_key or self.render_key(batch, recipe, variant, lock)
+        # The data dates come from the lock's URLs, which the render key does not hold (it has their sha256).
         return sha256_json({"render_key": rk, "templates": self.templates(), "licences": self.licences(),
                             "shorts_meta": self.sha("scripts/shorts_meta.py"),
                             "hashtags": batch.get("hashtags", []), "category": batch.get("category"),
                             "cities": batch["cities"],
-                            "publish_order": self.publish_order(batch, recipe["id"], variant, lock)})
+                            "publish_order": self.publish_order(batch, recipe["id"], variant, lock),
+                            "data_dates": lock_data_dates(lock, self.area_of(batch, recipe)["id"])})
 
     def csv_key(self, meta_keys):
         return sha256_json(sorted(meta_keys))
@@ -2893,7 +2915,8 @@ class Pipeline:
         return shorts_meta.build_meta(
             batch=batch, recipe=recipe, netmeta=netmeta, templates=self.templates(), licences=self.licences(),
             defaults=self.defaults(), publish_order=self.publish_order(batch, rid, variant, lock),
-            meta_key=self.meta_key(batch, recipe, variant, lock, rk), sidecar=sidecar, allow_nc=allow_nc)
+            meta_key=self.meta_key(batch, recipe, variant, lock, rk), sidecar=sidecar, allow_nc=allow_nc,
+            data_dates=lock_data_dates(lock, self.area_of(batch, recipe)["id"]))
 
     def cmd_meta(self, name, only=None, from_netmeta=None, no_upstream=False, allow_nc=False, review_dir=None,
                  out_dir=None):
