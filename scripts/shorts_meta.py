@@ -112,10 +112,10 @@ def inside_feeds(netmeta):
 
 
 def drawn_feeds(netmeta):
-    """Feeds whose trips the video draws in its window, for the credits and the licence flags: a
-    neighbour's buses faded outside the boundary are its data too. Those with vehicles inside come
-    first, busiest first, then the rest by trips drawn. A netmeta without window_trips (written
-    before make.py recorded them) has only the inside counts to go on."""
+    """Feeds whose trips the video draws on screen in its window, for the credits and the licence flags:
+    a neighbour's buses on screen, faded outside the boundary, are its data too. Those with vehicles
+    inside come first, busiest first, then the rest by trips drawn. A netmeta without window_trips
+    (written before make.py recorded them) has only the inside counts to go on."""
     feeds = netmeta.get("feeds", [])
     if not any("window_trips" in f for f in feeds):
         return inside_feeds(netmeta)

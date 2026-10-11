@@ -74,7 +74,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 DERIVE_VERSION = 2
 KY = 110.574
 FPS = 30
-# 2: feeds and colour groups carry window_trips (what the video draws), make.py meta's credits and flags.
+# 2: feeds and colour groups carry window_trips (what the video draws on screen), make.py meta's credits and flags.
 NETMETA_VERSION = 2
 WIDTH, HEIGHT = 1080, 1920
 
@@ -326,6 +326,40 @@ def frame_box(frame, zoom=1.0, dx=0.0, dy=0.0):
     return [cx - kv * 9 / 32, cy - kv / 2, cx + kv * 9 / 32, cy + kv / 2]
 
 
+def segment_meets_box(ax, ay, bx, by, box):
+    """Liang-Barsky: whether the segment from (ax, ay) to (bx, by) has a point in `box`."""
+    t0, t1 = 0.0, 1.0
+    dx, dy = bx - ax, by - ay
+    for p, q in ((-dx, ax - box[0]), (dx, box[2] - ax), (-dy, ay - box[1]), (dy, box[3] - ay)):
+        if p == 0:
+            if q < 0:
+                return False
+            continue
+        t = q / p
+        if p < 0:
+            t0 = max(t0, t)
+        else:
+            t1 = min(t1, t)
+        if t0 > t1:
+            return False
+    return True
+
+
+def polyline_meets_box(xy, box):
+    """Whether a flat [x, y, x, y, ...] polyline enters `box`. Segments count, not just points: a rail
+    shape's points can sit kilometres apart, either side of a frame corner the line cuts."""
+    x0, y0, x1, y1 = box
+    xs, ys = xy[0::2], xy[1::2]
+    if not xs or max(xs) < x0 or min(xs) > x1 or max(ys) < y0 or min(ys) > y1:
+        return False
+    for i, (x, y) in enumerate(zip(xs, ys)):
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            return True
+        if i and segment_meets_box(xs[i - 1], ys[i - 1], x, y, box):
+            return True
+    return False
+
+
 def r6(v):
     return round(float(v), 6)
 
@@ -375,6 +409,11 @@ VARIETY_KEYS = {"panel_side", "card_line", "zoom", "camera"}
 # The camera paths of the page (B18), in the order camera_path() picks from:
 # web/app.js CAMERA_NAMES lists the same names in the same order.
 CAMERA_PATHS = ("pull-out-east", "pull-out-north", "pull-out-west", "pull-out-south", "drift-orbit", "drift-sway")
+# web/app.js CONFIG.CAMERA_DRIFT and CAMERA_AMP before a preset or a query sets them. No path takes the
+# view past the fitted frame by more than one drift, CAMERA_DRIFT x CAMERA_AMP of the frame width (a
+# pull-out travels one drift, a drift half of its 1.5 share), and the push-in only narrows the view, so
+# view_box() grows the frame by that much; tests/web/v4_camera.mjs holds the page to it.
+CAMERA_DRIFT, CAMERA_AMP = 0.03, 1
 OVERRIDE_KEYS = {"render", "variant_render", "brand_colors", "_why"}
 # A recipe's colour groups (2.16): what its trails, dots, legend and description colour by.
 COLORS_KEYS = {"scheme", "legend", "groups"}
@@ -1047,13 +1086,16 @@ def lock_data_dates(lock, area_id):
     return out
 
 
-def window_draws(network, start, end):
+def window_draws(network, start, end, box=None):
     """What a variant draws in its window [start, end): trips per feed, and per colour group and mode.
 
     The page's rule for the trips it draws (buildOccurrences, B7): every trip repeats with the
     network's period and a week trip runs on each day of its "w" mask, so a 1 am trip of the day
-    network is drawn near the end of a window that starts at the morning peak. A trip outside the
-    boundary counts: its vehicles are on the map, faded, and its feed's data is in the video.
+    network is drawn near the end of a window that starts at the morning peak. With `box`, the
+    map area the video can show in km (Pipeline.view_box), a trip counts only when its shape enters
+    it: the trim keeps every trip that touches a box a quarter larger than the frame, and a
+    neighbour's buses in that margin never come on screen. A trip outside the boundary but on screen
+    counts: its vehicles are on the map, faded, and its feed's data is in the video.
     None for a network without trips (the tests' stub trim), which says nothing either way."""
     trips = network.get("trips") or []
     if not trips:
@@ -1062,6 +1104,8 @@ def window_draws(network, start, end):
     period = tl.get("period") or 86400
     week = tl.get("kind") == "week"
     routes = network.get("routes") or []
+    shapes = network.get("shapes") or []
+    in_view = {}
     by_feed, by_group = {}, {}
     for trip in trips:
         t0, t1 = trip["t"][0], trip["t"][-1]
@@ -1071,6 +1115,12 @@ def window_draws(network, start, end):
         if not any(w >> k & 1 and t1 + 86400 * k + j * period >= start and t0 + 86400 * k + j * period <= end
                    for k in range(7) for j in (-1, 0, 1, 2)):
             continue
+        if box is not None:
+            s = trip["s"]
+            if s not in in_view:
+                in_view[s] = polyline_meets_box(shapes[s]["xy"], box)
+            if not in_view[s]:
+                continue
         r = routes[trip["r"]]
         by_feed[r["feed"]] = by_feed.get(r["feed"], 0) + 1
         gm = by_group.setdefault(r.get("group") or "other", {})
@@ -2542,12 +2592,41 @@ class Pipeline:
         frames = int(r.get("HOLD_START", 0)) + int(r.get("DURATION_FRAMES", 0)) + int(r.get("HOLD_END", 0))
         return rj, bh, r, frames
 
+    def page_render(self, recipe, variant, meta):
+        """The render keys the page sets for one video, in its own precedence (2.10): the preset, the
+        network's and the variant's render blocks, then the recipe's render query. A key none of them
+        names keeps the page's CONFIG default."""
+        r = {}
+        preset = meta.get("preset") or ""
+        p = self.path("web", "presets", f"{preset}.json")
+        if re.match(r"^[A-Za-z0-9_-]+$", preset) and os.path.exists(p):
+            r.update(read_json(p).get("render") or {})
+        r.update(meta.get("render") or {})
+        r.update(self.effective_render(recipe, variant, meta)[2])
+        return r
+
+    def view_box(self, recipe, variant, meta):
+        """The map a video can show, in km about the origin, or None for a network without a frame: the
+        variant's frame (the rush close-up has its own) after FRAME_ZOOM and the km shifts, as the page's
+        finishFrame() applies them, grown on every side by the camera's reach when the camera is on."""
+        fr = meta["variants"][variant].get("frame") or meta.get("frame")
+        if not fr:
+            return None
+        r = self.page_render(recipe, variant, meta)
+        box = frame_box(fr, r.get("FRAME_ZOOM", 1), r.get("FRAME_DX_KM", 0), r.get("FRAME_DY_KM", 0))
+        if r.get("CAMERA"):
+            # The page clamps both knobs to their ranges (cameraNum); an unclamped value can only widen this.
+            reach = max(0.0, r.get("CAMERA_DRIFT", CAMERA_DRIFT)) * max(0.0, r.get("CAMERA_AMP", CAMERA_AMP))
+            box = grow_km(box, reach * WIDTH * (box[3] - box[1]) / HEIGHT)
+        return box
+
     def netmeta(self, batch, recipe, variant, meta, build_key, draws=None):
         """2.13 network metadata: all that make.py meta needs, so metadata can be rebuilt without the network.
 
         `draws` is window_draws() of the network: with it each feed and colour group carries the trips
-        the video draws in its window (window_trips, and window_modes per group); without it, or for a
-        network with no trips, neither key is written and make.py meta falls back to the inside counts."""
+        the video draws on screen in its window (window_trips, and window_modes per group); without it,
+        or for a network with no trips, neither key is written and make.py meta falls back to the inside
+        counts."""
         V = meta["variants"][variant]
         _rj, _bh, _r, frames = self.effective_render(recipe, variant, meta)
         seconds = frames / FPS
@@ -2587,11 +2666,11 @@ class Pipeline:
         if variant not in meta.get("variants", {}):
             raise MakeError(f"{self.rel(net)} has no variant {variant}")
         man = self.read_manifest(recipe["id"])
-        # The whole network, not just its meta: what the video draws is in its trips. Read once per
-        # video, a second or two for the largest GTA city.
+        # The whole network, not just its meta: what the video draws is in its trips and their shapes.
+        # Read once per video, a few seconds for the largest GTA city.
         with gzip.open(net, "rt", encoding="utf-8") as fh:
             V = meta["variants"][variant]
-            draws = window_draws(json.load(fh), V["start"], V["end"])
+            draws = window_draws(json.load(fh), V["start"], V["end"], box=self.view_box(recipe, variant, meta))
         nm = self.netmeta(batch, recipe, variant, meta, (man or {}).get("keys", {}).get(f"trim-{TIMELINE_OF[variant]}")
                           or meta.get("build_key"), draws=draws)
         p = os.path.join(out_dir or self.out_dir(batch), f"{stem_of(recipe['id'], variant)}.netmeta.json")
@@ -2720,14 +2799,7 @@ class Pipeline:
     def card_on(self, recipe, variant, meta):
         """Whether the video opens on the card (B10): CARD in the page's preset, then the network's and the
         variant's render blocks and the recipe's render query, the page's own precedence (2.10)."""
-        r = {}
-        preset = meta.get("preset") or ""
-        p = self.path("web", "presets", f"{preset}.json")
-        if re.match(r"^[A-Za-z0-9_-]+$", preset) and os.path.exists(p):
-            r.update(read_json(p).get("render") or {})
-        r.update(meta.get("render") or {})
-        r.update(self.effective_render(recipe, variant, meta)[2])
-        return bool(r.get("CARD", False))
+        return bool(self.page_render(recipe, variant, meta).get("CARD", False))
 
     @staticmethod
     def still_names(stem, t, week):

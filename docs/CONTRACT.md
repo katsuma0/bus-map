@@ -1077,16 +1077,19 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 window, over the recipe's modes), "groups", "color_by" (the meta's, `"group"` for colour groups), "credit", "seconds",
 "build_key"}`. The sidecar's `query` holds `paint=` as it holds `brandhex=`. `make.py meta` needs only this, the
 batch, the recipe, the lock and the templates, so metadata can be rebuilt without the network or a re-render.
-The netmeta also carries `netmeta_version` (2) and, from the network's trips, `window_trips` on each
-feed and colour group (the trips the video draws in its window by the page's rule, B7, inside the
-boundary or faded outside) and `window_modes` on each group (those trips by mode). A video's
-credits, licence flags and licence checks cover the feeds with `window_trips`, those with vehicles
-inside first, so a split city's buses leave out its trains' feeds and a neighbour drawn faded outside
-is credited; a netmeta without them falls back to the feeds with vehicles inside, and `make.py meta`
-rewrites an older netmeta from the network when the network is there. The colours sentence names
-other's grey only when other has `window_trips` (its `share` is the inside share at the morning peak
-minute alone), and a group whose legend word names a mode (its id, label or singular: `Bus`,
-`trains`) while it draws another mode fails `make.py meta` (San Diego's Coronado ferry in `Bus`).
+The netmeta also carries `netmeta_version` (2) and, from the network's trips and shapes, `window_trips`
+on each feed and colour group and `window_modes` on each group (those trips by mode): the trips the video
+draws in its window by the page's rule (B7) whose shape enters its view, the variant's frame after
+`FRAME_ZOOM` and the km shifts (B2 step 9b) grown on every side by the camera's reach, `CAMERA_DRIFT` x
+`CAMERA_AMP` of the frame width (B18). That is what comes on screen, inside the boundary or faded outside;
+a trip the trim keeps only for its margin beyond the frame never does. A video's credits, licence flags
+and licence checks cover the feeds with `window_trips`, those with vehicles inside first, so a split
+city's buses leave out its trains' feeds and a neighbour on screen faded outside is credited; a netmeta
+without them falls back to the feeds with vehicles inside, and `make.py meta` rewrites an older netmeta
+from the network when the network is there. The colours sentence names other's grey only when other
+has `window_trips` (its `share` is the inside share at the morning peak minute alone), and a group whose
+legend word names a mode (its id, label or singular: `Bus`, `trains`) while it draws another mode fails
+`make.py meta` (San Diego's Coronado ferry in `Bus`).
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
 "credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],

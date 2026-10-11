@@ -1900,8 +1900,13 @@ class Actions(Scratch):
         self.assertEqual({g["id"]: (g["window_trips"], g["window_modes"]) for g in nm["groups"]},
                          {"tsukubus": (12, {"bus": 12}), "other": (0, {})})
         self.assertNotIn("window_trips", meta["groups"][0], "the network's own meta is left as it was")
-        # The stub trim's network has no trips, so its netmeta says nothing either way.
-        p, _meta = pl.write_netmeta(batch, recipe, "day", out_dir=os.path.join(self.tmp, "nm"))
+        # The stub trim's network has no trips, so its netmeta says nothing either way; the count is
+        # still asked for the view, not the trim box.
+        with unittest.mock.patch.object(make, "window_draws", wraps=make.window_draws) as wd:
+            p, _meta = pl.write_netmeta(batch, recipe, "day", out_dir=os.path.join(self.tmp, "nm"))
+        box = pl.view_box(recipe, "day", meta)
+        self.assertIsNotNone(box)
+        self.assertEqual(wd.call_args.kwargs["box"], box)
         nm = load(p)
         self.assertEqual(nm["netmeta_version"], make.NETMETA_VERSION)
         self.assertFalse([x for x in nm["feeds"] + nm["groups"] if "window_trips" in x])
@@ -1954,6 +1959,57 @@ class Draws(unittest.TestCase):
         self.assertEqual(make.window_draws(net, *tuesday), ({"metra": 1, "cta": 1}, {"other": {"rail": 1, "bus": 1}}))
         self.assertEqual(make.window_draws(net, 28800, 28800 + 604800)[0], {"cta": 2, "metra": 1})
         self.assertIsNone(make.window_draws(dict(net, trips=[]), 0, 86400))
+
+    def test_only_what_comes_on_screen(self):
+        """The trim keeps trips a quarter of the frame beyond it; a trip counts only once its shape enters the view."""
+        shapes = [
+            [1, 1, 2, 2],              # inside
+            [11, 1, 12, 2],            # in the trim margin alone
+            [-5, 5, 15, 5],            # both points outside, the segment across the view
+            [-2, 9, 1, 12.5],          # its bbox overlaps a corner, the line passes above it
+            [10, 10.5, 10.5, 10],      # the same off the other corner
+        ]
+        feeds = ["cta", "pace", "metra", "nictd", "amtrak"]
+        net = {"meta": {"timeline": {"kind": "day", "period": 86400}},
+               "routes": [{"feed": f, "group": "other", "mode": "bus"} for f in feeds],
+               "shapes": [{"xy": xy} for xy in shapes],
+               "trips": [{"r": i, "s": i, "t": [30000, 32000]} for i in range(len(shapes))]
+               + [{"r": 1, "s": 1, "t": [31000, 33000]}]}
+        box = [0, 0, 10, 10]
+        self.assertEqual(make.window_draws(net, 0, 86400, box=box), ({"cta": 1, "metra": 1}, {"other": {"bus": 2}}))
+        # Without a box every trip of the trim counts, as for a network written before the frame was known.
+        self.assertEqual(make.window_draws(net, 0, 86400)[0], {f: 2 if f == "pace" else 1 for f in feeds})
+        self.assertTrue(make.polyline_meets_box([10, 10], box), "a point on the edge is in view")
+        self.assertFalse(make.polyline_meets_box([], box))
+
+    def test_view_box(self):
+        """The frame the page fits (finishFrame) plus the camera's reach, against web/app.js's own numbers."""
+        with open(os.path.join(REPO, "web", "app.js"), encoding="utf-8") as fh:
+            src = fh.read()
+        page = {k: float(re.search(rf"^  {k}: ([\d.]+),$", src, re.M).group(1)) for k in ("CAMERA_DRIFT", "CAMERA_AMP")}
+        self.assertEqual(page, {"CAMERA_DRIFT": make.CAMERA_DRIFT, "CAMERA_AMP": make.CAMERA_AMP})
+        pl = make.Pipeline(REPO)
+        meta = {"preset": "shorts", "render": {}, "frame": {"km_vertical": 32.0, "center_km": [0.0, 0.0]},
+                "variants": {"day": {"frame": None, "render": {}},
+                             "rush": {"frame": {"km_vertical": 16.0, "center_km": [2.0, 1.0]}, "render": {}}}}
+        recipe = {"id": "test-view", "batch": "none", "variety": {"zoom": 1.25},
+                  "override": {"render": {"FRAME_DX_KM": 1.5}}}
+
+        def near(got, want):
+            self.assertEqual(len(got), 4)
+            for g, w in zip(got, want):
+                self.assertAlmostEqual(g, w, places=9)
+
+        # The day: 32 km / 1.25 tall, 14.4 km wide, 1.5 km east, and the shorts preset's camera reaches 3% of
+        # the width (0.432 km) past it on every side.
+        near(pl.view_box(recipe, "day", meta), [1.5 - 7.2 - 0.432, -12.8 - 0.432, 1.5 + 7.2 + 0.432, 12.8 + 0.432])
+        # The rush close-up has its own frame, and variety.zoom is the day's and the week's alone.
+        near(pl.view_box(recipe, "rush", meta), [3.5 - 4.5 - 0.27, 1 - 8 - 0.27, 3.5 + 4.5 + 0.27, 1 + 8 + 0.27])
+        still = dict(recipe, variety={"zoom": 1.25, "camera": "off"})
+        near(pl.view_box(still, "day", meta), [1.5 - 7.2, -12.8, 1.5 + 7.2, 12.8])
+        loud = dict(recipe, override={"render": {"CAMERA_AMP": 2}})
+        near(pl.view_box(loud, "day", meta), [-7.2 - 0.864, -12.8 - 0.864, 7.2 + 0.864, 12.8 + 0.864])
+        self.assertIsNone(pl.view_box(recipe, "day", dict(meta, frame=None)))
 
     def test_lock_data_dates(self):
         base = "https://storage.googleapis.com/mobilitydata-datasets-prod"
