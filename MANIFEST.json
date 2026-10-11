@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "philadelphia",
+ "files": {
+  "2026-09-23.1/divisions/US-PA-philadelphia.geojson": {
+   "sha256": "f8acfc48dfa72bc2d015177bbcaaf4dd70aed222c665d97bca82250d65c81730",
+   "bytes": 1299586,
+   "parts": [
+    "2026-09-23.1/divisions/US-PA-philadelphia.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/philadelphia/segments.geojson": {
+   "sha256": "59eb9bc71b9a3296fc983f59d449b4942a4f21c5e7c831a72dfe0bd608f710a4",
+   "bytes": 238266250,
+   "parts": [
+    "2026-09-23.1/philadelphia/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/philadelphia/water.geojson": {
+   "sha256": "839fb5c35abc7a228c850d550f8a8bce6e3920473e8fa7a87daca6ab4bd02223",
+   "bytes": 44277833,
+   "parts": [
+    "2026-09-23.1/philadelphia/water.geojson.gz.000"
+   ]
+  }
+ }
+}
