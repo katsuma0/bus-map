@@ -1176,8 +1176,8 @@ before, byte for byte.
 
 Block: `scheme` (`line`, `type` or `agency`; documentation for the stills sheet and `make.py show`,
 in no key), `legend` (bool, default false: the `LEGEND` default of this video's renders, B19) and
-`groups` (1 to 7, `other` counted; recipe order is the legend order, the `meta.groups` order and the
-placement order).
+`groups` (1 to 7, `other` counted; recipe order is the legend order, the `meta.groups` order and,
+within each step of B19's placement order, the order groups are placed in).
 
 | group key | type | required | default | meaning |
 |---|---|---|---|---|

@@ -90,7 +90,7 @@ operators. Each group is one colour on the map, in the dots' halos and in the le
 |---|---|---|---|---|
 | `scheme` | `line`, `type`, `agency` | yes | | what the colours explain (the stills sheet and `make.py show` print it) |
 | `legend` | bool | no | false | the legend row (dot and word per group, no counts) in the panel; bus videos on, train videos off |
-| `groups` | list | yes | | 1 to 7, `other` counted; their order is the legend's, the network's and the placement order |
+| `groups` | list | yes | | 1 to 7, `other` counted; their order is the legend's and the network's; colours are placed `other` first, then the neutrals, the pins and the rest, each step in this order (CONTRACT B19) |
 | `groups[].id` | `^[a-z0-9][a-z0-9_]{0,23}$` | yes | | unique; `other` is the remainder, drawn in the theme's grey, and must be last |
 | `groups[].label` | 1 to 16 characters, no `·` | yes | | the legend's word and the description's; unique |
 | `groups[].brand` | `entry` or `entry:rule` of `cities/brands.json` | one of brand, hex, neutral | | its colour and pin (`dL`) by default, and its routes when there is no `match` |
