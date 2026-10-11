@@ -45,7 +45,10 @@
 // A colour-group network (meta.color_by "group") is drawn with the paint and
 // the legend flag make.py gives it (cities/recipes/<id>.json and
 // cities/brands.json when the checkout has the batch's), so its legend row is
-// in every box check.
+// in every box check. Its meta.groups must carry the recipe's ids, labels and
+// legend words, and the page must find a paint for every group and a group for
+// every paint: a build older than the recipe fails rather than passing on the
+// old groups.
 //
 // Usage: node tests/web/v4_hud.mjs [--only gta-toronto,...] [--no-gta]
 
@@ -68,7 +71,7 @@ const args = process.argv.slice(2);
 const only = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null;
 
 // make.py's group_paint and the LEGEND default of a colour-group recipe, from the checkout's
-// recipe and brands.json; null when it has none.
+// recipe and brands.json, with the recipe's groups; null when it has none.
 function recipeColors(id) {
   const rp = path.join(ROOT, 'cities', 'recipes', `${id}.json`), bp = path.join(ROOT, 'cities', 'brands.json');
   if (!fs.existsSync(rp) || !fs.existsSync(bp)) return null;
@@ -94,7 +97,8 @@ function recipeColors(id) {
     }
     paint[g.id] = p;
   }
-  return `paint=${encodeURIComponent(JSON.stringify(paint))}&legend=${recipe.colors.legend ? 1 : 0}`;
+  return { query: `paint=${encodeURIComponent(JSON.stringify(paint))}&legend=${recipe.colors.legend ? 1 : 0}`,
+    groups: recipe.colors.groups.map((g) => ({ id: g.id, label: g.label, legend: 'legend' in g ? g.legend : g.id !== 'other' })) };
 }
 
 function gtaNetworks() {
@@ -109,7 +113,8 @@ function gtaNetworks() {
       const bm = fs.existsSync(path.join(ROOT, `build/${id}/basemap.json.gz`)) ? `build/${id}/basemap.json.gz` : 'data/gta/built/basemap.json.gz';
       const variants = tl === 'day' ? ['day', 'rush'] : ['week'];
       const colors = file === real ? recipeColors(id) : null;
-      out.push({ id, tl, query: `data=../${file}&basemap=../${bm}${colors ? `&${colors}` : ''}`, variants, stub: file === stub });
+      out.push({ id, tl, query: `data=../${file}&basemap=../${bm}${colors ? `&${colors.query}` : ''}`, variants, stub: file === stub,
+        groups: colors && colors.groups });
     }
   }
   return out;
@@ -229,6 +234,7 @@ function inPage() {
   out.ladderNear = groupNet ? bm.groupMap.filter((g) => g.order >= 0 && !/^(foreign|neutral|pin)/.test(g.how)
     && g.dmin !== null && g.dmin < cfg.BRAND_MIN_DE - 1e-9).map((g) => `${g.id} ${g.dmin.toFixed(3)} from ${g.near}`) : [];
   out.groupNet = groupNet;
+  out.groups = (meta.groups || []).map((g) => ({ id: g.id, label: g.label, legend: g.legend }));
   out.legend = bm.legend;
   out.closest = Infinity;
   out.closestPair = '';
@@ -265,7 +271,22 @@ function checkOverlap(tag, where, boxes) {
   }
 }
 
-async function run(h, name, query, variant) {
+// A real build drawn with its checkout's recipe must be that recipe's trim: a build older than a
+// group edit still draws, with the new paint on the old groups, and would pass every other check.
+function checkGroups(tag, r, warnings, groups) {
+  const want = new Map(groups.map((g) => [g.id, g]));
+  for (const g of r.groups) {
+    const w = want.get(g.id);
+    if (!w && g.id === 'other') continue;
+    ok(w && w.label === g.label && w.legend === g.legend, `${tag} B19: meta.groups ${JSON.stringify(g)}, recipe ${JSON.stringify(w || null)}; `
+      + 'is build/ older than cities/recipes? rerun make.py build');
+  }
+  for (const w of warnings.filter((x) => /no \?paint for group|\?paint: no group/.test(x))) {
+    failures.push(`${tag} B19: ${w}; is build/ older than cities/recipes? rerun make.py build`);
+  }
+}
+
+async function run(h, name, query, variant, groups = null) {
   const tag = `${name} ${variant}`;
   const page = await h.open(`${query}&variant=${variant}`, { allowErrors: true });
   if (page.failed) {
@@ -307,6 +328,7 @@ async function run(h, name, query, variant) {
   if (r.groupNet) ok(!r.ladderNear.length, `${tag} B-10: ladder groups under ${r.minDE}: ${r.ladderNear.join(', ')}`);
   else ok(r.closest >= r.minDE - 1e-9 || r.placed.length < 2, `${tag} B-10: ${r.closestPair} only ${r.closest.toFixed(3)} apart`);
   if (r.legend) ok(!r.legend.dropped.length, `${tag} B19: the legend dropped ${r.legend.dropped.join(', ')}`);
+  if (groups) checkGroups(tag, r, page.warnings, groups);
   if (page.errors.length) failures.push(`${tag}: page errors ${page.errors.join(' | ')}`);
   const sizes = Object.fromEntries(r.stills.am.filter((b) => ['count', 'chips', 'legend', 'title', 'weekday'].includes(b.name)).map((b) => [b.name, b.size]));
   const card = r.frames[0].filter((b) => b.name.startsWith('card_title')).map((b) => `${b.text}@${b.size}`).join(' / ');
@@ -425,7 +447,7 @@ try {
     if (nets.some((n) => n.stub)) console.log('  (GTA networks from the stubs in build/stub_v4/)');
     for (const n of nets) {
       for (const v of n.variants) {
-        await run(h, n.id, n.query, v);
+        await run(h, n.id, n.query, v, n.groups);
         await run(h, `${n.id} full`, `${n.query}&${FULL}`, v);
         // A train video has its legend off; the row must still fit when a render turns it on.
         if (n.query.includes('&legend=0')) await run(h, `${n.id} legend`, n.query.replace('&legend=0', '&legend=1'), v);
