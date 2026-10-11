@@ -25,7 +25,7 @@
 //           binds for all six paths (at the floor; with the floor at 0 the
 //           line stays in) and frame 0 still pushes in; a frame that crops
 //           the line (the rush) has no rect; Markham and Toronto bind as well
-//  core     frame 0 keeps the pivot (the fit box centre, below the card) within
+//  core     frame 0 keeps the pivot (the fit box centre, above the panel) within
 //           2% of the frame width of where the fitted frame has it
 //  headroom the cached base covers the visible rectangle at every phase
 //  layers   at one still, camera on and off: the same HUD boxes and counts, the

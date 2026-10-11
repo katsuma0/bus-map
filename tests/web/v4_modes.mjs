@@ -3,7 +3,8 @@
 // noun, so a video that keeps one mode says "3 buses" where a mixed one says
 // "3 vehicles", and a card line that opens with a place such as "the GTA"
 // still starts with a capital. The networks are the v4 fixture with its
-// rail trips taken out, written to build/test_web/.
+// rail trips taken out, written to build/test_web/, drawn with ?card=1: the
+// shorts preset has the card off, and its templates stay for the knob.
 //
 // Usage: node tests/web/v4_modes.mjs
 
@@ -55,7 +56,7 @@ try {
   for (const [keepRail, noun] of [[false, 'buses'], [true, 'vehicles']]) {
     const { query, peaks } = derived(keepRail);
     for (const variant of ['day', 'rush']) {
-      const page = await h.open(`${query}&variant=${variant}`);
+      const page = await h.open(`${query}&variant=${variant}&card=1`);
       const r = await page.evaluate(() => {
         window.busmap.renderFrame(0);
         const boxes = window.busmap.hudBoxes();

@@ -14,6 +14,10 @@ Outputs per knob in build/<id>/tune/<variant>/<nn>-<knob>/: a/, b/, c/ (the C5
 files), sheet.jpg, crops.jpg, motion.jpg, clock.jpg, camera.jpg or card.jpg (each at most
 1,568 px on its long edge, the judge's image limit), and scores.json; the pass
 keeps its picks in state.json.
+
+The card knobs (18 to 21) are in a pass only when the video shows the card
+(CARD, off in the shorts preset); asked for with --knob, their arms turn the
+card on so the judge sees what the pick would open on.
 """
 
 import json
@@ -48,7 +52,9 @@ KNOBS = [
     (19, "cardline", "CARD_LINES", "card", False, ("day", "rush", "week")),
     (20, "cardscrim", "CARD_SCRIM", "card", False, ("day",)),
     (21, "cardy", "CARD_CENTER_Y", "card", False, ("day",)),
-    (22, "panelalpha", "PANEL_ALPHA", "card", False, ("day",)),
+    # The panel backdrop behind the HUD: scored by text contrast over the stills, the rush's
+    # close-up too, where the most trails run behind the panel.
+    (22, "panelalpha", "PANEL_ALPHA", "panel", False, ("day", "rush")),
     # Numbered after the spec's 22 so earlier tune directories keep their names.
     (23, "outside", "OUTSIDE_DIM", "look", False, ("day",)),
 ]
@@ -66,9 +72,9 @@ CLIP_FRAMES = 90
 HUD_TEXT = ("title", "subtitle", "weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2")
 CARD_TEXT = ("card_title", "card_title2", "card_line0", "card_line0b", "card_line1", "card_line1b")
 PANEL_TEXT = ("weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2", "peak")
-# B9 and B10 minimum sizes in px.
-MIN_SIZES = {"title": 48, "subtitle": 32, "weekday": 64, "clock": 40, "count": 36, "count2": 36, "chips": 24,
-             "peak": 26, "axis": 26, "credit": 22, "credit2": 22, "card_title": 72, "card_title2": 72,
+# B9 and B10 minimum sizes in px (web/app.js MIN_SIZE).
+MIN_SIZES = {"title": 44, "subtitle": 26, "weekday": 48, "clock": 30, "count": 28, "count2": 28, "chips": 20,
+             "peak": 20, "axis": 20, "credit": 18, "credit2": 18, "card_title": 72, "card_title2": 72,
              "card_line0": 40, "card_line0b": 40, "card_line1": 30, "card_line1b": 30}
 LIMITS = {"whiteout": 0.03, "contrast": 4.5, "safe_share": 0.85, "strobe": 0.004, "card_cover": 0.4}
 # The card band reaches 60 px past the card text (B10), feathers included.
@@ -239,8 +245,8 @@ def whiteout(rgb, mask):
     return float((sel >= 0.85).mean()) if sel.size else 0.0
 
 
-def text_contrast(boxes, bg_rgb, names):
-    """min over boxes of (Y_text + 0.05) / (P90(Y_bg under the box) + 0.05)."""
+def text_contrast(boxes, bg_rgb, names, pct=90):
+    """min over boxes of (Y_text + 0.05) / (P<pct>(Y_bg under the box) + 0.05)."""
     np = lazy_numpy()
     y_bg = luminance(bg_rgb)
     h, w = y_bg.shape
@@ -253,14 +259,14 @@ def text_contrast(boxes, bg_rgb, names):
         if x1 <= x0 or y1 <= y0:
             continue
         region = y_bg[y0:y1, x0:x1]
-        p90 = float(np.percentile(region, 90))
+        bright = float(np.percentile(region, pct))
         rgb, alpha = parse_color(b.get("color"))
         if alpha < 1:
             # Translucent text (card line 1 at 0.85) sits over that background.
-            under = bg_rgb[y0:y1, x0:x1].reshape(-1, 3)[region.ravel() >= p90].mean(axis=0)
+            under = bg_rgb[y0:y1, x0:x1].reshape(-1, 3)[region.ravel() >= bright].mean(axis=0)
             rgb = tuple(alpha * c + (1 - alpha) * u for c, u in zip(rgb, under))
         y_text = float(luminance(np.array([[rgb]], dtype=np.float64).clip(0, 255).astype(np.uint8))[0, 0])
-        ratio = (max(y_text, p90) + 0.05) / (min(y_text, p90) + 0.05)
+        ratio = (max(y_text, bright) + 0.05) / (min(y_text, bright) + 0.05)
         worst = ratio if worst is None else min(worst, ratio)
     return worst
 
@@ -546,7 +552,12 @@ class Tuner:
             fh.write(json.dumps(self.state, indent=1, ensure_ascii=False) + "\n")
 
     def knobs(self):
-        return [k for k in KNOBS if self.variant in k[5]]
+        card = self.card_on()
+        return [k for k in KNOBS if self.variant in k[5] and (card or k[3] != "card")]
+
+    def card_on(self):
+        """Whether this video shows the card (B10), the way the page decides it."""
+        return self.pl.card_on(self.recipe, self.variant, self.meta)
 
     def knob_dir(self, knob):
         return os.path.join(self.dir, f"{knob[0]:02d}-{knob[1]}")
@@ -638,7 +649,8 @@ class Tuner:
                 return p
         return None
 
-    def score_arm(self, d, times, frames, clip):
+    def score_arm(self, d, times, frames, clip, pct=90):
+        """The arm's scores; pct is the background percentile text contrast is taken against."""
         np = lazy_numpy()
         sc = {"whiteout": None, "contrast": None, "safe_share": None, "motion": None, "strobe": None,
               "card_cover": None, "sizes": [], "ms_per_frame": None}
@@ -669,7 +681,7 @@ class Tuner:
                 boxes = am_boxes if i == 0 else boxes_at(self.find(d, "boxes", t))
                 bg = self.find(d, "bg", t)
                 if bg and boxes:
-                    c = text_contrast(boxes, load_rgb(bg), HUD_TEXT)
+                    c = text_contrast(boxes, load_rgb(bg), HUD_TEXT, pct)
                     if c is not None:
                         contrasts.append(c)
                 veh = self.find(d, "vehicles", t)
@@ -682,8 +694,9 @@ class Tuner:
             boxes = boxes_at(os.path.join(d, f"boxes-f{f:04d}.json"))
             bg = os.path.join(d, f"bgframe-{f:04d}.png")
             if boxes and os.path.exists(bg):
-                names = CARD_TEXT if f in (0, 15) else HUD_TEXT
-                c = text_contrast(boxes, load_rgb(bg), names)
+                card = any(str(b.get("name", "")).startswith("card_") for b in boxes)
+                names = CARD_TEXT if card else HUD_TEXT
+                c = text_contrast(boxes, load_rgb(bg), names, pct)
                 if c is not None:
                     contrasts.append(c)
             veh = os.path.join(d, f"vehicles-f{f:04d}.json")
@@ -763,6 +776,9 @@ class Tuner:
         n_, name, key, kind, clip, _passes = knob
         d = self.knob_dir(knob)
         base, bh, n = self.base_query()
+        if kind == "card" and not self.card_on():
+            # Only an explicit --knob gets here with the card off: its arms show the card they tune.
+            base = dict(base, CARD=True)
         times, frames, clip = self.plan_render(knob, n)
         b_dir = os.path.join(d, "b")
         if not self.reuse_previous(b_dir, base, bh, times, frames, clip):
@@ -787,8 +803,11 @@ class Tuner:
             if label != "b":
                 self.render_arm(arm_dir, q, bh, times, frames, clip)
             arms.append({"label": label, "value": val, "query": q, "dir": arm_dir})
+        # The panel's backdrop is there for the few bright dots and lines that cross the text, which
+        # P90 of the background under a box never sees: its arms are scored against P99.
+        pct = 99 if kind == "panel" else 90
         for arm in arms:
-            arm["scores"] = self.score_arm(arm["dir"], times, frames, clip)
+            arm["scores"] = self.score_arm(arm["dir"], times, frames, clip, pct)
             arm["breaks"] = breaks_of(arm["scores"])
             s = arm["scores"]
             bits = [f"{k} {s[k]:.3f}" for k in ("whiteout", "contrast", "safe_share", "motion", "strobe", "card_cover")
