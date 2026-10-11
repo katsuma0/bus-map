@@ -34,10 +34,21 @@
   "render": {
    "OUTSIDE_DIM": 0.9
   },
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "BUS_CORE_R": 1.6,
+    "FRAME_ZOOM": 0.9
+   }
+  },
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "0.9 drops the grey Mississauga grid and outside GO lines to a hint so Brampton stands alone; at 0.7 they compete"
+   "OUTSIDE_DIM": "0.9 drops the grey Mississauga grid and outside GO lines to a hint so Brampton stands alone; at 0.7 they compete",
+   "day.BUS_CORE_R": "1.6 px dots still read as buses on a phone and cut strobe 0.0048 to 0.0028, under the limit; 2.2 hops",
+   "rush.BUS_CORE_R": "the rush pass has no dot knob; the day's 1.6 px dot brings rush strobe under the limit, 2.2 hops",
+   "rush.FRAME_ZOOM": "0.9 lifts safe share 0.87 to 0.92 and pulls Bramalea back from the left edge; still a close-up"
   }
  },
  "colors": {

@@ -34,10 +34,23 @@
   "render": {
    "OUTSIDE_DIM": 0.9
   },
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "BUS_CORE_R": 1.6,
+    "FRAME_ZOOM": 0.81,
+    "FRAME_DY_KM": 1.93
+   }
+  },
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads"
+   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp and white after the round trip and cut strobe 0.0061 to 0.0035, under the limit",
+   "rush.BUS_CORE_R": "the rush has no dot knob and kept 2.2 px at strobe 0.0052; 1.6 px as on the day brings it to 0.0030",
+   "rush.FRAME_ZOOM": "a second step to 0.81 keeps the north tip and west end in frame: safe share 0.90, still 1.8x the day",
+   "rush.FRAME_DY_KM": "1.93 km south keeps the north tip clear of the title and lifts safe share to 0.91"
   }
  },
  "colors": {

@@ -34,10 +34,17 @@
   "render": {
    "OUTSIDE_DIM": 0.8
   },
-  "variant_render": {},
+  "variant_render": {
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9
+   }
+  },
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "outside vehicles outnumber the city's 8.8 to 1 at the am peak"
+   "OUTSIDE_DIM": "outside vehicles outnumber the city's 8.8 to 1 at the am peak",
+   "rush.FRAME_ZOOM": "0.9 keeps 92% of buses clear of the title and frame edge, not 90%; the north end still reads below the title",
+   "rush.TRAIL_MINUTES": "9 min joins Yonge and the east-west YRT lines into whole thin threads like the target; no fusing, strobe a hair lower"
   }
  },
  "colors": {

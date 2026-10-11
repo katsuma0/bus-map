@@ -34,11 +34,22 @@
   "render": {
    "OUTSIDE_DIM": 0.95
   },
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9
+   }
+  },
   "brand_colors": {},
   "_why": {
    "OUTSIDE_DIM": "0.95 makes the Markham grid stand out; at 0.8 the TTC grid south of Steeles is as loud as Markham's own red lines",
-   "CARD_LINES": "line 1 reads in one line and the rush card hides 33% of vehicles, not 40%; it also differs from Richmond Hill's 0"
+   "CARD_LINES": "line 1 reads in one line and the rush card hides 33% of vehicles, not 40%; it also differs from Richmond Hill's 0",
+   "day.TRAIL_MINUTES": "18 min draws the TTC, Viva and YRT corridors as whole thin lines on a phone, no fusing; strobe a hair lower",
+   "rush.FRAME_ZOOM": "0.9 keeps 98% of buses on screen, not 93%, the east end off the buttons, and dots hop 10% less a frame",
+   "rush.TRAIL_MINUTES": "9 min joins Highway 7 and the YRT lines into thin threads like the day's 18 min; no fusing, strobe a hair lower"
   }
  },
  "colors": {

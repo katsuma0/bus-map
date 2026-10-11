@@ -31,9 +31,19 @@
  },
  "override": {
   "render": {},
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min draws Burlington's sparse grid as whole thin corridors, no fusing, strobe a touch lower",
+   "rush.FRAME_ZOOM": "0.9 hides fewer buses behind the panel (0.95 vs 0.91) and pulls the east corner off the button column"
+  }
  },
  "colors": {
   "scheme": "type",

@@ -42,12 +42,17 @@
   "render": {
    "TIME_WARP_GAMMA": 1.5
   },
-  "variant_render": {},
+  "variant_render": {
+   "rush": {
+    "FRAME_ZOOM": 0.9
+   }
+  },
   "brand_colors": {},
   "_why": {
    "TIME_WARP_GAMMA": "1.5 slows the pm rush (3:42 to 5:25 per eighth) and cuts midnight to 5 am to 3.3 s without a faster peak rate",
    "CARD_LINES": "line 1 opens unlike the buses video before it (line 2) and the GTA trains after it (line 0)",
-   "frame": "80 km: the subway and LRT lines fill the band and GO runs off the edges; the fitted 119.5 km left them a third"
+   "frame": "80 km: the subway and LRT lines fill the band and GO runs off the edges; the fitted 119.5 km left them a third",
+   "rush.FRAME_ZOOM": "0.9 brings the Line 5 and Line 2 east ends into frame and lifts safe share 0.68 to 0.73; still a close-up"
   }
  },
  "colors": {

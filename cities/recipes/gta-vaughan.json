@@ -34,10 +34,23 @@
   "render": {
    "OUTSIDE_DIM": 0.8
   },
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6
+   }
+  },
   "brand_colors": {},
   "_why": {
-   "OUTSIDE_DIM": "outside vehicles outnumber the city's 10.1 to 1 at the am peak"
+   "OUTSIDE_DIM": "outside vehicles outnumber the city's 10.1 to 1 at the am peak",
+   "day.BUS_CORE_R": "1.6 px dots still read sharp after the VP9 trip (peak 238) and halve strobe to 0.0015; 2.8 breaks the limit",
+   "rush.FRAME_ZOOM": "0.9 still shows the Highway 7 core large and keeps the east edge inside x 800; 9 points more dots on screen",
+   "rush.TRAIL_MINUTES": "9 min joins Highway 7 and Jane into thin lit threads like the target crop; no fusing, strobe 1% lower",
+   "rush.BUS_CORE_R": "the day's 1.6 px dots, set by hand (no rush dot knob): strobe 0.0024 to 0.0013, dots still read after VP9"
   }
  },
  "colors": {
