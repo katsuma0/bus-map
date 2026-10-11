@@ -13,7 +13,7 @@
   "country": "JP",
   "region": "JP-08",
   "holidays": "JP",
-  "area_box": [140.01, 35.93, 140.23, 36.28],
+  "area_box": [139.99, 35.89, 140.26, 36.29],
   "feeds": [
    {"id": "tsukubus", "name": "Tsukubus", "publisher": "Tsukuba City", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"path": "data/gtfs/tsukubus.zip"}},
    {"id": "tsukubane", "name": "Tsukubane-go", "publisher": "Tsukuba City", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"path": "data/gtfs/tsukubane.zip"}}

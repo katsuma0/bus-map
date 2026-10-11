@@ -5,9 +5,10 @@
 // numbers are one date's, not the composite's; the layout, the names, the
 // brands and the sizes are the real ones).
 //
-//  B-5  every hudBoxes() box inside x 60..880, y 240..1500 and at or above its
-//       minimum size, on every stillTimes() still and on frames 0 and 15
-//       (card), and no console.error from the page's own layout asserts
+//  B-5  every hudBoxes() box inside the tall-phone safe zone x 120..800,
+//       y 290..1440 (busmap.safe) and at or above its minimum size, on every
+//       stillTimes() still and on frames 0 and 15 (card), and no console.error
+//       from the page's own layout asserts
 //  B-6  at V.peak.time the count line equals V.peak.count (and B9: its noun
 //       names a mode only when it is the one mode inside over the window); over every 5th
 //       frame it never exceeds it; the chips add up to it; lastVehicles flags
@@ -18,9 +19,15 @@
 //       the 8 px gap first,
 //       and (B6) its brands are drawn foreign, not placed
 //
+// Credit copies of the fixture carry the credits of the GTA batch with the
+// author (B9): each still shows the data line, then "Map: Overture, OSM ·
+// Made by SOtownships", on either panel side.
+//
 // Stress copies scale every count of a GTA network (Richmond Hill x200 for a
 // five-digit count that has to split, Mississauga x12 and Toronto x8 for the
-// widest chips lines) and run the same checks.
+// widest chips lines) and run the same checks. Renamed copies of the fixture
+// carry the longest place names (Mississauga, Richmond Hill, Philadelphia,
+// San Antonio, San Francisco) through the title, the card and the count line.
 //
 // Usage: node tests/web/v4_hud.mjs [--only gta-toronto,...] [--no-gta]
 
@@ -65,7 +72,7 @@ function inPage() {
   const meta = bm.meta;
   const V = meta.variants[bm.variant];
   const P = meta.timeline.period;
-  const out = { stills: {}, frames: {}, errors: [] };
+  const out = { stills: {}, frames: {}, errors: [], safe: bm.safe };
   for (const [k, T] of Object.entries(bm.stillTimes())) {
     bm.renderAt(T);
     out.stills[k] = bm.hudBoxes();
@@ -177,9 +184,10 @@ function inPage() {
   return out;
 }
 
+const SAFE = { x0: 120, y0: 290, x1: 800, y1: 1440 };
 function checkBoxes(tag, where, boxes) {
   for (const b of boxes) {
-    ok(b.x0 >= 59.5 && b.x1 <= 880.5 && b.y0 >= 239.5 && b.y1 <= 1500.5,
+    ok(b.x0 >= SAFE.x0 - 0.5 && b.x1 <= SAFE.x1 + 0.5 && b.y0 >= SAFE.y0 - 0.5 && b.y1 <= SAFE.y1 + 0.5,
       `${tag} ${where}: ${b.name} "${b.text}" at x ${b.x0.toFixed(0)}..${b.x1.toFixed(0)}, y ${b.y0.toFixed(0)}..${b.y1.toFixed(0)}`);
     if (MIN[b.name]) ok(b.size >= MIN[b.name], `${tag} ${where}: ${b.name} at ${b.size} px < ${MIN[b.name]}`);
   }
@@ -194,6 +202,7 @@ async function run(h, name, query, variant) {
     return null;
   }
   const r = await page.evaluate(inPage);
+  ok(JSON.stringify(r.safe) === JSON.stringify(SAFE), `${tag}: busmap.safe ${JSON.stringify(r.safe)}`);
   for (const [k, boxes] of Object.entries(r.stills)) checkBoxes(tag, `still ${k}`, boxes);
   for (const [i, boxes] of Object.entries(r.frames)) checkBoxes(tag, `frame ${i}`, boxes);
   for (const pair of [['card_line0', 'card_line0b'], ['card_line1', 'card_line1b']]) {
@@ -252,11 +261,66 @@ function stress(net, factor, name) {
   return net.query.replace(/data=[^&]+/, `data=../build/test_web/${name}.json`);
 }
 
+// A copy of a fixture network under another place name, for the long-name checks.
+function renamed(query, place) {
+  const file = path.join(ROOT, query.match(/data=\.\.\/([^&]+)/)[1]);
+  const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
+  obj.meta.place = place;
+  obj.meta.title = place.toUpperCase();
+  if (obj.meta.card) obj.meta.card.title = place.toUpperCase();
+  const name = `name-${place.toLowerCase().replace(/ /g, '-')}-${path.basename(file, '.json')}`;
+  const out = path.join(ROOT, 'build', 'test_web', `${name}.json`);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify(obj));
+  return query.replace(/data=[^&]+/, `data=../build/test_web/${name}.json`);
+}
+
+// A copy of a fixture network with another credit line.
+function credited(query, credit, name) {
+  const file = path.join(ROOT, query.match(/data=\.\.\/([^&]+)/)[1]);
+  const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
+  obj.meta.credit = credit;
+  obj.meta.attribution = [credit];
+  const out = path.join(ROOT, 'build', 'test_web', `credit-${name}.json`);
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, JSON.stringify(obj));
+  return query.replace(/data=[^&]+/, `data=../build/test_web/credit-${name}.json`);
+}
+
+// B9: the credits the trim writes with cities/defaults.json's template and
+// author, on both panel sides: the data on the first line, the map and the
+// author on the second, both inside the safe zone at 22 px. Markham and
+// Brampton keep their agencies; Toronto and Mississauga (seven) and a
+// two-digit count take the fallback.
+const MADE_BY = 'Map: Overture, OSM · Made by SOtownships';
+const CREDITS = [['markham', 'Data: YRT, TTC, GO'], ['brampton', 'Data: Brampton, GO, MiWay, YRT, Milton'],
+  ['seven', 'Data: 7 transit agencies'], ['twelve', 'Data: 12 transit agencies']];
+const LONG_NAMES = ['Mississauga', 'Richmond Hill', 'Philadelphia', 'San Antonio', 'San Francisco'];
 const h = await openBrowser();
 try {
   await run(h, 'v4_tiny', TINY, 'day');
   await run(h, 'v4_tiny', TINY, 'rush');
   await run(h, 'v4_tiny', TINY_WEEK, 'week');
+  for (const [name, data] of CREDITS) {
+    for (const side of ['left', 'right']) {
+      const q = `${credited(TINY, `${data} · ${MADE_BY}`, name)}&panelside=${side}`;
+      const r = await run(h, `credit ${name} ${side}`, q, 'day');
+      if (!r) continue;
+      for (const [k, boxes] of Object.entries(r.stills)) {
+        const credit = boxes.filter((b) => b.name === 'credit' || b.name === 'credit2');
+        const lines = credit.map((b) => b.text);
+        ok(JSON.stringify(lines) === JSON.stringify([data, MADE_BY]), `credit ${name} ${side} still ${k} B-9: lines ${JSON.stringify(lines)}`);
+        // The panel's text column: 28 px into the panel on SAFE's left or right side.
+        const x = side === 'right' ? SAFE.x1 - 560 + 28 : SAFE.x0 + 28;
+        ok(credit.every((b) => Math.abs(b.x0 - x) < 1), `credit ${name} ${side} still ${k}: x0 ${credit.map((b) => b.x0.toFixed(1))}, want ${x}`);
+      }
+    }
+  }
+  for (const place of LONG_NAMES) {
+    await run(h, place, renamed(TINY, place), 'day');
+    await run(h, place, renamed(TINY, place), 'rush');
+    await run(h, place, renamed(TINY_WEEK, place), 'week');
+  }
   if (!args.includes('--no-gta')) {
     const nets = gtaNetworks();
     if (!nets.length) console.log('SKIP GTA: no build/<id>/ networks and no stubs (python3 -I tests/web/stub_gta_v4.py)');

@@ -42,7 +42,9 @@ WEEK_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
 MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
           "November", "December"]
 FRAME_W, FRAME_H = 1080, 1920
-SAFE_X1 = 880
+# The right edge of the page's text safe zone (web/app.js SAFE.x1): the panel's
+# right-hand position ends there (A8.7).
+SAFE_X1 = 800
 AM_RANGE, PM_RANGE = (300, 630), (870, 1170)
 CREDIT_FONT = os.path.join(ROOT, "web", "fonts", "InterX.woff2")
 CREDIT_PX, CREDIT_WIDTH, CREDIT_LINES = 22, 504, 2
@@ -134,6 +136,19 @@ def wrap_lines(text, px, width):
     if cur is not None:
         lines.append(cur)
     return lines
+
+
+def credit_text(agencies, template, fallback):
+    """The on-screen credit (B9): the template with the agencies when it wraps into CREDIT_LINES
+    lines of the panel's text column, else the fallback with their number. make.py has filled
+    {author} in both; a fallback that does not fit either is an error, as the page never cuts it."""
+    credit = template.replace("{agencies}", ", ".join(agencies))
+    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) <= CREDIT_LINES:
+        return credit
+    credit = fallback.replace("{n}", str(len(agencies)))
+    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) > CREDIT_LINES:
+        raise Fail(f"credit {credit!r} needs more than {CREDIT_LINES} lines of {CREDIT_WIDTH} px at {CREDIT_PX} px")
+    return credit
 
 
 # ---------------------------------------------------------------- boundary
@@ -536,7 +551,7 @@ def auto_rush_frame(vx, vy, day_frame, trim_box, fit_box, zoom, share):
 
 
 def panel_side(vx, vy, frame, panel):
-    rect = panel.get("rect", [60, 1140, 620, 1500])
+    rect = panel.get("rect", [120, 1080, 680, 1440])
     tie = float(panel.get("tie", 0.10))
     pref = panel.get("preferred", "left")
     sx, sy = to_screen(vx, vy, frame)
@@ -916,10 +931,7 @@ def trim(args, t_start):
     unit_of, unit_label = credit_units([routes[r]["feed"] for r in used], city_brand, bdefs, entries, feed_name)
     unit_vm = {u: float(fold(np.array([x == u for x in unit_of])).sum()) for u in sorted(unit_label)}
     agencies = [unit_label[u] for u in sorted((u for u in unit_vm if unit_vm[u] > 0), key=lambda u: (-unit_vm[u], unit_label[u]))]
-    template = cfg["credit_template"]
-    credit = template.replace("{agencies}", ", ".join(agencies))
-    if len(wrap_lines(credit, CREDIT_PX, CREDIT_WIDTH)) > CREDIT_LINES:
-        credit = cfg["credit_fallback"].replace("{n}", str(len(agencies)))
+    credit = credit_text(agencies, cfg["credit_template"], cfg["credit_fallback"])
 
     # Vehicles at the am peak: rush frame (A8.6) and panel side (A8.7).
     period_s = P * 60

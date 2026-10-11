@@ -65,13 +65,22 @@ def area_config(area_id, origin, area_box, gtfs_dir, feeds, kind, month="2026-10
             "stop_times_chunk": chunk}
 
 
-def fit_frame(bbox_km, fit_box=(50, 390, 870, 1300)):
-    """D3.2."""
+# cities/defaults.json fit_box and panel.rect: the page's text-free band and its left panel (B9).
+FIT_BOX = (120, 440, 800, 1080)
+PANEL_RECT = [120, 1080, 680, 1440]
+# cities/defaults.json credit_template and credit_fallback with {author} filled, as make.py writes them.
+CREDIT_TEMPLATE = "Data: {agencies} · Map: Overture, OSM · Made by SOtownships"
+CREDIT_FALLBACK = "Data: {n} transit agencies · Map: Overture, OSM · Made by SOtownships"
+
+
+def fit_frame(bbox_km, fit_box=FIT_BOX):
+    """D3.2: the bbox centre lands on the fit box's centre."""
     x0, y0, x1, y1 = bbox_km
     s = min((fit_box[2] - fit_box[0]) / (x1 - x0), (fit_box[3] - fit_box[1]) / (y1 - y0))
     kv = math.ceil(1920 / s / 0.5) * 0.5
     s = 1920 / kv
-    return {"km_vertical": kv, "center_km": [round((x0 + x1) / 2 + 80 / s, 1), round((y0 + y1) / 2 - 115 / s, 1)]}
+    fx, fy = (fit_box[0] + fit_box[2]) / 2, (fit_box[1] + fit_box[3]) / 2
+    return {"km_vertical": kv, "center_km": [round((x0 + x1) / 2 + (540 - fx) / s, 1), round((y0 + y1) / 2 - (960 - fy) / s, 1)]}
 
 
 def boundary_bbox_km(path, origin):
@@ -103,12 +112,11 @@ def city_config(cid, place, origin, boundary_file, frame, variants, kind, batch=
             "origin": list(origin), "frame": frame, "trim_scale": 1.25,
             "boundary": {"file": boundary_file, "name": place, "simplify_km": 0.02, "mask_km": 0.025},
             "brands": brands, "group_by": {"field": "agency-auto", "min_share": 0.03, "max_groups": 3},
-            "credit_template": "Data: {agencies} · Map: Overture, OSM",
-            "credit_fallback": "Data: {n} transit agencies · Map: Overture, OSM",
+            "credit_template": CREDIT_TEMPLATE, "credit_fallback": CREDIT_FALLBACK,
             "preset": "shorts", "theme": {"batch": "lake"}, "render": {}, "variants": V,
             "rush": {"auto": (rush or {}).get("auto", True), "zoom": [1.4, 2.2], "share": 0.6},
-            "fit_box": [50, 390, 870, 1300],
-            "panel": {"preferred": panel_side, "tie": 0.10, "rect": [60, 1140, 620, 1500]},
+            "fit_box": list(FIT_BOX),
+            "panel": {"preferred": panel_side, "tie": 0.10, "rect": list(PANEL_RECT)},
             "card": {"title": place.upper(), "templates": {v: CARD[v] for v in variants}}, "major_share": 0.05}
 
 

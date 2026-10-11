@@ -57,8 +57,11 @@ FRAME_KEYS = ("FRAME_ZOOM", "FRAME_DX_KM", "FRAME_DY_KM")
 CROP_KNOBS = range(4, 13)
 MAX_EDGE = 1568
 TILE_W, TILE_H, HEADER, GAP = 270, 480, 36, 8
-SAFE = (60, 240, 880, 1500)
-MAP_TOP = 380
+# The page's text safe zone (web/app.js SAFE, B9) and its panel width; the map
+# metrics start under the title block, 140 px below the zone's top.
+SAFE = (120, 290, 800, 1440)
+PANEL_W = 560
+MAP_TOP = SAFE[1] + 140
 CLIP_FRAMES = 90
 HUD_TEXT = ("title", "subtitle", "weekday", "clock", "count", "count2", "chips", "axis", "credit", "credit2")
 CARD_TEXT = ("card_title", "card_title2", "card_line0", "card_line0b", "card_line1", "card_line1b")
@@ -204,13 +207,13 @@ def parse_color(s):
 
 
 def panel_rect(boxes):
-    """The panel backdrop: its text sits 28 px inside the left and top edges (B9), 560 px wide, down to y 1500."""
+    """The panel backdrop: its text sits 28 px inside the left and top edges (B9), PANEL_W wide, down to SAFE's bottom."""
     pb = [b for b in boxes if b.get("name") in PANEL_TEXT]
     if not pb:
         return None
     x0 = min(b["x0"] for b in pb) - 28
     y0 = min(b["y0"] for b in pb) - 28
-    return [x0, y0, x0 + 560, 1500]
+    return [x0, y0, x0 + PANEL_W, SAFE[3]]
 
 
 def map_mask(h, w, boxes, scale=1.0):
@@ -752,8 +755,8 @@ class Tuner:
             groups = [(arm["header"], [(os.path.join(arm["dir"], f"frame-{f:04d}.png"), f"frame {f}") for f in frames])
                       for arm in arms]
             out["clock"] = tile_sheet(groups, os.path.join(d, "clock.jpg"), cols=5, tile=(270, 132),
-                                      crop=lambda im: (int(60 * im.width / 1080), int(1100 * im.height / 1920),
-                                                       int(880 * im.width / 1080), int(1500 * im.height / 1920)))
+                                      crop=lambda im: (int(SAFE[0] * im.width / 1080), int((SAFE[3] - 400) * im.height / 1920),
+                                                       int(SAFE[2] * im.width / 1080), int(SAFE[3] * im.height / 1920)))
         return out
 
     def run_knob(self, knob):

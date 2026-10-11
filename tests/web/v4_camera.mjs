@@ -20,7 +20,7 @@
 //           looser of the safe zone and the fitted bbox, plus 10 px, never
 //           off the frame), recomputed here from meta.boundary, unless the cap
 //           would take the move under CAMERA_BOUND_MIN: the factor is then the
-//           floor and the line leaves the rect by at most 30 px. On the
+//           floor and the line leaves the rect by at most 60 px. On the
 //           fixture's frame, whose line fills the fit box width, the cap
 //           binds for all six paths (at the floor; with the floor at 0 the
 //           line stays in) and frame 0 still pushes in; a frame that crops
@@ -142,7 +142,7 @@ async function variantChecks(h, query, tag, kind) {
 // rect. want is 'binds' (the fitted line leaves less room than the move: the
 // cap brings some frame within 0.5 px of the rect, or, where that would take
 // the factor under CAMERA_BOUND_MIN, holds it at the floor and the line goes
-// at most 30 px past the rect; frame 0 still pushes in), 'free' (the whole
+// at most 60 px past the rect; frame 0 still pushes in), 'free' (the whole
 // move fits) or 'crop' (the frame crops the line, so there is no rect and
 // only the speed cap applies).
 async function lineChecks(h, query, tag, want) {
@@ -158,8 +158,9 @@ async function lineChecks(h, query, tag, want) {
       }
     }
     const whole = box[0] >= 0 && box[1] >= 0 && box[2] <= W && box[3] <= H;
-    const keep = whole ? [Math.max(0, Math.min(60, box[0]) - 10), Math.max(0, Math.min(240, box[1]) - 10),
-      Math.min(W, Math.max(880, box[2]) + 10), Math.min(H, Math.max(1500, box[3]) + 10)] : null;
+    const sf = bm.safe;
+    const keep = whole ? [Math.max(0, Math.min(sf.x0, box[0]) - 10), Math.max(0, Math.min(sf.y0, box[1]) - 10),
+      Math.min(W, Math.max(sf.x1, box[2]) + 10), Math.min(H, Math.max(sf.y1, box[3]) + 10)] : null;
     let out = 0, near = Infinity;
     const ext = [Infinity, Infinity, -Infinity, -Infinity];
     for (let i = 0; i < N; i++) {
@@ -177,9 +178,10 @@ async function lineChecks(h, query, tag, want) {
   ok(c && c.box.every((v, k) => Math.abs(v - r.box[k]) < 1e-6), `${tag}: camera.box ${JSON.stringify(c && c.box)}, the rings give ${JSON.stringify(r.box)}`);
   ok(JSON.stringify(c && c.keep) === JSON.stringify(r.keep), `${tag}: camera.keep ${JSON.stringify(c && c.keep)}, want ${JSON.stringify(r.keep)}`);
   // The floor is what binds when the factor is CAMERA_BOUND_MIN itself; only
-  // then may the line leave its rect, and by 30 px at most.
+  // then may the line leave its rect, and by 60 px at most: the tall-phone safe zone
+  // leaves a fitted city 60 px less room each side than the old one did.
   const atFloor = want === 'binds' && c.bound === r.floor;
-  if (atFloor) ok(r.near >= -30, `${tag}: at the floor ${r.floor} the city line goes ${(-r.near).toFixed(2)} px past its keep rect, want 30 at most`);
+  if (atFloor) ok(r.near >= -60, `${tag}: at the floor ${r.floor} the city line goes ${(-r.near).toFixed(2)} px past its keep rect, want 60 at most`);
   else ok(r.out === 0, `${tag}: the city line leaves its keep rect at ${r.out} frames`);
   if (want === 'binds') {
     ok(c.bound < 1 && c.bound >= r.floor && r.near < 0.5, `${tag}: the cap does not bind or goes under the floor ${r.floor} (factor ${c.bound}, closest ${r.near.toFixed(2)} px)`);
@@ -203,7 +205,7 @@ async function mixChecks(h) {
   const share = { 'pull-out-west': [1, 1], 'pull-out-north': [1, 1], 'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5] };
   const got = {};
   for (const [p, [zs, rs]] of Object.entries(share)) {
-    const page = await h.open(`${TINY}&zoom=0.8&campath=${p}`);
+    const page = await h.open(`${TINY}&zoom=0.6&campath=${p}`);
     const r = await page.evaluate(() => {
       const bm = window.busmap, N = bm.totalFrames, [px, py] = bm.camera.pivot;
       const xs = [], ys = [];
@@ -400,10 +402,10 @@ async function sharpChecks(h, query, tag) {
 
 const h = await openBrowser();
 try {
-  // zoom=0.8 leaves the fixture's line room for the whole move, so the
+  // zoom=0.6 leaves the fixture's line room for the whole move, so the
   // amounts are the speed cap's; lineChecks covers the fixture's own frame.
-  await variantChecks(h, `${TINY}&zoom=0.8`, 'day', 'long');
-  await variantChecks(h, `${TINY_WEEK}&zoom=0.8`, 'week', 'long');
+  await variantChecks(h, `${TINY}&zoom=0.6`, 'day', 'long');
+  await variantChecks(h, `${TINY_WEEK}&zoom=0.6`, 'week', 'long');
   await variantChecks(h, `${TINY}&variant=rush`, 'rush', 'short');
   await mixChecks(h);
   await lineChecks(h, TINY, 'tiny day', 'binds');
@@ -411,11 +413,11 @@ try {
   // With no floor the cap alone keeps the line in its rect.
   await lineChecks(h, `${TINY}&cambound=0`, 'tiny floor 0', 'binds');
   for (const p of ['pull-out-east', 'pull-out-north', 'pull-out-south', 'drift-orbit', 'drift-sway']) await lineChecks(h, `${TINY}&campath=${p}`, `tiny ${p}`, 'binds');
-  await lineChecks(h, `${TINY}&zoom=0.8`, 'tiny zoom 0.8', 'free');
+  await lineChecks(h, `${TINY}&zoom=0.6`, 'tiny zoom 0.6', 'free');
   await lineChecks(h, `${TINY}&variant=rush`, 'tiny rush', 'crop');
   // The two cities the judges measured: Markham's west tip left the frame and
   // Toronto's east end went under the action buttons. Both fill the width, so
-  // the floor binds and keeps them within 30 px of their keep rects.
+  // the floor binds and keeps them within 60 px of their keep rects.
   for (const [id, render] of NO_GTA ? [] : [['gta-markham', { FRAME_ZOOM: 1.05, CAMERA_PATH: 'drift-sway' }], ['gta-toronto', { CAMERA_PATH: 'pull-out-north' }]]) {
     const net = `build/${id}/day/network.json.gz`, bm = `build/${id}/basemap.json.gz`;
     if (!fs.existsSync(path.join(ROOT, net)) || !fs.existsSync(path.join(ROOT, bm))) continue;

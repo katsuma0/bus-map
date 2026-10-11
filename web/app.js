@@ -159,7 +159,7 @@ const CONFIG = {
   CARD_FADE_IN: 30,
   CARD_SCRIM: 0.25,
   CARD_BAND: 0.85,
-  CARD_CENTER_Y: 620,
+  CARD_CENTER_Y: 0,
   CARD_TITLE_MAX: 132,
   CARD_LINES: 0,
   PEAK_MARKER: false,
@@ -1591,11 +1591,48 @@ let shortsStatics = null;   // title scrim, panel backdrop, spark fill, safe zon
 let cam = null;             // B18 camera: path, amplitudes, base headroom and boundary paths, or null when off
 let camPin = null;          // setCamera(u): the phase stills are drawn at instead of their own
 
-// YouTube Shorts safe zone in frame pixels: nothing on screen leaves it (B9).
-const SAFE = { x0: 60, y0: 240, x1: 880, y1: 1500 };
-// The panel's text column (B9); the chips that decide the colours are fitted
-// into it before the layout exists.
-const SHORTS_TEXT_W = 504;
+// YouTube Shorts text safe zone in frame pixels: no text leaves it (B9). A
+// taller phone (19.5:9, 20:9) zooms the 9:16 frame to fill its height, which
+// crops 97 to 108 px off each side and puts the like, comment and share
+// column over about x 811..972; the notch or Dynamic Island, the status bar
+// and YouTube's top icons cover about the top 290 px, and the title, channel
+// and sound rows and the home indicator everything from y 1440 down.
+const SAFE = { x0: 120, y0: 290, x1: 800, y1: 1440 };
+// The Shorts layout hangs every box from an edge of SAFE (B9, B10), so a new
+// safe zone moves all of it: the title block from the top, the panel from the
+// bottom and from the left or right side.
+const SHORTS_PANEL_W = 560;
+const SHORTS_PAD = 28;
+// The panel's text column; the chips that decide the colours are fitted into
+// it before the layout exists.
+const SHORTS_TEXT_W = SHORTS_PANEL_W - 2 * SHORTS_PAD;
+const ZONES = {
+  // Title, subtitle and card: 12 px in from both sides, so a glyph's overhang
+  // stays inside.
+  textX: SAFE.x0 + 12,
+  textW: SAFE.x1 - SAFE.x0 - 24,
+  // Baselines: the 64 px title's cap top sits 30 px under SAFE.y0.
+  titleY: SAFE.y0 + 76,
+  subtitleY: SAFE.y0 + 130,
+  scrimH: SAFE.y0 + 220,
+  // Panel heights over SAFE.y1, from 28 px above the first row's cap top: the
+  // week adds the weekday line, a split count line one more row.
+  panelH: { day: 360, week: 390, split: 44 },
+  // The panel's rows as heights over SAFE.y1.
+  row: { clock: 268, clockWeek: 262, count: 218, chips: 180, sparkTop: 166, sparkBottom: 114, axis: 84, credit: 50, credit2: 24 },
+};
+// The band no text covers: as wide as SAFE, from under the subtitle to the
+// day panel's top. make.py fits the city into it (cities/defaults.json
+// fit_box, D3.2), so no part of the city sits under the panel or the title.
+ZONES.fit = { x0: SAFE.x0, y0: SAFE.y0 + 150, x1: SAFE.x1, y1: SAFE.y1 - ZONES.panelH.day };
+// The card takes the panel's band, which is empty while the card shows: a
+// 300 to 400 px block anywhere in the fit box hides half the framed city on
+// the hook frame. CARD_CENTER_Y 0 hangs the block 20 px over SAFE.y1; a set
+// value may lift it until its top is 40 px into the fit box.
+ZONES.card = { y0: ZONES.fit.y1 - 40, y1: SAFE.y1 - 20 };
+// What a tall phone hides, for the ?safe=1 overlay: each side's crop and the
+// button column.
+ZONES.phone = { crops: [{ aspect: '19.5:9', x: 97 }, { aspect: '20:9', x: 108 }], buttons: { x0: 811, x1: 972 } };
 // Smallest size each HUD and card text may take (B9 asserts).
 const MIN_SIZE = {
   title: 48, subtitle: 32, weekday: 64, clock: 40, count: 36, count2: 36, chips: 24, peak: 26, axis: 26,
@@ -1765,8 +1802,8 @@ function finishFrame() {
 const CAMERA_NAMES = V4_ENUMS.CAMERA_PATH.slice(1);
 // The fit box centre: D3.2 puts the boundary bbox centre there and A8.6 the
 // rush vehicles, so the push-in keeps the city core where the fitted frame
-// has it, below the card.
-const CAMERA_PIVOT = [460, 845];
+// has it. Taken from ZONES so it moves with the safe zone.
+const CAMERA_PIVOT = [(ZONES.fit.x0 + ZONES.fit.x1) / 2, (ZONES.fit.y0 + ZONES.fit.y1) / 2];
 // The pull-outs bow sideways by this share of the drift, so the way out and
 // the way back are the two sides of a thin ellipse rather than one line.
 const CAMERA_BOW = 0.4;
@@ -2842,17 +2879,45 @@ function buildShortsLayout() {
   const week = meta.timeline && meta.timeline.kind === 'week';
   const side = CONFIG.PANEL_SIDE || (HUD_OVERRIDE === 'left' || HUD_OVERRIDE === 'right' ? HUD_OVERRIDE : '')
     || (meta.panel && (meta.panel.side === 'left' || meta.panel.side === 'right') ? meta.panel.side : 'left');
-  const dx = side === 'right' ? 260 : 0;
-  const L = { F, week, side, dx, textX: 88 + dx, rightX: 592 + dx, textW: SHORTS_TEXT_W };
+  // The panel sits against SAFE's left or right side; its text is 28 px in.
+  const dx = side === 'right' ? SAFE.x1 - SAFE.x0 - SHORTS_PANEL_W : 0;
+  const px0 = SAFE.x0 + dx;
+  const L = { F, week, side, dx, textX: px0 + SHORTS_PAD, rightX: px0 + SHORTS_PANEL_W - SHORTS_PAD, textW: SHORTS_TEXT_W };
 
   let ts = Math.round(CONFIG.TITLE_SIZE);
   const title = meta.title || '';
-  while (ts > 48 && textWidth(title, `700 ${ts}px ${F.mont}`, 0.12 * ts) > 796) ts -= 2;
-  L.title = { text: title, size: ts, font: `700 ${ts}px ${F.mont}`, spacing: 0.12 * ts };
+  while (ts > 48 && textWidth(title, `700 ${ts}px ${F.mont}`, 0.12 * ts) > ZONES.textW) ts -= 2;
+  L.title = { text: title, size: ts, font: `700 ${ts}px ${F.mont}`, spacing: 0.12 * ts, x: ZONES.textX, y: ZONES.titleY };
   const subtitle = variantV.label || meta.subtitle || '';
+  const subFont = (px) => `400 ${px}px ${F.mont}`;
   let ss = 36;
-  while (ss > 32 && textWidth(subtitle, `400 ${ss}px ${F.mont}`) > 796) ss--;
-  L.subtitle = { text: subtitle, size: ss, font: `400 ${ss}px ${F.mont}` };
+  while (ss > 32 && textWidth(subtitle, subFont(ss)) > ZONES.textW) ss--;
+  let subLines = [subtitle];
+  if (textWidth(subtitle, subFont(ss)) > ZONES.textW) {
+    // Past one line at the 32 px minimum (the rush label, "Morning rush, an
+    // average September weekday", is 747 px there): two lines from 36 px,
+    // broken after the comma when both halves fit, else where the longer
+    // line is shortest. Only the rush wraps, and its zoomed frame runs past
+    // the fit box anyway, so the second line costs no part of a framed city.
+    const words = subtitle.split(' ');
+    const k = words.findIndex((w, i) => w.endsWith(',') && i < words.length - 1);
+    const atComma = k >= 0 ? [words.slice(0, k + 1).join(' '), words.slice(k + 1).join(' ')] : null;
+    for (let px = 36; px >= 32; px--) {
+      const fits = atComma && atComma.every((l) => textWidth(l, subFont(px)) <= ZONES.textW);
+      const lines = fits ? atComma : wrapText(subtitle, subFont(px), ZONES.textW, 2, 'balanced');
+      if (lines) {
+        subLines = lines;
+        ss = px;
+        break;
+      }
+    }
+  }
+  L.subtitle = { lines: subLines, size: ss, font: subFont(ss), x: ZONES.textX, y: ZONES.subtitleY, dy: 42 };
+  // The title scrim reaches as far under a second subtitle line as under the
+  // first, and holds full strength down to the last line's descenders: at
+  // half strength the rush's second line over dense trails reads at 2.2:1.
+  L.scrimH = ZONES.scrimH + (subLines.length - 1) * L.subtitle.dy;
+  L.scrimFull = L.subtitle.y + (subLines.length - 1) * L.subtitle.dy + Math.ceil(0.3 * ss);
 
   // The count noun: a mode's own word when only one mode is inside in the window.
   const present = modesInWindow();
@@ -2868,17 +2933,20 @@ function buildShortsLayout() {
     while (cs > 36 && Math.max(textWidth(a, `600 ${cs}px ${F.tnum}`), textWidth(b, `600 ${cs}px ${F.tnum}`)) > L.textW) cs--;
   }
   L.count = { size: cs, font: `600 ${cs}px ${F.tnum}` };
-  const up = L.split ? 44 : 0;
-  L.clockY = (week ? 1238 : 1232) - up;
+  // Rows stand on SAFE.y1; a split count line lifts every row above it by one.
+  const y1 = SAFE.y1, R = ZONES.row;
+  const up = L.split ? ZONES.panelH.split : 0;
+  L.clockY = y1 - (week ? R.clockWeek : R.clock) - up;
   L.clock = week ? { size: 40, font: `600 40px ${F.tnum}` } : { size: 88, font: `800 88px ${F.tnum}` };
   if (week) {
     let ws = 80;
     while (ws > 64 && textWidth('WEDNESDAY', `800 ${ws}px ${F.mont}`) > L.textW) ws -= 2;
     L.weekday = { size: ws, font: `800 ${ws}px ${F.mont}`, y: L.clockY - 50 };
   }
-  L.countY = L.split ? 1238 : 1282;
-  L.count2Y = 1282;
-  L.panel = { x0: 60 + dx, x1: 620 + dx, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : (week ? 1110 : 1140) - up, y1: 1500 };
+  L.countY = y1 - R.count - up;
+  L.count2Y = y1 - R.count;
+  const auto = y1 - (week ? ZONES.panelH.week : ZONES.panelH.day) - up;
+  L.panel = { x0: px0, x1: px0 + SHORTS_PANEL_W, y0: CONFIG.PANEL_TOP > 0 ? CONFIG.PANEL_TOP : auto, y1 };
 
   // Chips: groups (else modes) with their means; fitted at each one's maximum
   // over the window.
@@ -2897,10 +2965,11 @@ function buildShortsLayout() {
     }
     const { list, size, gap, merged, tried } = fitChips(parts, F, L.textW);
     if (merged.length && brandMap) console.warn(`chips: ${merged.join(', ')} joined "other" to fit ${L.textW} px; their trails are drawn as "other"`);
-    L.chips = { parts: list, size, gap, font: `500 ${size}px ${F.tnum}`, y: 1320, merged, tried };
+    L.chips = { parts: list, size, gap, font: `500 ${size}px ${F.tnum}`, y: y1 - R.chips, merged, tried };
   }
-  L.spark = { x0: 88 + dx, x1: 592 + dx, y0: 1334, y1: 1386 };
-  L.axisY = 1416;
+  L.spark = { x0: L.textX, x1: L.rightX, y0: y1 - R.sparkTop, y1: y1 - R.sparkBottom };
+  L.axisY = y1 - R.axis;
+  L.creditY = [y1 - R.credit, y1 - R.credit2];
   L.axisFont = `500 26px ${F.mont}`;
   L.axisBold = `700 26px ${F.mont}`;
   L.peakFont = `600 26px ${F.tnum}`;
@@ -3038,17 +3107,22 @@ function buildShortsStatics() {
   const scrim = cssToRGB(C.scrim, bgRGB());
   if (CONFIG.TITLE_SCRIM > 0) {
     const s = CONFIG.TITLE_SCRIM;
+    // Down to 220 px under SAFE.y0, one line more for a wrapped subtitle: full
+    // strength through the subtitle, fading out over the map.
+    const sh = L.scrimH;
+    // A tenth of the sprite at least is left to fade over.
+    const full = Math.min(0.9, L.scrimFull / sh);
     st.titleScrim = document.createElement('canvas');
     st.titleScrim.width = W;
-    st.titleScrim.height = 460;
+    st.titleScrim.height = sh;
     const g = st.titleScrim.getContext('2d');
-    const grad = g.createLinearGradient(0, 0, 0, 460);
+    const grad = g.createLinearGradient(0, 0, 0, sh);
     grad.addColorStop(0, rgba(scrim, s));
-    grad.addColorStop(0.55, rgba(scrim, s));
-    grad.addColorStop(0.80, rgba(scrim, 0.55 * s));
+    grad.addColorStop(full, rgba(scrim, s));
+    grad.addColorStop(full + 0.55 * (1 - full), rgba(scrim, 0.55 * s));
     grad.addColorStop(1, rgba(scrim, 0));
     g.fillStyle = grad;
-    g.fillRect(0, 0, W, 460);
+    g.fillRect(0, 0, W, sh);
   }
   // Panel colour and alpha from the token (rgba(...) carries the theme's
   // 0.78), times PANEL_ALPHA, capped so the map always shows through a little.
@@ -3079,20 +3153,62 @@ function buildShortsStatics() {
   grad.addColorStop(0, rgba(accent, 0.5));
   grad.addColorStop(1, rgba(accent, 0.03));
   st.sparkFill = grad;
-  if (showSafe) {
-    st.safe = document.createElement('canvas');
-    st.safe.width = W;
-    st.safe.height = H;
-    const g = st.safe.getContext('2d');
-    g.fillStyle = 'rgba(255,0,0,0.18)';
-    g.fillRect(0, 0, W, SAFE.y0);
-    g.fillRect(0, SAFE.y1, W, H - SAFE.y1);
-    g.fillRect(SAFE.x1, SAFE.y0, W - SAFE.x1, SAFE.y1 - SAFE.y0);
-    g.strokeStyle = 'rgba(255,0,0,0.9)';
-    g.lineWidth = 1;
-    g.strokeRect(SAFE.x0 + 0.5, SAFE.y0 + 0.5, SAFE.x1 - SAFE.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
-  }
+  if (showSafe) st.safe = buildSafeOverlay();
   shortsStatics = st;
+}
+
+// The ?safe=1 overlay (B9), for the judge only: red where no text may go
+// (the top overlays, the bottom rows, the button column and the left margin),
+// the button column outlined, each tall phone's crop shaded and dashed, the
+// safe zone outlined and the fit box the city is framed in dashed.
+function buildSafeOverlay() {
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(255,0,0,0.18)';
+  g.fillRect(0, 0, W, SAFE.y0);
+  g.fillRect(0, SAFE.y1, W, H - SAFE.y1);
+  g.fillRect(0, SAFE.y0, SAFE.x0, SAFE.y1 - SAFE.y0);
+  g.fillRect(SAFE.x1, SAFE.y0, W - SAFE.x1, SAFE.y1 - SAFE.y0);
+  // The button column a second time, so it reads darker than the margin.
+  const btn = ZONES.phone.buttons;
+  g.fillRect(btn.x0, SAFE.y0, btn.x1 - btn.x0, SAFE.y1 - SAFE.y0);
+  g.strokeStyle = 'rgba(255,0,0,0.9)';
+  g.lineWidth = 1;
+  g.strokeRect(btn.x0 + 0.5, SAFE.y0 + 0.5, btn.x1 - btn.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
+  // The widest crop is shaded, every crop's edge dashed and named at the top.
+  const crops = ZONES.phone.crops;
+  const widest = Math.max(...crops.map((k) => k.x));
+  g.fillStyle = 'rgba(0,0,0,0.35)';
+  g.fillRect(0, 0, widest, H);
+  g.fillRect(W - widest, 0, widest, H);
+  g.strokeStyle = 'rgba(255,170,0,0.95)';
+  g.fillStyle = 'rgba(255,170,0,0.95)';
+  g.font = '500 20px Inter, sans-serif';
+  g.textBaseline = 'top';
+  g.setLineDash([12, 8]);
+  crops.forEach((k, n) => {
+    g.beginPath();
+    for (const x of [k.x + 0.5, W - k.x - 0.5]) {
+      g.moveTo(x, 0);
+      g.lineTo(x, H);
+    }
+    g.stroke();
+    g.textAlign = 'left';
+    g.fillText(k.aspect, k.x + 6, 8 + 26 * n);
+    g.textAlign = 'right';
+    g.fillText(k.aspect, W - k.x - 6, 8 + 26 * n);
+  });
+  g.setLineDash([]);
+  g.strokeStyle = 'rgba(255,0,0,0.9)';
+  g.strokeRect(SAFE.x0 + 0.5, SAFE.y0 + 0.5, SAFE.x1 - SAFE.x0 - 1, SAFE.y1 - SAFE.y0 - 1);
+  const f = ZONES.fit;
+  g.strokeStyle = 'rgba(0,220,255,0.9)';
+  g.setLineDash([6, 6]);
+  g.strokeRect(f.x0 + 0.5, f.y0 + 0.5, f.x1 - f.x0 - 1, f.y1 - f.y0 - 1);
+  g.setLineDash([]);
+  return c;
 }
 
 // Boundary (B11): the mask A wrote, decoded once for the inside flags, and
@@ -3222,7 +3338,8 @@ function buildCard() {
   const line1 = fillCardTemplate(pick[1] || '');
   const title = card.title || meta.title || '';
   const titleFont = (s) => `800 ${s}px ${F.mont}`;
-  const fits = (lines, s) => lines.every((l) => textWidth(l, titleFont(s), 0.04 * s) <= 796);
+  const maxW = ZONES.textW;
+  const fits = (lines, s) => lines.every((l) => textWidth(l, titleFont(s), 0.04 * s) <= maxW);
   const fitSize = (lines) => {
     for (let s = Math.floor(CONFIG.CARD_TITLE_MAX / 2) * 2; s >= 72; s -= 2) if (fits(lines, s)) return s;
     return null;
@@ -3255,7 +3372,7 @@ function buildCard() {
   const place = meta.place || '';
   let l0size = 40, l0 = null;
   for (const [size, keep] of [[44, place], [40, place], [44, ''], [40, '']]) {
-    l0 = wrapText(line0, `500 ${size}px ${F.inter}`, 796, 2, 'balanced', keep);
+    l0 = wrapText(line0, `500 ${size}px ${F.inter}`, maxW, 2, 'balanced', keep);
     if (l0) { l0size = size; break; }
   }
   if (!l0) l0 = [line0];
@@ -3265,17 +3382,23 @@ function buildCard() {
     items.push({ name: k ? 'card_line0b' : 'card_line0', text, y, font: `500 ${l0size}px ${F.inter}`, size: l0size, kind: 'line0' });
   });
   let l1size = 32;
-  while (l1size > 30 && textWidth(line1, `400 ${l1size}px ${F.inter}`) > 796) l1size--;
+  while (l1size > 30 && textWidth(line1, `400 ${l1size}px ${F.inter}`) > maxW) l1size--;
   const l1font = `400 ${l1size}px ${F.inter}`;
-  const l1 = line1 ? wrapText(line1, l1font, 796, 2, 'balanced', place) || wrapText(line1, l1font, 796, 2, 'balanced')
+  const l1 = line1 ? wrapText(line1, l1font, maxW, 2, 'balanced', place) || wrapText(line1, l1font, maxW, 2, 'balanced')
     || [line1] : [];
   l1.forEach((text, k) => {
     y += k ? 40 : 52;
     items.push({ name: k ? 'card_line1b' : 'card_line1', text, y, font: `400 ${l1size}px ${F.inter}`, size: l1size, kind: 'line1' });
   });
   const h = y + 12;
+  // 0 hangs the block from the zone's bottom. The value drawn goes back into
+  // CONFIG, so busmap.config and the tuning arms built on it read it, and it
+  // rounds back to the same B. A block taller than the zone keeps its bottom
+  // and grows up: below it lie YouTube's title rows.
+  const lowest = Math.floor(ZONES.card.y1 - h);
+  if (!(CONFIG.CARD_CENTER_Y > 0)) CONFIG.CARD_CENTER_Y = Math.round(lowest + h / 2);
   let B = Math.round(CONFIG.CARD_CENTER_Y - h / 2);
-  B = Math.max(400, Math.min(1100 - h, B));
+  B = Math.min(lowest, Math.max(ZONES.card.y0, B));
   for (const it of items) it.y += B;
   // The band behind the text: full strength between 48 px feathers.
   const top = B - 60, bandH = h + 120;
@@ -3295,14 +3418,27 @@ function buildCard() {
   cardLayout = { B, h, items, ruleY: B + ruleTop, band, bandY: top, lines: [line0, line1], titleSize: S };
 }
 
-// Card alpha at frame i (B10): held, faded out, and for a wrap loop faded
-// back in so the last frame carries the full card like frame 0.
+// Card alpha at frame i (B10): held, faded out, and faded back in so the last
+// frame carries the full card like frame 0. A wrap loop's fade ends on frame
+// N - 1. An xfade loop's ends where the cross-fade to frame 0 starts: the
+// snapshot's card then lands on the same card, so the cross-fade moves only
+// the map, and the HUD (in the card's band) is gone before it.
 function cardAlphaV4(i) {
   if (!isV4 || !CONFIG.CARD || !cardOn || !cardLayout) return 0;
   const N = totalFrames;
+  const FI = CONFIG.CARD_FADE_IN;
   const aOut = i < CONFIG.CARD_HOLD ? 1 : 1 - smoothstep(Math.min(1, (i - CONFIG.CARD_HOLD) / CONFIG.CARD_FADE_OUT));
-  const aIn = CONFIG.LOOP === 'wrap' ? smoothstep(clamp01((i - (N - 1 - CONFIG.CARD_FADE_IN)) / CONFIG.CARD_FADE_IN)) : 0;
+  const aIn = CONFIG.LOOP === 'wrap' ? smoothstep(clamp01((i - (N - 1 - FI)) / FI))
+    : CONFIG.LOOP === 'xfade' ? smoothstep(clamp01((i - (N - 2 * FI)) / FI)) : 0;
   return Math.max(aOut, aIn);
+}
+
+// The alpha the card draws at for card alpha a, and the HUD for 1 - a (B10):
+// the card shows only above a = 0.5 and the HUD only below it. The card hangs
+// in the panel's band, so a cross-fade of the two would put text on text;
+// between them the map shows alone.
+function upperHalf(a) {
+  return smoothstep(clamp01(2 * a - 1));
 }
 
 // Measures a text, records its box for hudBoxes() and draws it unless the
@@ -3391,8 +3527,9 @@ function countAtV4(T) {
   return { total, byGroup };
 }
 
-// The Shorts HUD at alpha a (1 - card alpha).
+// The Shorts HUD for a = 1 - card alpha, drawn at upperHalf(a).
 function drawHudShorts(T, a) {
+  a = upperHalf(a);
   const C = CONFIG.COLORS;
   const L = shorts;
   const st = shortsStatics;
@@ -3403,8 +3540,9 @@ function drawHudShorts(T, a) {
     ctx.globalAlpha = a;
     ctx.drawImage(st.titleScrim, 0, 0);
   }
-  hudText('title', L.title.text, 72, 316, L.title.font, C.title, L.title.size, a, 'left', L.title.spacing);
-  hudText('subtitle', L.subtitle.text, 72, 370, L.subtitle.font, C.subtitle, L.subtitle.size, a);
+  hudText('title', L.title.text, L.title.x, L.title.y, L.title.font, C.title, L.title.size, a, 'left', L.title.spacing);
+  L.subtitle.lines.forEach((line, k) => hudText('subtitle', line, L.subtitle.x, L.subtitle.y + k * L.subtitle.dy, L.subtitle.font,
+    C.subtitle, L.subtitle.size, a));
   if (a > 0) {
     ctx.globalAlpha = a;
     ctx.drawImage(st.panel, st.panelX, st.panelY);
@@ -3452,7 +3590,7 @@ function drawHudShorts(T, a) {
   }
   drawSparkShorts(T, a, text);
   drawAxisShorts(T, a);
-  L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, x, k ? 1476 : 1450, L.creditFont, C.credit, 22, a));
+  L.credit.forEach((line, k) => hudText(k ? 'credit2' : 'credit', line, x, L.creditY[k ? 1 : 0], L.creditFont, C.credit, 22, a));
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
 }
@@ -3513,7 +3651,8 @@ function drawSparkShorts(T, a, text) {
       }
       const { label, w } = L.peakLabel;
       const right = px + 11 + w <= L.rightX;
-      const by = Math.min(1386, Math.max(1353, py + 9));
+      // On the curve, but never above the box's upper part or below its floor.
+      const by = Math.min(sp.y1, Math.max(sp.y0 + 19, py + 9));
       const lx = right ? px + 11 : px - 11;
       if (text && a > 0) {
         // The label sits on the curve it names, in the same accent; an outline
@@ -3586,9 +3725,11 @@ function drawAxisShorts(T, a) {
   }
 }
 
-// The card at alpha a (B10): a light scrim over the whole frame so the map
-// stays the hook, a feathered band behind the text, then the text.
+// The card for card alpha a, drawn at upperHalf(a) (B10): a light scrim over
+// the whole frame so the map stays the hook, a feathered band behind the
+// text, then the text.
 function drawCard(a) {
+  a = upperHalf(a);
   if (!cardLayout || a <= 0 || hudMode === 'none') return;
   const C = CONFIG.COLORS;
   const cl = cardLayout;
@@ -3601,12 +3742,12 @@ function drawCard(a) {
   ctx.textBaseline = 'alphabetic';
   for (const it of cl.items) {
     const alpha = it.kind === 'line1' ? 0.85 * a : a;
-    hudText(it.name, it.text, 72, it.y, it.font, C.title, it.size, alpha, 'left', it.spacing || 0);
+    hudText(it.name, it.text, ZONES.textX, it.y, it.font, C.title, it.size, alpha, 'left', it.spacing || 0);
   }
   if (hudMode === 'full') {
     ctx.globalAlpha = a;
     ctx.fillStyle = C.accent;
-    ctx.fillRect(72, cl.ruleY, 96, 6);
+    ctx.fillRect(ZONES.textX, cl.ruleY, 96, 6);
   }
   ctx.globalAlpha = 1;
 }
@@ -3893,6 +4034,15 @@ const busmap = {
   get variant() { return isV4 ? CONFIG.VARIANT : ''; },
   get window() { return meta ? { start: meta.day_start, end: meta.day_end } : null; },
   safe: { x0: SAFE.x0, y0: SAFE.y0, x1: SAFE.x1, y1: SAFE.y1 },
+  // Where the layout comes from (B9): the fit box make.py frames the city in
+  // (defaults.json fit_box), the panel's two positions and heights, the card
+  // block's band and the tall-phone crops; tests hold Python's copies to these.
+  zones: {
+    fit: { ...ZONES.fit },
+    panel: { w: SHORTS_PANEL_W, pad: SHORTS_PAD, left: SAFE.x0, right: SAFE.x1 - SHORTS_PANEL_W, ...ZONES.panelH },
+    card: { ...ZONES.card },
+    phone: { crops: ZONES.phone.crops.map((k) => ({ ...k })), buttons: { ...ZONES.phone.buttons } },
+  },
   hudBoxes: () => lastBoxes.map((b) => ({ ...b })),
   get lastVehicles() { return vehBuf.slice(0, 3 * vehN); },
   setHud: (mode) => setHudV4(mode),

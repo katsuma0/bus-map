@@ -211,6 +211,14 @@ class GTA(unittest.TestCase):
         self.assertEqual(len(m["credits"]), 5)
         self.assertIn("\n".join(m["credits"]), m["description"])
 
+    def test_made_by(self):
+        """Every description credits the channel, after the map line and before the hashtags (D5)."""
+        self.assertEqual(self.pl.defaults()["author"], "SOtownships")
+        for stem, m in self.metas.items():
+            self.assertIn("\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#",
+                          m["description"], stem)
+            self.assertNotIn("Katsuma", m["description"], stem)
+
     def test_credit_without_repeated_publisher(self):
         """A feed whose publisher is its own name is credited once."""
         nm = {"feeds": [{"id": "cta", "name": "Chicago Transit Authority", "publisher": "Chicago Transit Authority",

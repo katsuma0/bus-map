@@ -1061,6 +1061,11 @@ class Pipeline:
         rush = recipe.get("rush") or {}
         variety = recipe.get("variety") or {}
         place = recipe["place"]
+        # The trim fills {agencies} and {n}; {author} is the channel's name, the same one the
+        # description's "Made by" line uses (D5).
+        if not d.get("author") and any("{author}" in d[k] for k in ("credit_template", "credit_fallback")):
+            raise MakeError("cities/defaults.json: the credit names {author} but author is empty")
+        credit = {k: d[k].replace("{author}", d.get("author") or "") for k in ("credit_template", "credit_fallback")}
         return {
             "schema": 4, "kind": "city",
             "id": recipe["id"], "batch": batch["batch"], "area": area["id"], "place": place,
@@ -1075,8 +1080,8 @@ class Pipeline:
             "modes": recipe_modes(recipe, batch),
             "brands": self.rel(self.brands_path()),
             "group_by": d["group_by"],
-            "credit_template": d["credit_template"],
-            "credit_fallback": d["credit_fallback"],
+            "credit_template": credit["credit_template"],
+            "credit_fallback": credit["credit_fallback"],
             "preset": d["preset"],
             "theme": {"batch": batch["theme"]},
             "render": {},
