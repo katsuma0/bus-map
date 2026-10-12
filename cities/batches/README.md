@@ -242,6 +242,12 @@ Titles, count lines, cards, descriptions and tags follow: "Every train in Toront
 `card=1` the trains card says "Busiest at 8:17 am with 168 trains"), and the trains
 video is tagged "train map", not "bus map".
 
+When a city's feeds hold only its metro and leave out its other trains, a mode of its
+own keeps the title true: a batch mode `{"id": "tube", "label": "Tube and DLR trains",
+"singular": "Tube and DLR train", "route_types": [], "routes": [...]}` makes "Every Tube
+and DLR train in London in 24 hours" where `rail` would say every train. The templates
+tag `tube`, `ubahn` and `metro` modes "tube map", "U-Bahn map" and "metro map".
+
 A feed can give a route the wrong route_type for this split: ttc.zip gives Line 5
 Eglinton and Line 6 Finch West (route_id and route_short_name `5` and `6`)
 route_type 0, the streetcars' type. A batch mode's `routes` moves them:

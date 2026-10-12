@@ -65,7 +65,8 @@
   "colors_everything": "everything else"
  },
  "tags": ["transit map", "{mode_tags}", "GTFS"],
- "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "tram": "tram map", "rail": "train map"},
+ "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "tram": "tram map", "rail": "train map", "tube": "tube map",
+               "ubahn": "U-Bahn map", "metro": "metro map"},
  "place_tags": {"GTA": "Greater Toronto Area"},
  "hashtags_banned": {"#gta": "on YouTube #gta files a video with Grand Theft Auto"},
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
