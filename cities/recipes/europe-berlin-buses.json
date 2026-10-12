@@ -37,5 +37,71 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "vbb",
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "rest": true,
+    "verified": false,
+    "source": "BVG yellow F0D722 of its buses, approximate"
+   },
+   {
+    "id": "night",
+    "label": "Night",
+    "hex": "#2a4f9e",
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: night blue for BVG's N routes, approximate"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#be1414",
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: BVG tram red, approximate; vbb.zip gives 18 of 27 BVG tram routes no colour"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

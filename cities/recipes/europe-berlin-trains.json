@@ -36,5 +36,61 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "ubahn",
+    "label": "U-Bahn",
+    "hex": "#0065ae",
+    "match": [
+     {
+      "feed": "vbb",
+      "route_type": [
+       400
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the blue of the U-Bahn sign, approximate; vbb.zip gives each U line its own colour"
+   },
+   {
+    "id": "sbahn",
+    "label": "S-Bahn",
+    "hex": "#008d4f",
+    "match": [
+     {
+      "feed": "vbb",
+      "route_type": [
+       109
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the green of the S-Bahn sign, approximate; vbb.zip gives most S lines their own colour"
+   },
+   {
+    "id": "regional",
+    "label": "Regional",
+    "hex": "#ec0016",
+    "match": [
+     {
+      "feed": "vbb",
+      "route_type": [
+       100,
+       106
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: DB red EC0016 for the regional trains (DB Regio, ODEG, NEB), approximate"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

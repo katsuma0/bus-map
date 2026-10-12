@@ -37,5 +37,62 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "hex": "#00aa91",
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "rest": true,
+    "verified": false,
+    "source": "chosen: RATP jade 00AA91 of the RATP logo, approximate; idfm.zip gives each bus line its own colour"
+   },
+   {
+    "id": "noctilien",
+    "label": "Noctilien",
+    "hex": "#3c3c96",
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: Noctilien night blue, approximate"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#ff5a00",
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color FF5A00 on T3a, the tram that rings Paris (T11 too)"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

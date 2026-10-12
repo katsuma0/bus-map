@@ -36,5 +36,105 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "rer_a",
+    "label": "RER A",
+    "hex": "#eb2132",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_ids": [
+       "IDFM:C01742"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color EB2132 on RER A"
+   },
+   {
+    "id": "rer_b",
+    "label": "RER B",
+    "hex": "#5091cb",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_ids": [
+       "IDFM:C01743"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color 5091CB on RER B"
+   },
+   {
+    "id": "rer_c",
+    "label": "RER C",
+    "hex": "#ffcc30",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_ids": [
+       "IDFM:C01727"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color FFCC30 on RER C"
+   },
+   {
+    "id": "rer_d",
+    "label": "RER D",
+    "hex": "#008b5b",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_ids": [
+       "IDFM:C01728"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color 008B5B on RER D"
+   },
+   {
+    "id": "rer_e",
+    "label": "RER E",
+    "hex": "#b94e9a",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_ids": [
+       "IDFM:C01729"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color B94E9A on RER E"
+   },
+   {
+    "id": "metro",
+    "label": "Métro",
+    "neutral": "#e3e7ea",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_type": [
+       1
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the 16 Métro lines as one light neutral web under the five RER colours; idfm.zip gives each line its own colour, more than the 7 a video holds"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

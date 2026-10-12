@@ -35,5 +35,98 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "tfl",
+    "match": [
+     {
+      "feed": "bods",
+      "agency": [
+       "London Underground (TfL)",
+       "London Docklands Light Railway - TfL",
+       "London Tramlink",
+       "IFS Cloud Cable Car",
+       "Thames Clippers",
+       "Woolwich Free Ferry",
+       "Arriva London",
+       "Arriva London North",
+       "Arriva London South",
+       "Docklands Buses",
+       "Go Ahead London",
+       "London Sovereign",
+       "London Transit",
+       "London United",
+       "Metroline Travel",
+       "Quality Line",
+       "Stagecoach London",
+       "Sullivan Buses",
+       "Transport UK",
+       "Uno"
+      ],
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "rest": true,
+    "verified": false,
+    "source": "TfL red DC241F of the London bus roundel (TfL Colour Standard)"
+   },
+   {
+    "id": "night",
+    "label": "Night",
+    "hex": "#1c3f94",
+    "match": [
+     {
+      "feed": "bods",
+      "agency": [
+       "London Underground (TfL)",
+       "London Docklands Light Railway - TfL",
+       "London Tramlink",
+       "IFS Cloud Cable Car",
+       "Thames Clippers",
+       "Woolwich Free Ferry",
+       "Arriva London",
+       "Arriva London North",
+       "Arriva London South",
+       "Docklands Buses",
+       "Go Ahead London",
+       "London Sovereign",
+       "London Transit",
+       "London United",
+       "Metroline Travel",
+       "Quality Line",
+       "Stagecoach London",
+       "Sullivan Buses",
+       "Transport UK",
+       "Uno"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: TfL Blue 1C3F94 (TfL design idiom) for the N routes"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "brand": "tfl:trams",
+    "verified": false,
+    "source": "TfL Colour Standard, London Trams 84B817"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

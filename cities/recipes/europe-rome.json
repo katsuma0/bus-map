@@ -38,5 +38,91 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "metro_a",
+    "label": "Metro A",
+    "hex": "#e27439",
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEA$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip route_color E27439 on Metro A"
+   },
+   {
+    "id": "metro_b",
+    "label": "Metro B",
+    "hex": "#0570b5",
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEB1?$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip route_color 0570B5 on Metro B and B1"
+   },
+   {
+    "id": "metro_c",
+    "label": "Metro C",
+    "hex": "#008456",
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEC$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip route_color 008456 on Metro C"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#f2c500",
+    "match": [
+     {
+      "feed": "rsm",
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: yellow for tram 8, which has no route_color in rsm.zip"
+   },
+   {
+    "id": "atac",
+    "label": "Atac bus",
+    "brand": "rsm",
+    "match": [
+     {
+      "feed": "rsm",
+      "agency": [
+       "Atac"
+      ],
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "Atac red E2001A, approximate; rsm.zip gives buses no route_color"
+   },
+   {
+    "id": "other",
+    "label": "Other bus",
+    "legend": true
+   }
+  ]
  }
 }

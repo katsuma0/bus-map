@@ -34,5 +34,63 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "central",
+    "label": "Central",
+    "brand": "tfl:central",
+    "verified": false,
+    "source": "TfL Colour Standard, Central line E32017"
+   },
+   {
+    "id": "district",
+    "label": "District",
+    "brand": "tfl:district",
+    "verified": false,
+    "source": "TfL Colour Standard, District line 00782A"
+   },
+   {
+    "id": "piccadilly",
+    "label": "Piccadilly",
+    "brand": "tfl:piccadilly",
+    "verified": false,
+    "source": "TfL Colour Standard, Piccadilly line 003688"
+   },
+   {
+    "id": "victoria",
+    "label": "Victoria",
+    "brand": "tfl:victoria",
+    "verified": false,
+    "source": "TfL Colour Standard, Victoria line 0098D4"
+   },
+   {
+    "id": "northern",
+    "label": "Northern",
+    "neutral": "#e3e7ea",
+    "match": [
+     {
+      "feed": "bods",
+      "short": "^Northern$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the Northern line is black on TfL's maps; a dark map draws it as a light neutral, as TfL's dark maps do"
+   },
+   {
+    "id": "dlr",
+    "label": "DLR",
+    "brand": "tfl:dlr",
+    "verified": false,
+    "source": "TfL Colour Standard, DLR 00A4A7"
+   },
+   {
+    "id": "other",
+    "label": "Other lines"
+   }
+  ]
  }
 }

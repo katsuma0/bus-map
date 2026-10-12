@@ -36,5 +36,81 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "u1",
+    "label": "U1",
+    "hex": "#e3000f",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U1$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color E3000F on U1"
+   },
+   {
+    "id": "u2",
+    "label": "U2",
+    "hex": "#a862a4",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U2$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color A862A4 on U2"
+   },
+   {
+    "id": "u3",
+    "label": "U3",
+    "hex": "#ef7c00",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U3$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color EF7C00 on U3"
+   },
+   {
+    "id": "u4",
+    "label": "U4",
+    "hex": "#319f49",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U4$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color 319F49 on U4"
+   },
+   {
+    "id": "u6",
+    "label": "U6",
+    "hex": "#9d6830",
+    "dL": -0.2,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U6$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color 9D6830 on U6; pinned at dL -0.20 so it reads brown next to U3's orange"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }

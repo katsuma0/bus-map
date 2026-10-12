@@ -37,5 +37,65 @@
   "variant_render": {},
   "brand_colors": {},
   "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "wienerlinien",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "rest": true,
+    "verified": true,
+    "source": "wienerlinien.zip route_color 0A295D on 530 of 563 bus routes"
+   },
+   {
+    "id": "night",
+    "label": "Night",
+    "hex": "#f0b400",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: NightLine amber, approximate; wienerlinien.zip gives the N routes the day buses' 0A295D or none"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#c00808",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "agency": [
+       "Wiener Linien GmbH & Co KG"
+      ],
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip route_color C00808 on all 243 tram routes"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
  }
 }
