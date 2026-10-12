@@ -538,7 +538,7 @@ does today).
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
 | `limits` | `city`, `town`, `township`, `village`, `region` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; `region` for a boundary that is no city's limits, named by its `boundary.name` ("inside Greater London"); not with a boundary of several divisions; changes the meta key, not the render key |
-| `missing` | str | no | | a sentence on what the feeds leave out ("VOR's regional buses are not in the feed, so they are not shown."), capital first, full stop last, one line, at most 200 characters, as `{missing}` right after the description's opening sentence; changes the meta key, not the render key |
+| `missing` | str | no | | one or two sentences on what the feeds leave out ("VOR's regional buses are not in the feed, so they are not shown."), capital first, full stop last, one line, at most 200 characters in all, as `{missing}` right after the description's opening sentence; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |

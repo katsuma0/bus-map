@@ -405,7 +405,7 @@ RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "f
 # What a recipe's place is, for the description's "the Oakville town limits"; city when it says nothing.
 # region is a boundary that is no city's limits (London's is Greater London): the description names it.
 LIMITS = ("city", "town", "township", "village", "region")
-# The longest `missing` sentence: it qualifies the opening sentence, it is not a paragraph.
+# The longest `missing` text: it qualifies the opening sentence, it is not a paragraph.
 MISSING_MAX = 200
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
@@ -625,8 +625,8 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         # One plain sentence or two, said after the opening one, so it must read as a sentence there.
         if not (isinstance(m, str) and m.strip() == m and 0 < len(m) <= MISSING_MAX and m[0].isupper()
                 and m.endswith(".") and "\n" not in m):
-            errors.append(f"{where}.missing: must be a sentence of at most {MISSING_MAX} characters, with a "
-                          f"capital first and a full stop last, on one line (what the feeds leave out)")
+            errors.append(f"{where}.missing: must be one or two sentences of at most {MISSING_MAX} characters, "
+                          f"with a capital first and a full stop last, on one line (what the feeds leave out)")
     b = recipe.get("boundary")
     if b is not None:
         if isinstance(b, list):

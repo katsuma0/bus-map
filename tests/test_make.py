@@ -599,13 +599,13 @@ class Validation(unittest.TestCase):
         self.assertTrue(any("limits: a boundary of several divisions" in e for e in errs), errs)
 
     def test_missing(self):
-        """missing: a sentence on what the feeds leave out, said after the description's opening one."""
+        """missing: one or two sentences on what the feeds leave out, said after the description's opening one."""
         for ok in ("VOR's regional buses are not in the feed, so they are not shown.",
                    "The feed has no S-Bahn. Its trains are not shown."):
             self.assertEqual(self.recipe_errors(dict(self.recipe, missing=ok)), [], ok)
         for bad in ("", "no capital first.", "No full stop", " Leading space.", "Two\nlines.", "A" * 200 + ".",
                     None, ["A list."]):
-            self.assertTrue(any("missing: must be a sentence" in e
+            self.assertTrue(any("missing: must be one or two sentences" in e
                                 for e in self.recipe_errors(dict(self.recipe, missing=bad))), bad)
 
     def test_unknown_licence(self):
