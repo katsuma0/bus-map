@@ -28,6 +28,12 @@
   {"id": "mts", "feeds": ["mts"], "agency_names": ["MTS"], "label": "MTS", "color": "#000099", "verified": true, "lines": "rail", "alt": null,
    "source": "mts.zip route_color 000099 on 84 of 98 bus routes; Trolley Blue 0000FF, Green 009900, Orange FF6600, Copper B87333 keep their colours",
    "rules": [{"id": "rapid", "label": "Rapid", "short": "^2\\d\\d$", "color": "#cc0000", "verified": true,
-              "source": "mts.zip route_color CC0000 on the 10 Rapid routes, 201 to 290"}]}
+              "source": "mts.zip route_color CC0000 on the 10 Rapid routes, 201 to 290"}]},
+  {"id": "rapid-kl", "feeds": ["rapid-rail", "rapid-bus", "mrt-feeder"], "label": "Rapid KL", "color": "#008716", "verified": true, "lines": "rail", "alt": null,
+   "source": "rapid-bus.zip route_color 008716 on 79 of 137 routes, the most common (006CFF on the 48 trunk routes); the rail lines keep their colours (Kelana Jaya D50032, Ampang E57200, Sri Petaling 76232F, Kajang 047940, Putrajaya FFCD00, Monorail 84BD00, Shah Alam 00A9E0); mrt-feeder.zip gives none", "rules": []},
+  {"id": "ktm", "feeds": ["ktmb"], "label": "KTM", "color": "#3c5a9f", "verified": false, "lines": "rail", "alt": null,
+   "source": "ktmb.zip gives each line its own colour (Seremban 3C5A9F, Port Klang DC2420, ETS FFC72C, intercity grey 6E6E6E); the Seremban Line blue stands for KTM, approximate", "rules": []},
+  {"id": "otp", "feeds": ["namtang"], "label": "OTP", "credit": "OTP Thailand", "color": "#9400d3", "verified": true, "lines": "rail", "alt": null,
+   "source": "namtang.zip publishes 124 agencies; route_color 9400D3 (the joint suburban buses) is the most common, on 392 of 2,066 routes; BTS, MRT and the SRT lines keep their own colours", "rules": []}
  ]
 }
