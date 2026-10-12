@@ -185,7 +185,7 @@ def dst_change(date, tz, hours):
 
 
 def _exclude(cand, counts, holidays, tz, hours, drop_pct):
-    """A3.2 on one candidate list: (kept dates, excluded records)."""
+    """A3.2 steps 1 to 4 on one candidate list: (kept dates, excluded records, the median `low` used)."""
     kept, excluded = [], []
     for d in cand:
         n = counts.get(d, 0)
@@ -205,7 +205,19 @@ def _exclude(cand, counts, holidays, tz, hours, drop_pct):
             excluded.append({"date": iso(d), "why": "low", "trips": counts[d], "median": med, "name": None})
         kept = [d for d in kept if d not in low]
     excluded.sort(key=lambda e: e["date"])
-    return kept, excluded
+    return kept, excluded, med
+
+
+def timetable_start(counts, kind, holidays, drop_pct, medians):
+    """The first date the feed runs a full timetable: the first date of any class with a median whose trips
+    are not low against that median (A3.2 step 4), holidays aside, looking at every date of the feed, not
+    only the month's. None when no class has a median."""
+    keep = Fraction(100) - Fraction(str(drop_pct))
+    for d in sorted(counts):
+        med = medians.get(day_class(d, kind))
+        if med is not None and iso(d) not in holidays and counts[d] * 100 >= keep * med:
+            return d
+    return None
 
 
 def select_dates(counts, timeline, tz, max_t1):
@@ -220,7 +232,7 @@ def select_dates(counts, timeline, tz, max_t1):
     fallback_days = int(timeline.get("fallback_days", 28))
     hours = max(30, math.ceil((max_t1 or 0) / 3600))
     valid = sorted(d for d, n in counts.items() if n > 0)
-    out = {}
+    out, medians = {}, {}
     for k in DAY_CLASSES[kind]:
         rec = {"dates": [], "excluded": [], "fallback": False, "month_used": timeline["month"], "median": None}
         out[k] = rec
@@ -228,11 +240,11 @@ def select_dates(counts, timeline, tz, max_t1):
             continue
         first, last = valid[0], valid[-1]
         cand = [d for d in month_dates(timeline["month"]) if day_class(d, kind) == k and first <= d <= last]
-        kept, excluded = _exclude(cand, counts, holidays, tz, hours, drop_pct)
+        kept, excluded, med = _exclude(cand, counts, holidays, tz, hours, drop_pct)
         if not kept:
             window = [first + dt.timedelta(days=i) for i in range(fallback_days)]
             cand = [d for d in window if day_class(d, kind) == k]
-            kept, more = _exclude(cand, counts, holidays, tz, hours, drop_pct)
+            kept, more, med = _exclude(cand, counts, holidays, tz, hours, drop_pct)
             excluded = sorted(excluded + more, key=lambda e: e["date"])
             rec["fallback"] = True
             start = kept[0] if kept else first
@@ -240,6 +252,16 @@ def select_dates(counts, timeline, tz, max_t1):
         rec["dates"] = kept
         rec["excluded"] = excluded
         rec["median"] = lower_median([counts[d] for d in kept])
+        medians[k] = med if kept else None
+    # A3.2 step 5. A feed published part-way through the month carries only a few services on the days
+    # before its timetable starts (Rome's: one service a day from September 21, nine on October 7 and
+    # 8, 532 on October 9), so those days are low for that reason alone, not because the feed ran a
+    # reduced timetable on a day it covered. They say when it starts instead.
+    begins = timetable_start(counts, kind, holidays, drop_pct, medians)
+    for rec in out.values():
+        for e in rec["excluded"]:
+            if e["why"] == "low" and begins is not None and e["date"] < iso(begins):
+                e["why"], e["starts"] = "start", iso(begins)
     return out
 
 

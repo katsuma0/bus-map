@@ -594,6 +594,19 @@ class Validation(unittest.TestCase):
                  {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9}]
         errs = self.recipe_errors(dict(self.recipe, limits="town", boundary=parts))
         self.assertTrue(any("limits: a boundary of several divisions" in e for e in errs), errs)
+        self.assertIn("region", make.LIMITS, "Greater London is a region, no city's limits")
+        errs = self.recipe_errors(dict(self.recipe, limits="region", boundary=parts))
+        self.assertTrue(any("limits: a boundary of several divisions" in e for e in errs), errs)
+
+    def test_missing(self):
+        """missing: a sentence on what the feeds leave out, said after the description's opening one."""
+        for ok in ("VOR's regional buses are not in the feed, so they are not shown.",
+                   "The feed has no S-Bahn. Its trains are not shown."):
+            self.assertEqual(self.recipe_errors(dict(self.recipe, missing=ok)), [], ok)
+        for bad in ("", "no capital first.", "No full stop", " Leading space.", "Two\nlines.", "A" * 200 + ".",
+                    None, ["A list."]):
+            self.assertTrue(any("missing: must be a sentence" in e
+                                for e in self.recipe_errors(dict(self.recipe, missing=bad))), bad)
 
     def test_unknown_licence(self):
         b = json.loads(json.dumps(self.batch))
@@ -1053,6 +1066,11 @@ class Derivation(Scratch):
         town = dict(recipe, limits="town")
         self.assertEqual(self.pl.render_key(self.batch, town, "day", self.lock), k)
         self.assertNotEqual(self.pl.meta_key(self.batch, town, "day", self.lock),
+                            self.pl.meta_key(self.batch, recipe, "day", self.lock))
+        # So is the missing sentence.
+        gap = dict(recipe, missing="The feed has no S-Bahn, so its trains are not shown.")
+        self.assertEqual(self.pl.render_key(self.batch, gap, "day", self.lock), k)
+        self.assertNotEqual(self.pl.meta_key(self.batch, gap, "day", self.lock),
                             self.pl.meta_key(self.batch, recipe, "day", self.lock))
         b3 = dict(self.batch, render_epoch=1)
         self.assertNotEqual(self.pl.render_key(b3, recipe, "day", self.lock), k)
