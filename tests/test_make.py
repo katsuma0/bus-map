@@ -729,6 +729,11 @@ class Validation(unittest.TestCase):
         for bad in ("yes", [w - 0.1, s, e, n], [e, s, w, n], [w, s, e]):
             b["areas"][0]["feeds"][0]["area_clip"] = bad
             self.assertTrue(any("area_clip: must be true" in x for x in self.batch_errors(b)), bad)
+        b = json.loads(json.dumps(self.batch))
+        b["areas"][0]["feeds"][0]["one_run"] = "BODS files short-term timetable versions beside the base one"
+        self.assertFalse([e for e in self.batch_errors(b) if "one_run" in e], "a reason string is the key's value")
+        b["areas"][0]["feeds"][0]["one_run"] = True
+        self.assertTrue(any("one_run: must be a reason string" in e for e in self.batch_errors(b)))
 
 
 # ------------------------------------------------------------------ D-3 frames

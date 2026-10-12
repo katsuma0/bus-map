@@ -451,8 +451,8 @@ BATCH_KEYS = {"batch", "title", "theme", "month", "overture_release", "render_ep
 BATCH_REQUIRED = BATCH_KEYS - {"review_videos"}
 AREA_KEYS = {"id", "origin", "timezone", "country", "region", "holidays", "area_box", "feeds", "month"}
 AREA_REQUIRED = AREA_KEYS - {"month"}
-FEED_KEYS = {"id", "name", "publisher", "licence_id", "licence_text", "allow_nc", "area_clip", "source"}
-FEED_REQUIRED = FEED_KEYS - {"allow_nc", "area_clip"}
+FEED_KEYS = {"id", "name", "publisher", "licence_id", "licence_text", "allow_nc", "area_clip", "one_run", "source"}
+FEED_REQUIRED = FEED_KEYS - {"allow_nc", "area_clip", "one_run"}
 MODE_KEYS = {"id", "label", "singular", "route_types", "routes"}
 MODE_REQUIRED = MODE_KEYS - {"routes"}
 # A route rule moves the routes it names into its mode whatever their route_type
@@ -1004,6 +1004,8 @@ def validate_batch(batch, name, licences, holidays, errors):
                 if not (clip is True or (is_box(clip) and is_box(a.get("area_box")) and box_inside(clip, a["area_box"]))):
                     errors.append(f"{fw}.area_clip: must be true (the area box) or a [w, s, e, n] box inside the "
                                   f"area_box (leave it out for a feed of the area alone)")
+            if "one_run" in f and not (isinstance(f["one_run"], str) and f["one_run"].strip()):
+                errors.append(f"{fw}.one_run: must be a reason string (why the feed's timetable versions overlap)")
             src = f.get("source")
             kind = source_kind(src)
             if kind is None:

@@ -162,8 +162,10 @@ the area build reads only the trips that stop inside the area box, so BODS, all 
 Great Britain in 5.2 GB of stop times, builds London in the memory of one runner,
 and the feed's counts and dates describe the area; or a `[w, s, e, n]` box inside
 the area box, to keep only the trips that stop inside it: London keeps the routes that
-reach Greater London, not every bus of the South East under its tall frame), and
-`source`, one of:
+reach Greater London, not every bus of the South East under its tall frame),
+optional `one_run` (a reason: the feed files the same trip twice on the dates two of
+its timetable versions overlap, as BODS does, so each timetable class runs at most
+once a date in the counts and the drawn trips; contract A3.4a), and `source`, one of:
 
 | source | lock records | use |
 |---|---|---|
