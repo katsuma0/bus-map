@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "berlin",
+ "files": {
+  "2026-09-23.1/berlin/segments.geojson": {
+   "sha256": "e8c05c3d4f223af761cc506e6767685e7dd0b0c1935fef016d80a9be2784aea5",
+   "bytes": 245451838,
+   "parts": [
+    "2026-09-23.1/berlin/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/berlin/water.geojson": {
+   "sha256": "e2edb4d98f044891d76b7361bfe416297efc0a58649cb5964e3571aea3fd48f9",
+   "bytes": 36179120,
+   "parts": [
+    "2026-09-23.1/berlin/water.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/divisions/DE-BE-berlin+region.geojson": {
+   "sha256": "6ff5dc9727355b7f4799423ce1fab8172ba47fae21df76adc94357d12c2f93b8",
+   "bytes": 449090,
+   "parts": [
+    "2026-09-23.1/divisions/DE-BE-berlin+region.geojson.gz.000"
+   ]
+  }
+ }
+}
