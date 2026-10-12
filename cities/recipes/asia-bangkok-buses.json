@@ -43,25 +43,10 @@
   "legend": true,
   "groups": [
    {
-    "id": "private",
-    "label": "Private buses",
-    "hex": "#3fae5a",
-    "rest": true,
-    "match": [
-     {
-      "feed": "namtang",
-      "mode": [
-       "bus"
-      ]
-     }
-    ],
-    "verified": false,
-    "source": "chosen: calm green; the joint private routes carry OTP's category colours (9400D3 suburban, 20B2AA minibus) and no brand of their own"
-   },
-   {
     "id": "bmta",
     "label": "BMTA",
     "hex": "#ff0000",
+    "dL": -0.12,
     "match": [
      {
       "feed": "namtang",
@@ -71,11 +56,11 @@
      }
     ],
     "verified": true,
-    "source": "namtang.zip routes.txt route_color FF0000 on 102 of 216 BMTA routes, the most common"
+    "source": "namtang.zip routes.txt route_color FF0000 on 102 of 216 BMTA routes, 1,056 of its 2,286 buses at 08:01, the most (FE9A2E 55 routes, 05ADFB 33, 0000E6 19 mark its air-conditioned types). Pinned at dL -0.12 (trail #f36353, line #ab3a2f) so it reads red, not salmon #ffa193."
    },
    {
     "id": "tsb",
-    "label": "Thai Smile Bus",
+    "label": "Thai Smile",
     "hex": "#063970",
     "match": [
      {
@@ -86,12 +71,13 @@
      }
     ],
     "verified": true,
-    "source": "namtang.zip routes.txt route_color 063970 on 143 of 154 Thai Smile Bus routes"
+    "source": "namtang.zip routes.txt route_color 063970 on 143 of 154 Thai Smile Bus routes, 1,586 of its 1,710 buses at 08:01 (FF8C00 on the other 11). Source step: trail #90c1ff, line #4f7fbc."
    },
    {
     "id": "vans",
     "label": "Vans",
     "hex": "#ff00ff",
+    "dL": -0.12,
     "match": [
      {
       "feed": "namtang",
@@ -102,7 +88,35 @@
      }
     ],
     "verified": true,
-    "source": "namtang.zip routes.txt route_color FF00FF on all 334 City Van routes (short names ต.1 to ต.999, Department of Land Transport)"
+    "source": "namtang.zip routes.txt route_color FF00FF on all 334 City Van routes (short names ต.1 to ต.999, Department of Land Transport), OTP's van colour; no operator brand exists. Pinned at dL -0.12 (trail #d26acf, line #924090) to part from the Thai Smile blue for deuteranopes (0.022 at the source step, 0.114 pinned)."
+   },
+   {
+    "id": "minibus",
+    "label": "Minibuses",
+    "hex": "#3fae5a",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "1400", "1401", "1402", "1403", "1404", "1405", "1406", "1407", "1408", "1409", "1410", "1411", "1412", "1413", "1414", "1415",
+       "1416", "1417", "1418", "1419", "1420", "1421", "1422", "1423", "1424", "1425", "1426", "1427", "1428", "1429", "1430", "1431",
+       "1432", "1433", "1434", "1435", "1436", "1437", "1438", "1439", "1440", "1441", "1442", "1443", "1444", "1445", "1446", "1447",
+       "1448", "1449", "1450", "1451", "1452", "1453", "1454", "1455", "1456", "1457", "1458", "1459", "1460", "1461", "1462", "1463",
+       "1464", "1465", "1466", "1467", "1468", "1469", "1470", "1471", "1472", "1473", "1474", "1475", "1476", "1477", "1478", "1479",
+       "1480", "1481", "1482", "1483", "1484", "1485", "1486", "1487", "1488", "1489", "1490", "1491", "1492", "1493", "1494", "1495",
+       "1496", "1497", "1498", "1499", "1500", "1501", "1502", "1503", "1504", "1505", "1506", "1507", "1508", "1509", "1510", "1511",
+       "1512", "1513", "1514", "1515", "1516", "1517", "1518", "1519", "1520", "1521", "1522", "1523", "1524", "1525", "1526", "1527",
+       "1528", "1529", "1530", "1531", "1532", "1533", "1534", "1535", "1536", "1537", "1538", "1539", "1540", "1541", "1542", "1543",
+       "1544", "1545", "1546", "1547", "1548", "1549", "1550", "1551", "1552", "1553", "1554", "1555", "1556", "1557", "1558", "1559",
+       "1560", "1561", "1562", "1563", "1564", "1565", "1566", "1567", "1568", "1569", "1570", "1571", "1572", "1573", "1574", "1575",
+       "1576", "1577", "1578", "1579", "1580", "1581", "1582", "1583", "1584", "1585", "1586", "1587", "1588", "1589", "1590", "1591",
+       "1592", "1593", "1594", "1595", "1596", "1597", "1598", "1599", "1600", "1601", "1602", "1603", "1604", "1605", "1606", "1607",
+       "1608", "1609", "1610", "1611", "1612", "1970", "1971", "1973", "1974", "1975"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: calm green. The soi minibuses and songthaews have no operator brand; OTP's City Mini Bus colour 20B2AA would draw #53d5cd, 0.040 from the city line. Source step: trail #6dd982, line #299446."
    },
    {
     "id": "boats",
@@ -116,8 +130,8 @@
       ]
      }
     ],
-    "verified": true,
-    "source": "namtang.zip routes.txt route_color FFCC00 on the Chao Phraya Express yellow flag line (183), the busiest boat brand"
+    "verified": false,
+    "source": "chosen: FFCC00 is namtang's route_color on the Chao Phraya Express yellow flag (183, 2715), 1 boat at 08:01. Most boats then are the Saen Saep boats (74 of 151, CC00CC, the vans' magenta) and the cross-river ferries (35, 0000FF), so no single brand stands for them. Source step: trail #e6b800, line #997900."
    },
    {
     "id": "other",

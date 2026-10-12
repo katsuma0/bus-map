@@ -43,8 +43,9 @@
   "groups": [
    {
     "id": "kelana",
-    "label": "Kelana Jaya Line",
+    "label": "Kelana Jaya",
     "hex": "#d50032",
+    "dL": -0.22,
     "match": [
      {
       "feed": "rapid-rail",
@@ -54,12 +55,13 @@
      }
     ],
     "verified": true,
-    "source": "rapid-rail.zip routes.txt route_color D50032 on KJ"
+    "source": "rapid-rail.zip routes.txt route_color D50032 on KJ (LRT Kelana Jaya Line). Pinned at dL -0.22 (trail #cf3f49, line #ab383e): a full red, darker than the Ampang orange; deuteranopes see it lighter than the Kajang green and protanopes darker (0.080 and 0.071 apart)."
    },
    {
     "id": "ampang",
     "label": "Ampang lines",
     "hex": "#e57200",
+    "dL": -0.1,
     "match": [
      {
       "feed": "rapid-rail",
@@ -70,12 +72,13 @@
      }
     ],
     "verified": true,
-    "source": "rapid-rail.zip routes.txt route_color E57200 on AG (Ampang Line); the Sri Petaling Line (PH, 76232F) shares its trunk and joins it"
+    "source": "rapid-rail.zip routes.txt route_color E57200 on AG (LRT Ampang Line, 14 trains at 08:18). The Sri Petaling Line (PH, 76232F, 25 trains) shares its trunk and joins it; maroon would draw the pink #ff9ea4. Pinned at dL -0.10 (trail #ee7a17, line #994a00): a true orange, and 0.093 from the Monorail lime for deuteranopes where the source step is 0.025."
    },
    {
     "id": "kajang",
-    "label": "Kajang Line",
+    "label": "Kajang",
     "hex": "#047940",
+    "dL": -0.28,
     "match": [
      {
       "feed": "rapid-rail",
@@ -85,12 +88,13 @@
      }
     ],
     "verified": true,
-    "source": "rapid-rail.zip routes.txt route_color 047940 on KGL"
+    "source": "rapid-rail.zip routes.txt route_color 047940 on KGL (MRT Kajang Line). Pinned at dL -0.28 (trail #0f7d44, line #00713b): dark green, as on the KL map, and apart from the Ampang orange (protanopia 0.098) and the Kelana Jaya red (0.071)."
    },
    {
     "id": "putrajaya",
-    "label": "Putrajaya Line",
+    "label": "Putrajaya",
     "hex": "#ffcd00",
+    "dL": 0.12,
     "match": [
      {
       "feed": "rapid-rail",
@@ -100,11 +104,11 @@
      }
     ],
     "verified": true,
-    "source": "rapid-rail.zip routes.txt route_color FFCD00 on PYL"
+    "source": "rapid-rail.zip routes.txt route_color FFCD00 on PYL (MRT Putrajaya Line). Pinned at dL +0.12 (trail #ffe291, line #c49d00) so it reads yellow, not mustard, and stays 0.098 from the Monorail lime for protanopes on their shared corridor north of KLCC."
    },
    {
     "id": "monorail",
-    "label": "KL Monorail",
+    "label": "Monorail",
     "hex": "#84bd00",
     "match": [
      {
@@ -115,20 +119,19 @@
      }
     ],
     "verified": true,
-    "source": "rapid-rail.zip routes.txt route_color 84BD00 on MR"
+    "source": "rapid-rail.zip routes.txt route_color 84BD00 on MR (KL Monorail Line). Free group, source step passes: trail #9bd343, line #638d0e."
    },
    {
-    "id": "komuter",
-    "label": "KTM Komuter",
+    "id": "ktm",
+    "label": "KTM",
     "hex": "#3c5a9f",
     "match": [
      {
-      "feed": "ktmb",
-      "short": "^(Seremban|Port Klang) Line$"
+      "feed": "ktmb"
      }
     ],
     "verified": true,
-    "source": "ktmb.zip routes.txt route_color 3C5A9F on the Seremban Line; the Port Klang Line (DC2420, too close to Kelana Jaya red) joins it"
+    "source": "ktmb.zip routes.txt route_color 3C5A9F on the Seremban Line (KC05_KB18), 4 of the group's 9 trains at 08:18, the most. The Port Klang Line (KA15_KD19, DC2420, 3), ETS (FFC72C, 2) and ERT (6E6E6E) share its tracks through Kuala Lumpur and join it. Free group, source step passes: trail #9ebdff, line #5a7bc3."
    },
    {
     "id": "other",

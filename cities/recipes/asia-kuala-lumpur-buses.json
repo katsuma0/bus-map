@@ -52,12 +52,13 @@
      }
     ],
     "verified": true,
-    "source": "rapid-bus.zip routes.txt route_color 006CFF on the 48 numbered trunk routes (300 to 852)"
+    "source": "rapid-bus.zip routes.txt route_color 006CFF on all 47 numbered trunk routes (route_id U, short names 151 to 851). Source step: trail #98bfff, line #447bd5."
    },
    {
     "id": "local",
     "label": "Local",
     "hex": "#008716",
+    "dL": -0.2,
     "rest": true,
     "match": [
      {
@@ -65,7 +66,7 @@
      }
     ],
     "verified": true,
-    "source": "rapid-bus.zip routes.txt route_color 008716 on 79 local and feeder routes (T, KJ, SA, BTG), the most common Rapid KL colour"
+    "source": "rapid-bus.zip routes.txt route_color 008716 on 79 of 137 routes (54 T local routes; PJ, AJ, KJ, MPS, SA and BTG free buses). Pinned at dL -0.20 (trail #26992e, line #0e7218) so deuteranopes can tell it from the MRT feeder amber."
    },
    {
     "id": "feeder",
@@ -77,7 +78,7 @@
      }
     ],
     "verified": false,
-    "source": "chosen: amber; mrt-feeder.zip gives its routes no colour"
+    "source": "chosen: amber. mrt-feeder.zip routes.txt has no route_color column and no MRT feeder livery colour could be confirmed. Source step: trail #f4ae4a, line #aa6f00."
    },
    {
     "id": "other",
