@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "bangkok",
+ "files": {
+  "2026-09-23.1/bangkok/segments.geojson": {
+   "sha256": "6c8f65c1cb565b99bf4a377a15b2cdb269025914097ce6837329ccf983505e8c",
+   "bytes": 408048431,
+   "parts": [
+    "2026-09-23.1/bangkok/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/bangkok/water.geojson": {
+   "sha256": "ca77b4c2e279462ae753c7d194afcf7342c4cdf9ed7eb5350bc5c2a58b339671",
+   "bytes": 24237092,
+   "parts": [
+    "2026-09-23.1/bangkok/water.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/divisions/TH-10-bangkok+region.geojson": {
+   "sha256": "3538edaabc4225649c82f0e1bb53a8aef068b7aad52687796151e31e658d8064",
+   "bytes": 2158526,
+   "parts": [
+    "2026-09-23.1/divisions/TH-10-bangkok+region.geojson.gz.000"
+   ]
+  }
+ }
+}
