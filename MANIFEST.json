@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "rome",
+ "files": {
+  "2026-09-23.1/divisions/IT-62-rome.geojson": {
+   "sha256": "c7a0403a17dfb05b0b57a9575ade3e1ce1c3856cbcec09ff40f515a11b52e77c",
+   "bytes": 3876622,
+   "parts": [
+    "2026-09-23.1/divisions/IT-62-rome.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/rome/segments.geojson": {
+   "sha256": "47c69411b5ba904937c7ca10dfe1685371bb1955cf3bfd8c75753e13d659810c",
+   "bytes": 211331909,
+   "parts": [
+    "2026-09-23.1/rome/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/rome/water.geojson": {
+   "sha256": "9e73e7202cee318df313e30066c4045ab363703ed9ef25fbe81b522e5129a4fb",
+   "bytes": 23219556,
+   "parts": [
+    "2026-09-23.1/rome/water.geojson.gz.000"
+   ]
+  }
+ }
+}
