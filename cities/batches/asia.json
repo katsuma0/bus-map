@@ -28,7 +28,7 @@
    "timezone": "Asia/Bangkok",
    "country": "TH",
    "region": "TH-10",
-   "holidays": "TH",
+   "holidays": "TH-10",
    "area_box": [100.07, 12.46, 101.34, 14.63],
    "feeds": [
     {"id": "namtang", "name": "Namtang", "publisher": "Office of Transport and Traffic Policy and Planning, Thailand", "licence_id": "otp-namtang", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1831/mdb-1831-202610120004/mdb-1831-202610120004.zip", "sha256": "443c955d84e412ee227968a995ccb2515fa3e2679eafbd580d79fd8f3d4c3a10"}}
