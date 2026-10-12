@@ -3,6 +3,8 @@
  "batch": "europe",
  "area": "london",
  "place": "London",
+ "limits": "region",
+ "missing": "The feed has no London Overground, Elizabeth line or National Rail trains, so they are not shown.",
  "boundary": {
   "name": "Greater London",
   "file": "cities/boundaries/greater-london.geojson",

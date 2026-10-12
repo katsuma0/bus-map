@@ -3,6 +3,7 @@
  "batch": "europe",
  "area": "london",
  "place": "London",
+ "limits": "region",
  "boundary": {
   "name": "Greater London",
   "file": "cities/boundaries/greater-london.geojson",

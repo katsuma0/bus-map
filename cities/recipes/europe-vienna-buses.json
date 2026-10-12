@@ -3,6 +3,7 @@
  "batch": "europe",
  "area": "vienna",
  "place": "Vienna",
+ "missing": "VOR's regional buses also run in Vienna but are not in the feed, so they are not shown.",
  "boundary": {
   "name": "Wien",
   "subtypes": [

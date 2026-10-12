@@ -3,6 +3,7 @@
  "batch": "europe",
  "area": "rome",
  "place": "Rome",
+ "missing": "The feed has no FL regional trains, no Roma-Lido, Roma-Viterbo or Termini-Giardinetti trains and no Cotral buses, so they are not shown.",
  "boundary": {
   "name": "Roma",
   "subtypes": [
