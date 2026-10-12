@@ -40,10 +40,11 @@
    "routes": [{"feed": "rapid-rail", "route_id": "^BRT$", "why": "the BRT Sunway Line runs buses on a busway; rapid-rail gives it route_type 0"}]},
   {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 12, 100, 109, 400],
    "routes": [{"feed": "namtang", "route_id": "^(1|2|2025|2026|2027)$", "why": "BTS Sukhumvit, Silom and Gold Lines and the SRT Dark and Light Red Lines have route_type 0"},
-              {"feed": "ktmb", "route_id": ".", "why": "KTMB gives its Komuter lines route_type 0; every KTMB route is a train"}]},
+              {"feed": "ktmb", "route_id": "^(KC05_KB18|KA15_KD19|100_9000|100_47300|SS)$", "why": "KTMB gives its Komuter lines route_type 0"}]},
   {"id": "ferry", "label": "boats", "singular": "boat", "route_types": [4, 1000, 1200]},
   {"id": "dropped", "label": "dropped routes", "singular": "dropped route", "route_types": [],
-   "routes": [{"feed": "rapid-bus", "route_id": "^B1000$", "why": "the BRT Sunway Line is in rapid-rail too, with its peak headways where rapid-bus runs it every 6 minutes all day; no recipe keeps this mode, so the line is drawn once"}]}
+   "routes": [{"feed": "rapid-bus", "route_id": "^B1000$", "why": "the BRT Sunway Line is in rapid-rail too, with its peak headways where rapid-bus runs it every 6 minutes all day; no recipe keeps this mode, so the line is drawn once"},
+              {"feed": "ktmb", "route_id": "^(ETS|ERT)$", "why": "ktmb.zip has no shapes.txt and its ETS and intercity trips list only their stops, 60 to 206 km apart, so they drew as straight lines across Kuala Lumpur; the Komuter lines stay"}]}
  ],
  "cities": ["asia-bangkok-trains", "asia-kuala-lumpur-trains", "asia-bangkok-buses", "asia-kuala-lumpur-buses"],
  "variants_default": ["day", "rush", "week"],
