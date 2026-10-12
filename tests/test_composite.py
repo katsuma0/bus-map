@@ -164,6 +164,43 @@ class Reading(unittest.TestCase):
             self.assertTrue(np.array_equal(st.dep[a2:b2], bn.parse_times(ref["departure_time"])[perm][a:b], equal_nan=True))
 
 
+class Clip(unittest.TestCase):
+    """A national file (area_clip): only the trips that stop inside the box are read and counted."""
+
+    BOX = [-80.06, 43.06, -78.58, 44.25]   # the fixtures' area box; stops F1 and F2 lie far outside it
+
+    def test_clipped_tables_and_counts(self):
+        full = feed("stable")
+        clipped = composite.Feed("stable", os.path.join(FIX, "stable.zip"), clip_box=self.BOX, chunksize=7)
+        far = {t["trip_id"] for t in full.table("trips") if t["route_id"] == "R5"}
+        self.assertTrue(far)
+        self.assertEqual(clipped.table("trips"), [t for t in full.table("trips") if t["trip_id"] not in far])
+        self.assertEqual(clipped.table("frequencies"), full.table("frequencies"))
+        self.assertEqual(clipped.table("routes"), full.table("routes"))
+        cs = clipped.clip_stats
+        self.assertEqual((cs["trips_seen"], cs["trips_kept"]), (len(full.table("trips")), len(full.table("trips")) - len(far)))
+        self.assertEqual((cs["stops"] - cs["stops_inside"], cs["box"]), (2, self.BOX))
+        svc = composite.service_dates(full)
+        c_full, c_clip = composite.trips_per_date(full, svc), composite.trips_per_date(clipped, svc)
+        # One far trip runs on every service day.
+        self.assertEqual(c_full[D(2026, 10, 6)] - c_clip[D(2026, 10, 6)], 1)
+
+    def test_clipped_stop_times(self):
+        full = feed("stable")
+        clipped = composite.Feed("stable", os.path.join(FIX, "stable.zip"), clip_box=self.BOX, chunksize=7)
+        trips = {t["trip_id"] for t in full.table("trips")}
+        a, b = composite.read_stop_times(full, trips, 11), composite.read_stop_times(clipped, trips, 11)
+        far = {t["trip_id"] for t in full.table("trips") if t["route_id"] == "R5"}
+        self.assertEqual(set(b.ranges), set(a.ranges) - far)
+        self.assertEqual(a.rows_read - b.rows_read, 2 * len(far))
+        for tid, (i, j) in b.ranges.items():
+            k, m = a.ranges[tid]
+            self.assertEqual(list(b.stop[i:j]), list(a.stop[k:m]))
+            self.assertTrue(np.array_equal(b.arr[i:j], a.arr[k:m], equal_nan=True))
+        # Without a box the feed reads as before.
+        self.assertIsNone(feed("stable").clip_trips)
+
+
 class Classes(unittest.TestCase):
     """A-2."""
 

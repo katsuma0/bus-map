@@ -340,6 +340,61 @@ RULE_MODES = [dict(U.MODES[0]), dict(U.MODES[1], routes=[{"feed": "stable", "sho
               {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4]}]
 
 
+class AreaClip(unittest.TestCase):
+    def test_clipped_store_stores_the_same_trips(self):
+        """area_clip (a national file): the store's arrays are the unclipped build's, its statistics the area's."""
+        with tempfile.TemporaryDirectory() as tmp:
+            stores = {}
+            for clip in (False, True):
+                f = fixture_feed("stable")
+                if clip:
+                    f["area_clip"] = True
+                acfg = os.path.join(tmp, f"area.{clip}.json")
+                U.dump_json(acfg, U.area_config("fx", ORIGIN, AREA_BOX, FIX, [f], "day", chunk=5000))
+                stores[clip] = os.path.join(tmp, f"store.{clip}")
+                p, _s, _g = U.run("build_area.py", "--config", acfg, "--out", stores[clip])
+                if clip:
+                    self.assertIn("stable: clipped to the area box", p.stderr)
+            names = sorted(n for n in os.listdir(stores[False]) if n.endswith(".npy"))
+            self.assertEqual(names, sorted(n for n in os.listdir(stores[True]) if n.endswith(".npy")))
+            for n in names:
+                self.assertEqual(read_bytes(os.path.join(stores[False], n)), read_bytes(os.path.join(stores[True], n)), n)
+            fa = U.load_json(os.path.join(stores[False], "meta.json"))["feeds"][0]
+            fb = U.load_json(os.path.join(stores[True], "meta.json"))["feeds"][0]
+            self.assertNotIn("clip", fa)
+            import composite
+            far = [t for t in composite.Feed("stable", os.path.join(FIX, "stable.zip")).table("trips") if t["route_id"] == "R5"]
+            self.assertEqual(fb["clip"]["trips_seen"] - fb["clip"]["trips_kept"], len(far))   # the far trip of each timetable
+            self.assertEqual(fa["by_class"]["wd"]["dates"], fb["by_class"]["wd"]["dates"])
+            self.assertEqual(fa["by_class"]["wd"]["median"] - fb["by_class"]["wd"]["median"], 1)
+            self.assertGreater(fa["build"]["dropped_box"], 0)
+            self.assertEqual(fb["build"]["dropped_box"], 0)
+
+    def test_clip_to_a_smaller_box(self):
+        """area_clip as a box: only the trips that stop inside it are stored (London's, not the South East's)."""
+        import make_fixtures as mf
+        w, s = mf.km_to_lonlat(5.5, -8.5)
+        e, n = mf.km_to_lonlat(7.5, -7.5)             # stops E1 and E2 only
+        with tempfile.TemporaryDirectory() as tmp:
+            f = dict(fixture_feed("stable"), area_clip=[w, s, e, n])
+            acfg = os.path.join(tmp, "area.json")
+            U.dump_json(acfg, U.area_config("fx", ORIGIN, AREA_BOX, FIX, [f], "day", chunk=5000))
+            out = os.path.join(tmp, "store")
+            p, _s, _g = U.run("build_area.py", "--config", acfg, "--out", out)
+            self.assertIn(f"stable: clipped to the area_clip box {[w, s, e, n]}: ", p.stderr)
+            meta = U.load_json(os.path.join(out, "meta.json"))
+            self.assertEqual(meta["feeds"][0]["clip"]["box"], [w, s, e, n])
+            self.assertEqual(meta["feeds"][0]["clip"]["stops_inside"], 2)
+            routes = {r["id"].split(":")[1] for r in meta["routes"]}
+            self.assertIn("R1", routes)
+            self.assertNotIn("R2", routes, "the north-south route never stops there")
+            whole = os.path.join(tmp, "whole")
+            acfg2 = os.path.join(tmp, "area2.json")
+            U.dump_json(acfg2, U.area_config("fx", ORIGIN, AREA_BOX, FIX, [fixture_feed("stable")], "day", chunk=5000))
+            U.run("build_area.py", "--config", acfg2, "--out", whole)
+            self.assertLess(meta["n_trips"], U.load_json(os.path.join(whole, "meta.json"))["n_trips"])
+
+
 class ModeSplit(unittest.TestCase):
     """A trim that keeps some modes: one area store, every number from the kept trips only."""
 
