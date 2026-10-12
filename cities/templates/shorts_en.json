@@ -15,9 +15,9 @@
            "rush": "Morning rush in {place}: every {modes_singular}, 6:30 to 9:30 am",
            "week": "A week of every {modes_singular} in {place}"},
  "description": {
-  "day": "Every {modes_singular} running in {place} on an average {month} weekday, from the morning rush to the next morning, in {seconds} seconds.\n\n{timetables} The count is the average for that minute and only includes vehicles inside {limits}. The faded ones are just outside.{colors}\n\nBusiest moment: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
-  "rush": "The morning rush in {place}, 6:30 to 9:30 am, in {seconds} seconds. Every {modes_singular} inside {the_city} on an average {month} weekday.\n\n{timetables} Vehicles outside {limits} are faded and not counted.{colors}\n\nBusiest moment of the morning: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
-  "week": "A week of every {modes_singular} in {place}, Monday to Sunday, in {seconds} seconds.\n\n{timetables} Vehicles outside {limits} are faded and not counted.{colors}\n\nBusiest moment: {peak_count} {vehicles}, {peak_day} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}"
+  "day": "Every {modes_singular} running in {place} on an average {month} weekday, from the morning rush to the next morning, in {seconds} seconds.{missing}\n\n{timetables} The count is the average for that minute and only includes vehicles inside {limits}. The faded ones are just outside.{colors}\n\nBusiest moment: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
+  "rush": "The morning rush in {place}, 6:30 to 9:30 am, in {seconds} seconds. Every {modes_singular} inside {the_city} on an average {month} weekday.{missing}\n\n{timetables} Vehicles outside {limits} are faded and not counted.{colors}\n\nBusiest moment of the morning: {peak_count} {vehicles} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}",
+  "week": "A week of every {modes_singular} in {place}, Monday to Sunday, in {seconds} seconds.{missing}\n\n{timetables} Vehicles outside {limits} are faded and not counted.{colors}\n\nBusiest moment: {peak_count} {vehicles}, {peak_day} at {peak_time}.\n{dates_sentence}\n\n{credits}\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by {author}.\n\n{hashtags}"
  },
  "sentences": {
   "timetables_day": "I took the {month} {year} timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is.",
@@ -39,6 +39,8 @@
   "fallback": "{feed} has no {month} timetable, so it uses {range}.",
   "dst_one": "{dates} is left out because the clocks change that night.",
   "dst_many": "{dates} are left out because the clocks change.",
+  "start_one": "{feed} starts its {month} timetable on {date}, so the earlier days are left out.",
+  "start_many": "{feed} start their {month} timetables on {date}, so the earlier days are left out.",
   "low": "{feed} ran a reduced timetable on {date}, so that {weekday} is left out.",
   "low_many": "{feed} ran a reduced timetable on {dates}, so those days are left out.",
   "median_changed": "{feed} changed {its} timetables during {month}, so {its} {days} {verb} one typical date.",
@@ -56,8 +58,10 @@
   "limits_one": "the {place} {kind} limits",
   "limits_one_city": "the {place} limits",
   "limits_many": "{parts}",
+  "limits_region": "{name}",
   "the_city_one": "the {kind}",
   "the_city_many": "the region",
+  "the_city_region": "{name}",
   "credit_line_same": "{name}: {licence}.",
   "data_date": "{feed} timetables as of {month} {day}, {year}.",
   "colors": "Colours: {groups}.",
