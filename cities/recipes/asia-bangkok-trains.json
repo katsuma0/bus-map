@@ -1,0 +1,146 @@
+{
+ "id": "asia-bangkok-trains",
+ "batch": "asia",
+ "area": "bangkok",
+ "place": "Bangkok",
+ "boundary": {
+  "name": "กรุงเทพมหานคร",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 1568.74
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  100.64,
+  13.76
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "bts",
+    "label": "BTS Skytrain",
+    "hex": "#65b724",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "1",
+       "2",
+       "2025"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 65B724 on the Sukhumvit Line (1); the Silom Line (246B5B) and the Gold Line (A3862A) join it as BTS"
+   },
+   {
+    "id": "blue",
+    "label": "MRT Blue Line",
+    "hex": "#1964b7",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "3"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 1964B7 on the Blue Line (3)"
+   },
+   {
+    "id": "purple",
+    "label": "MRT Purple Line",
+    "hex": "#660066",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "4"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 660066 on the Purple Line (4)"
+   },
+   {
+    "id": "pink",
+    "label": "Pink Line",
+    "hex": "#cd4692",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2436"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color CD4692 on the Pink Line monorail (2436)"
+   },
+   {
+    "id": "yellow",
+    "label": "Yellow Line",
+    "hex": "#ffe547",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2224"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color FFE547 on the Yellow Line monorail (2224)"
+   },
+   {
+    "id": "red",
+    "label": "Red Lines + ARL",
+    "hex": "#e10506",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2026",
+       "2027",
+       "5"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color E10506 on the Dark Red Line (2026); the Light Red Line (FD5353) and the Airport Rail Link (E32020), both SRT Electrified Train, join it"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

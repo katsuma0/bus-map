@@ -1,0 +1,141 @@
+{
+ "id": "asia-kuala-lumpur-trains",
+ "batch": "asia",
+ "area": "kuala-lumpur",
+ "place": "Kuala Lumpur",
+ "boundary": {
+  "name": "Kuala Lumpur",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 243.0
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  101.69,
+  3.14
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "kelana",
+    "label": "Kelana Jaya Line",
+    "hex": "#d50032",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "KJ"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color D50032 on KJ"
+   },
+   {
+    "id": "ampang",
+    "label": "Ampang lines",
+    "hex": "#e57200",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "AG",
+       "PH"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color E57200 on AG (Ampang Line); the Sri Petaling Line (PH, 76232F) shares its trunk and joins it"
+   },
+   {
+    "id": "kajang",
+    "label": "Kajang Line",
+    "hex": "#047940",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "KGL"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color 047940 on KGL"
+   },
+   {
+    "id": "putrajaya",
+    "label": "Putrajaya Line",
+    "hex": "#ffcd00",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "PYL"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color FFCD00 on PYL"
+   },
+   {
+    "id": "monorail",
+    "label": "KL Monorail",
+    "hex": "#84bd00",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "MR"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color 84BD00 on MR"
+   },
+   {
+    "id": "komuter",
+    "label": "KTM Komuter",
+    "hex": "#3c5a9f",
+    "match": [
+     {
+      "feed": "ktmb",
+      "short": "^(Seremban|Port Klang) Line$"
+     }
+    ],
+    "verified": true,
+    "source": "ktmb.zip routes.txt route_color 3C5A9F on the Seremban Line; the Port Klang Line (DC2420, too close to Kelana Jaya red) joins it"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

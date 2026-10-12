@@ -1,0 +1,90 @@
+{
+ "id": "asia-kuala-lumpur-buses",
+ "batch": "asia",
+ "area": "kuala-lumpur",
+ "place": "Kuala Lumpur",
+ "boundary": {
+  "name": "Kuala Lumpur",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 243.0
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  101.69,
+  3.14
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "trunk",
+    "label": "Trunk",
+    "hex": "#006cff",
+    "match": [
+     {
+      "feed": "rapid-bus",
+      "short": "^\\d{3}$"
+     }
+    ],
+    "verified": true,
+    "source": "rapid-bus.zip routes.txt route_color 006CFF on the 48 numbered trunk routes (300 to 852)"
+   },
+   {
+    "id": "local",
+    "label": "Local",
+    "hex": "#008716",
+    "rest": true,
+    "match": [
+     {
+      "feed": "rapid-bus"
+     }
+    ],
+    "verified": true,
+    "source": "rapid-bus.zip routes.txt route_color 008716 on 79 local and feeder routes (T, KJ, SA, BTG), the most common Rapid KL colour"
+   },
+   {
+    "id": "feeder",
+    "label": "MRT feeder",
+    "hex": "#e8a33d",
+    "match": [
+     {
+      "feed": "mrt-feeder"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: amber; mrt-feeder.zip gives its routes no colour"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

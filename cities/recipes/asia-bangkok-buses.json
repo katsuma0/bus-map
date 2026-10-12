@@ -1,0 +1,130 @@
+{
+ "id": "asia-bangkok-buses",
+ "batch": "asia",
+ "area": "bangkok",
+ "place": "Bangkok",
+ "boundary": {
+  "name": "กรุงเทพมหานคร",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 1568.74
+ },
+ "modes": [
+  "bus",
+  "ferry"
+ ],
+ "center": [
+  100.64,
+  13.76
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 2,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ },
+ "colors": {
+  "scheme": "agency",
+  "legend": true,
+  "groups": [
+   {
+    "id": "private",
+    "label": "Private buses",
+    "hex": "#3fae5a",
+    "rest": true,
+    "match": [
+     {
+      "feed": "namtang",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: calm green; the joint private routes carry OTP's category colours (9400D3 suburban, 20B2AA minibus) and no brand of their own"
+   },
+   {
+    "id": "bmta",
+    "label": "BMTA",
+    "hex": "#ff0000",
+    "match": [
+     {
+      "feed": "namtang",
+      "agency": [
+       "องค์การขนส่งมวลชนกรุงเทพ (ขสมก.);Bangkok Mass Transit Authority"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color FF0000 on 102 of 216 BMTA routes, the most common"
+   },
+   {
+    "id": "tsb",
+    "label": "Thai Smile Bus",
+    "hex": "#063970",
+    "match": [
+     {
+      "feed": "namtang",
+      "agency": [
+       "ไทย สมายล์ บัส;Thai Smile Bus"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 063970 on 143 of 154 Thai Smile Bus routes"
+   },
+   {
+    "id": "vans",
+    "label": "Vans",
+    "hex": "#ff00ff",
+    "match": [
+     {
+      "feed": "namtang",
+      "agency": [
+       "กรมการขนส่งทางบก;Department of Land Transport"
+      ],
+      "short": "^ต\\."
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color FF00FF on all 334 City Van routes (short names ต.1 to ต.999, Department of Land Transport)"
+   },
+   {
+    "id": "boats",
+    "label": "Boats",
+    "hex": "#ffcc00",
+    "match": [
+     {
+      "feed": "namtang",
+      "mode": [
+       "ferry"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color FFCC00 on the Chao Phraya Express yellow flag line (183), the busiest boat brand"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}
