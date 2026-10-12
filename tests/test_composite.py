@@ -38,7 +38,7 @@ def timeline(kind, month="2026-10", holidays=None):
                 holidays=holidays if holidays is not None else {"2026-10-12": "Thanksgiving"})
 
 
-def classes_of(name, kind, month="2026-10", chunk=5000):
+def classes_of(name, kind, month="2026-10", chunk=5000, one_run=False):
     """The A3 pipeline of build_area.py for one fixture feed: (feed, sel, classes, guard, counts)."""
     import build_area
     f = feed(name)
@@ -49,7 +49,9 @@ def classes_of(name, kind, month="2026-10", chunk=5000):
     counts = composite.trips_per_date(f, svc, composite.first_times(st))
     sel = composite.select_dates(counts, tl, composite.feed_timezone(f, "America/Toronto"),
                                  max(st.max_t, composite.frequency_max_t(f, st)))
-    cls = composite.trip_classes(f, svc, sel, st)
+    cls = composite.trip_classes(f, svc, sel, st, one_run=one_run)
+    if one_run:
+        counts = composite.class_counts(cls)
     guard = composite.apply_guard(cls, sel, counts, tl["guard"])
     return f, sel, cls, guard, counts, st
 
@@ -204,6 +206,39 @@ class Classes(unittest.TestCase):
         a = [c for c in dups if min(c.runs) < D(2026, 10, 19)][0]
         self.assertEqual(a.copies["thu"], 2)      # half rule: the multiplicity
         self.assertEqual(a.copies["tue"], 2)      # median-date: the runs on that date
+
+    def test_one_run_counts_a_duplicate_pair_once(self):
+        """A3.4a: BODS files a short-term timetable version beside the base one, so on the dates both
+        run, the same train is in the feed twice. A one-run feed runs each class once a date."""
+        f, sel, cls, guard, counts, _st = classes_of("drtlike", "week")
+        f1, sel1, cls1, guard1, counts1, _st1 = classes_of("drtlike", "week", one_run=True)
+        self.assertEqual(sel, sel1)
+        self.assertEqual([c.hex for c in cls], [c.hex for c in cls1])   # the same classes and members
+        self.assertEqual([c.members for c in cls], [c.members for c in cls1])
+        for c, c1 in zip(cls, cls1):
+            self.assertEqual(set(c.runs), set(c1.runs))
+            self.assertEqual(set(c1.runs.values()), {1})
+            self.assertEqual(c1.mult, 1)
+            self.assertEqual(c1.dropped, sum(c.runs.values()) - len(c.runs))
+            self.assertEqual(c.dropped, 0)
+            for k in sel:
+                self.assertEqual(c1.dates_k[k], c.dates_k[k])
+                self.assertEqual(c1.runs_k[k], c1.dates_k[k])
+                self.assertLessEqual(c1.copies[k], 1)
+        dups = [c for c in cls1 if c.template.endswith(("-dupA", "-dupB"))]
+        self.assertEqual(len(dups), 2)
+        self.assertTrue(all(c.dropped == len(c.runs) for c in dups))
+        # The guard measures the drawn classes against the classes running each date, not the raw trips.
+        for d in counts1:
+            self.assertEqual(counts1[d], sum(1 for c in cls1 if d in c.runs))
+            self.assertEqual(counts[d] - counts1[d], sum(c.runs.get(d, 0) - 1 for c in cls if d in c.runs))
+        for k, g in guard1.items():
+            self.assertTrue(0.97 <= g["ratio"] <= 1.03, f"{k} {g}")
+        # Without the key nothing changes: the stable fixture has no duplicate, so both builds agree.
+        _f, _s, a, ga, ca, _t = classes_of("stable", "day")
+        _f, _s, b, gb, cb, _t = classes_of("stable", "day", one_run=True)
+        self.assertEqual(Classes.class_table(self, a), Classes.class_table(self, b))
+        self.assertEqual(ga, gb)
 
     def test_drtlike_median_date_takes_the_lower_median(self):
         f, sel, cls, guard, counts, _st = classes_of("drtlike", "week")

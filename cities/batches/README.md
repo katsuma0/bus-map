@@ -157,7 +157,10 @@ Area: `id`, `origin` (the projection origin of every file in the area),
 
 Feed: `id`, `name`, `publisher`, `licence_id` (an exact key of
 `cities/licences.json`), `licence_text`, optional `allow_nc` (a reason that lets a
-non-commercial licence through), and `source`, one of:
+non-commercial licence through), optional `one_run` (a reason: the feed files the
+same trip twice on the dates two of its timetable versions overlap, as BODS does, so
+each timetable class runs at most once a date in the counts and the drawn trips;
+contract A3.4a), and `source`, one of:
 
 | source | lock records | use |
 |---|---|---|

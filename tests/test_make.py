@@ -674,6 +674,11 @@ class Validation(unittest.TestCase):
         errs = self.batch_errors(b)
         self.assertTrue(any("source.tag: must match" in e for e in errs))
         self.assertTrue(any("theme: must be one of" in e for e in errs))
+        b = json.loads(json.dumps(self.batch))
+        b["areas"][0]["feeds"][0]["one_run"] = "BODS files short-term timetable versions beside the base one"
+        self.assertFalse([e for e in self.batch_errors(b) if "one_run" in e], "a reason string is the key's value")
+        b["areas"][0]["feeds"][0]["one_run"] = True
+        self.assertTrue(any("one_run: must be a reason string" in e for e in self.batch_errors(b)))
 
 
 # ------------------------------------------------------------------ D-3 frames

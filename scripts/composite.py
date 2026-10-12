@@ -427,6 +427,7 @@ class TripClass:
     dates_k: dict = field(default_factory=dict)
     runs_k: dict = field(default_factory=dict)
     copies: dict = field(default_factory=dict)   # day class -> copies drawn (A3.5, A3.7)
+    dropped: int = 0         # runs a one-run feed left out: members past the first on a selected date
 
     @property
     def hex(self):
@@ -455,11 +456,14 @@ def selected_by_class(sel):
     return {d: k for k in sel for d in sel[k]["dates"]}
 
 
-def trip_classes(feed, svc, sel, st):
+def trip_classes(feed, svc, sel, st, one_run=False):
     """A3.4: signature classes of every run whose service runs on a selected date.
 
     Returns the classes sorted by sha1 with `runs`, `mult`, `dates_k` and
-    `runs_k` filled; `copies` is set by apply_guard.
+    `runs_k` filled; `copies` is set by apply_guard. With `one_run` (a feed
+    whose timetable versions overlap, A3.4a) a class runs at most once on a
+    date: its other members that date are copies of the same vehicle, and
+    `dropped` counts them.
     """
     date_class = selected_by_class(sel)
     trips_by_id = {t["trip_id"]: t for t in feed.table("trips")}
@@ -489,7 +493,12 @@ def trip_classes(feed, svc, sel, st):
         g = groups[sha]
         run, tmpl, off, idx = g["rep"]
         runs = {d: g["runs"][d] for d in sorted(g["runs"])}
-        c = TripClass(sha=sha, rep=run, template=tmpl, offset=off, rep_index=idx, members=g["members"], runs=runs)
+        dropped = 0
+        if one_run:
+            dropped = sum(n - 1 for n in runs.values())
+            runs = {d: 1 for d in runs}
+        c = TripClass(sha=sha, rep=run, template=tmpl, offset=off, rep_index=idx, members=g["members"], runs=runs,
+                      dropped=dropped)
         c.mult = max(runs.values())
         for k in sel:
             wk = sel[k]["dates"]
@@ -497,6 +506,15 @@ def trip_classes(feed, svc, sel, st):
             c.runs_k[k] = sum(runs.get(d, 0) for d in wk)
         classes.append(c)
     return classes
+
+
+def class_counts(classes):
+    """Counter date -> classes running that date: trips_per_date of a one-run feed (A3.4a)."""
+    out = collections.Counter()
+    for c in classes:
+        for d, n in c.runs.items():
+            out[d] += n
+    return out
 
 
 def apply_guard(classes, sel, counts, guard):

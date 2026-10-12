@@ -446,8 +446,8 @@ BATCH_KEYS = {"batch", "title", "theme", "month", "overture_release", "render_ep
 BATCH_REQUIRED = BATCH_KEYS - {"review_videos"}
 AREA_KEYS = {"id", "origin", "timezone", "country", "region", "holidays", "area_box", "feeds", "month"}
 AREA_REQUIRED = AREA_KEYS - {"month"}
-FEED_KEYS = {"id", "name", "publisher", "licence_id", "licence_text", "allow_nc", "source"}
-FEED_REQUIRED = FEED_KEYS - {"allow_nc"}
+FEED_KEYS = {"id", "name", "publisher", "licence_id", "licence_text", "allow_nc", "one_run", "source"}
+FEED_REQUIRED = FEED_KEYS - {"allow_nc", "one_run"}
 MODE_KEYS = {"id", "label", "singular", "route_types", "routes"}
 MODE_REQUIRED = MODE_KEYS - {"routes"}
 # A route rule moves the routes it names into its mode whatever their route_type
@@ -981,6 +981,8 @@ def validate_batch(batch, name, licences, holidays, errors):
                 errors.append(f"{fw}.licence_id: unknown licence id {f['licence_id']!r} (cities/licences.json)")
             if "allow_nc" in f and not (isinstance(f["allow_nc"], str) and f["allow_nc"].strip()):
                 errors.append(f"{fw}.allow_nc: must be a reason string")
+            if "one_run" in f and not (isinstance(f["one_run"], str) and f["one_run"].strip()):
+                errors.append(f"{fw}.one_run: must be a reason string (why the feed's timetable versions overlap)")
             src = f.get("source")
             kind = source_kind(src)
             if kind is None:
