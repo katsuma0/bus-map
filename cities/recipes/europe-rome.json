@@ -36,17 +36,31 @@
  },
  "override": {
   "render": {
-   "TRAIL_SHOULDER_W": 8
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "TIME_WARP_GAMMA": 1.5
   },
   "variant_render": {
    "day": {
-    "BUS_CORE_R": 1.4
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 27
+   },
+   "rush": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 14,
+    "PANEL_ALPHA": 1.15
    }
   },
   "brand_colors": {},
   "_why": {
    "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the central bus corridors where 12 px fused them into one haze",
-   "day.BUS_CORE_R": "1.4 px dots: at 2.2 the 1,700 buses at 8:30 am made the centre one white blob; corridors read now"
+   "day.BUS_CORE_R": "1.2 px dots still read as sharp points after VP9 and cut strobe 0.0049 to 0.0038; the red corridors show",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe 0.0053 to 0.0049; lines a shade brighter, the central corridors keep dark gaps",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (5:11 to 7:11 pm in 188 frames), strobe 0.0038 to 0.0035; the night still takes 6 s",
+   "day.TRAIL_MINUTES": "2nd round, 1.2 px dots: 27 min cuts strobe 0.0035 to 0.0032; red lines fill in, the centre no whiter",
+   "rush.BUS_CORE_R": "2nd round: 1.2 px dots, like the day's, stay sharp points after VP9; strobe 0.0057 to 0.0040",
+   "rush.TRAIL_MINUTES": "2nd round, 1.2 px dots: 14 min draws Metro B and C and tram 8 whole, no white; strobe 0.0040 to 0.0036",
+   "rush.PANEL_ALPHA": "1.0 leaves the credit line at 4.497 over a road, under the 4.5 floor; 1.15 gives 5.4 and looks the same"
   }
  },
  "colors": {

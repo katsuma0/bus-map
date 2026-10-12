@@ -34,10 +34,35 @@
   "zoom": 0.95
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TIME_WARP_GAMMA": 1.5,
+   "TRAIL_LAYER_ALPHA": 0.8
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 32
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders thin the lines and leave dark ground between the inner corridors; strobe 0.0117 to 0.0118, noise",
+   "TRAIL_ALPHA": "0.44 lets the tram red and bus blue read as thin lines and cuts strobe 0.0118 to 0.0114; no added white",
+   "day.BUS_CORE_R": "2nd round: 1.2 px dots are the target's small sharp points and still read after VP9; strobe 0.0064 to 0.0041",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day so peak dots jump less per frame: strobe 0.0041 to 0.0038; the night still takes 6 s",
+   "day.TRAIL_MINUTES": "3rd round: 40 min cuts strobe 0.0035 to 0.0033; lines stay thin red and blue with dark blocks between, no white",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe 0.0114 to 0.0106 with no white; 0.95 cuts more but its brighter lines swallow the 1.2 px dots",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 lifts safe share 0.89 to 0.92; Donaustadt stays above y 800, clear of the button column",
+   "rush.BUS_CORE_R": "2nd round: 1.2 px matches the day's small sharp dots and still reads after VP9; strobe 0.0066 to 0.0043",
+   "rush.TRAIL_MINUTES": "4th round: 32 min cuts close-up strobe 0.0036 to 0.0032; thin whole lines with dark blocks, as the target"
+  }
  },
  "colors": {
   "scheme": "type",

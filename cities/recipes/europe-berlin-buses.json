@@ -33,10 +33,37 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 32
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders leave dark ground between the inner-ring corridors at phone size; strobe within 0.0001",
+   "TRAIL_ALPHA": "0.44 lets the MetroBus yellow and tram red read as lines and cuts strobe 0.0006; lines stay thin, no white",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe from 0.0126 to 0.0113 and the lines read in their legend colours; widths unchanged, no white",
+   "day.BUS_CORE_R": "1.2 px dots are small sharp points on thin coloured lines and take strobe under the limit, 0.0062 to 0.0038",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day, so peak dots move less per frame: strobe 0.0038 to 0.0036; night buses still get frames",
+   "OUTSIDE_DIM": "0.75 quiets the Potsdam buses and Brandenburg roads past the line, so the Berlin shape reads at phone size",
+   "day.TRAIL_MINUTES": "40 min cuts strobe 0.0032 to 0.0028; the corridors stay separate thin coloured lines, whiteout 0.0035",
+   "rush.FRAME_ZOOM": "0.81 lifts safe_share 0.84 to 0.88, clears the clock off the south lines and Köpenick off the button column",
+   "rush.BUS_CORE_R": "1.2 px dots are the target's small sharp points on thin lines and cut close-up strobe 0.0053 to 0.0035",
+   "rush.TRAIL_MINUTES": "at 0.81, 32 min cuts close-up strobe 0.0025 to 0.0022; corridors stay thin coloured lines, whiteout 0.0031"
+  }
  },
  "colors": {
   "scheme": "type",

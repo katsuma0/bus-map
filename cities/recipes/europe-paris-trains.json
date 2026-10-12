@@ -32,10 +32,33 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "day": {
+    "BUS_HALO_ALPHA": 0.07,
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.2
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders take the haze out of the gaps in the central Metro web; lines stay thin, strobe unchanged",
+   "day.BUS_HALO_ALPHA": "0.07 halos leave sharper points and trim strobe 0.0043 to 0.0041; 0.18 glows and strobes 0.0046",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (6 pm lands 20 frames later), night still flows; strobe 0.00414 to 0.00407",
+   "day.TRAIL_MINUTES": "2nd round, 8 px shoulders and 1.6 px dots: 18 min threads each Metro line whole, no white; strobe 0.0041 to 0.0039",
+   "day.BUS_CORE_R": "3rd round: 1.2 px cuts strobe to 0.0023 but trains vanish into the light Metro web on the RT; 1.6 reads, 0.0039",
+   "rush.FRAME_ZOOM": "0.9 lifts the south of the Metro web off the clock, safe share 0.89 to 0.94; 1.1 breaks the safe share",
+   "rush.TRAIL_MINUTES": "9 min joins each Metro line into a thin thread on the close-up, no white; strobe 0.0089 to 0.0085",
+   "rush.BUS_CORE_R": "2nd round: only 1.2 px clears the limit on the close-up, strobe 0.0046 to 0.0028; dots stay faint white specks"
+  }
  },
  "colors": {
   "scheme": "line",

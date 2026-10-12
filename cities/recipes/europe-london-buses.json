@@ -33,21 +33,35 @@
  },
  "override": {
   "render": {
-   "TRAIL_SHOULDER_W": 8
+   "TRAIL_SHOULDER_W": 8,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
   },
   "variant_render": {
    "day": {
-    "BUS_CORE_R": 1.2
+    "BUS_CORE_R": 1.0,
+    "TRAIL_MINUTES": 40
    },
    "rush": {
-    "TITLE_SCRIM": 1.0
+    "TITLE_SCRIM": 1.0,
+    "FRAME_ZOOM": 1.1,
+    "BUS_CORE_R": 1.0,
+    "TRAIL_MINUTES": 32,
+    "PANEL_ALPHA": 1.15
    }
   },
   "brand_colors": {},
   "_why": {
    "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the bus corridors where 12 px fused them into a pink haze",
-   "day.BUS_CORE_R": "1.2 px dots: at 2.2 the 6,500 buses at 8:20 am made Greater London a white carpet; red corridors read now",
-   "rush.TITLE_SCRIM": "the rush subtitle sat on the north London bus grid with dots through its letters; 1.0 darkens the band behind it"
+   "day.BUS_CORE_R": "by hand under tune's 1.2 px floor: 1.0 px cuts strobe 0.0051 to 0.0036, under the limit; dots still read after VP9",
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the north London bus grid with dots through its letters; 1.0 darkens the band behind it",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day so peak dots move less per frame: strobe 0.0060 vs 0.0065; night keeps its frames",
+   "OUTSIDE_DIM": "0.75 quiets the grey county buses past the line so the Greater London shape reads; roads and estuary stay",
+   "day.TRAIL_MINUTES": "40 min cuts strobe from 0.0055 to 0.0051; corridors stay thin lines with dark blocks between, no white fusing",
+   "rush.FRAME_ZOOM": "with 1.2 px dots 1.1 keeps the central corridors apart; 0.99 knots the centre, 1.21 puts the Croydon trams on the clock",
+   "rush.BUS_CORE_R": "by hand under tune's 1.2 px floor: 1.0 px cuts close-up strobe 0.0056 to 0.0037; dots stay sharp points after VP9",
+   "rush.TRAIL_MINUTES": "32 min cuts close-up strobe from 0.0060 to 0.0056; corridors stay thin red lines with dark blocks, no white",
+   "rush.PANEL_ALPHA": "1.15 dims the south London routes behind the legend and credit: contrast 4.70 vs 3.93, the only arm over 4.5"
   }
  },
  "colors": {

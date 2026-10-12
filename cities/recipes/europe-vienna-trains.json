@@ -33,10 +33,31 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "ROUTE_ALPHA": 0.3
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min keeps each U-Bahn line whole at 22:30, where 12 leaves gaps on U1 and U6; no white, strobe 0.00243 to 0.00241",
+   "TRAIL_SHOULDER_W": "8 px shoulders thin each line and keep U1 to U4 apart in the centre on the RT, colours still read; strobe ties",
+   "day.BUS_CORE_R": "1.6 px trains stay sharp points that read on the RT, as in the target; strobe 0.00242 to 0.00137, under the 0.002 target",
+   "ROUTE_ALPHA": "0.3 keeps the U-Bahn lines faintly drawn at 2:30, when no train runs; by day the trails cover it, no white",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 lifts U1 north off the y of weekday in the subtitle and U2 in to x 938; safe share 0.95 to 0.96",
+   "rush.TRAIL_MINUTES": "9 min joins the gaps on U1 and U2 into whole lines on the close-up, no white; strobe 0.00258 to 0.00255",
+   "rush.BUS_CORE_R": "1.6 px matches the day's small sharp dots and still reads on the RT close-up; strobe 0.00255 to 0.00143"
+  }
  },
  "colors": {
   "scheme": "line",

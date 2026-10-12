@@ -32,10 +32,45 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "BASE_ROADS_GAIN": 0.75,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "day": {
+    "FRAME_ZOOM": 1.1,
+    "FRAME_DX_KM": -6.02,
+    "FRAME_DY_KM": 6.02,
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 18
+   },
+   "week": {
+    "FRAME_ZOOM": 1.1,
+    "FRAME_DX_KM": -6.02,
+    "FRAME_DY_KM": 6.02
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 21
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.FRAME_ZOOM": "1.1 widens Greater London to 73% of the width; the centre gets room and title and clock stay clear",
+   "week.FRAME_ZOOM": "1.1 widens Greater London to 73% of the width; the centre gets room and title and clock stay clear",
+   "day.FRAME_DX_KM": "6 km west centres Greater London; Uxbridge and Heathrow leave the tall-phone crop",
+   "week.FRAME_DX_KM": "6 km west centres Greater London; Uxbridge and Heathrow leave the tall-phone crop",
+   "day.FRAME_DY_KM": "6 km south puts the Tube centre mid-band and clears the subtitle; the south tip stays above the clock",
+   "week.FRAME_DY_KM": "6 km south puts the Tube centre mid-band and clears the subtitle; the south tip stays above the clock",
+   "day.BUS_CORE_R": "1.6 px dots read as trains like the target; at 1.2 they sink into the 3 px lines and the Tube reads as streaks",
+   "BASE_ROADS_GAIN": "0.75 quiets the dense London road grid so the thin District and Piccadilly lines stand off it",
+   "day.TRAIL_MINUTES": "with 1.6 px dots 18 min cuts strobe to 0.00405; the grey corridors brighten but keep dark gaps",
+   "TIME_WARP_GAMMA": "1.5 lingers a few minutes longer on the peaks, unseen, and brings strobe to 0.00399, under the limit",
+   "rush.FRAME_ZOOM": "0.9 lifts Edgware and Cockfosters off the subtitle and pulls the Epping end off the buttons; the core still fills",
+   "rush.BUS_CORE_R": "1.6 px dots cut close-up strobe from 0.0068 to 0.0042 and match the day's dots",
+   "rush.TRAIL_MINUTES": "21 min gets close-up strobe to 0.00392; colours stay distinct and dots read, no white fusing"
+  }
  },
  "colors": {
   "scheme": "line",

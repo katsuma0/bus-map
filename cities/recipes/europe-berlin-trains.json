@@ -32,10 +32,37 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "ROUTE_ALPHA": 0.3
+  },
+  "variant_render": {
+   "day": {
+    "BUS_HALO_ALPHA": 0.07,
+    "TRAIL_MINUTES": 27,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 14
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders thin the lines and clear the haze inside the Ring; strobe 0.00536 to 0.00537",
+   "TRAIL_ALPHA": "0.44 lifts the coral Regional and green S-Bahn lines off the base map, no white; strobe 0.00537 to 0.00528",
+   "TRAIL_LAYER_ALPHA": "0.8 gives each line its own solid colour, Mitte stays apart, no white; strobe 0.00528 to 0.00502",
+   "day.BUS_HALO_ALPHA": "0.07 drops the faint haze so each train is a sharp point; strobe 0.00277 to 0.00269",
+   "ROUTE_ALPHA": "0.3 keeps the U-Bahn and Regional lines faintly drawn at 2:30, not just streets; by day the trails cover it",
+   "day.TRAIL_MINUTES": "2nd round, 1.6 px dots: 27 min draws the coral Regional lines whole, no white; strobe 0.00265 to 0.00254",
+   "day.BUS_CORE_R": "2nd round: 1.2 px cuts strobe to 0.0014 but U-Bahn trains vanish on the RT; 1.6 px reads, 0.00254",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 fits the whole network between title and clock, still 1.4x the day; safe share 0.91 to 0.94",
+   "rush.BUS_CORE_R": "1.6 px matches the day's small sharp dots and still reads on the RT; strobe 0.00486 to 0.00273",
+   "rush.TRAIL_MINUTES": "2nd round, 1.6 px dots: 14 min draws each close-up line whole, no white; strobe 0.00273 to 0.00255"
+  }
  },
  "colors": {
   "scheme": "type",
