@@ -3334,13 +3334,17 @@ function buildShortsLayout() {
 }
 
 // The legend's entries (B19), from meta.groups in order: a group with legend false is left out
-// (other by default), a shared legend word is one entry at its first group's place with one dot
-// per group, any other group one entry with its label. No numbers: nothing in it moves.
+// (other by default), and so is a group with no vehicle in the variant's window, which draws
+// nothing there (Berlin's night buses in the 6:30 to 9:30 rush); a shared legend word is one entry
+// at its first group's place with one dot per group, any other group one entry with its label.
+// No numbers: nothing in it moves.
 function legendEntries() {
   const out = [];
+  const live = groupsInWindow();
   for (const g of meta.groups || []) {
     const lg = g.legend === undefined ? g.id !== 'other' : g.legend;
     if (lg === false) continue;
+    if (live && !live.has(g.id)) continue;
     const color = (groupColor && groupColor.get(g.id)) || CONFIG.COLORS.foreign;
     const word = typeof lg === 'string' ? lg : null;
     const shared = word && out.find((e) => e.word === word);
@@ -3353,6 +3357,20 @@ function legendEntries() {
   }
   if (out.length > 7) console.warn(`legend: ${out.length} entries, the first 7 drawn`);
   return out.slice(0, 7);
+}
+
+// The ids of the groups with a vehicle on the road in the variant's window [day_start, day_end]:
+// an occurrence (B7) whose trip has not ended by the window's start, by buildOccurrences' rule
+// without the trail (make.py window_draws counts the same trips). Null before the occurrences
+// and groups are built, which keeps every group.
+function groupsInWindow() {
+  if (!groups || !tripGroup || !occTrip) return null;
+  const W0 = meta.day_start;
+  const out = new Set();
+  for (let j = 0; j < occN; j++) {
+    if (occT1[j] >= W0) out.add(groups[tripGroup[occTrip[j]]].id);
+  }
+  return out;
 }
 
 // The legend's fit (B19), once at init and measured in the page at its drawn size, against the
