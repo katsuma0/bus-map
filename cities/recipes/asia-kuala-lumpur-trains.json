@@ -3,6 +3,7 @@
  "batch": "asia",
  "area": "kuala-lumpur",
  "place": "Kuala Lumpur",
+ "missing": "The feed has no route shapes for the long-distance ETS and airport ERT trains, so they are left out.",
  "boundary": {
   "name": "Kuala Lumpur",
   "subtypes": [
