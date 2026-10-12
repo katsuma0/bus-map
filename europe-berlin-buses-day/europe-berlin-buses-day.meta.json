@@ -1,0 +1,37 @@
+{
+ "file": "europe-berlin-buses-day.mp4",
+ "title": "Every bus and tram in Berlin in 24 hours",
+ "description": "Every bus and tram running in Berlin on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Berlin city limits. The faded ones are just outside. Colours: Bus, MetroBus, Tram and Night bus, with everything else in grey.\n\nBusiest moment: 1,235 vehicles at 3:43 pm.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nVBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #berlin",
+ "tags": [
+  "Berlin",
+  "VBB",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "Germany"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#berlin"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "vbb",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 8,
+ "meta_key": "e91e2daa9f45c42bdc03d250563834f859379eb66bb6ba36f1c7659ecce4c238"
+}

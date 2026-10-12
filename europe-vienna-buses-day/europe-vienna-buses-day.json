@@ -1,0 +1,42 @@
+{
+ "name": "europe-vienna-buses-day",
+ "variant": "day",
+ "tier": "final",
+ "frames": 1500,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 50,
+ "crf": 16,
+ "kbps": 9891,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 89.2,
+ "query": "record=1&data=../build/europe-vienna-buses/day/network.json.gz&basemap=../build/europe-vienna-buses/basemap.json.gz&variant=day&render=%7B%22BUS_CORE_R%22%3A1.2%2C%22CAMERA_PATH%22%3A%22pull-out-west%22%2C%22CARD_LINES%22%3A2%2C%22FRAME_ZOOM%22%3A0.95%2C%22LEGEND%22%3Atrue%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TRAIL_ALPHA%22%3A0.44%2C%22TRAIL_LAYER_ALPHA%22%3A0.8%2C%22TRAIL_MINUTES%22%3A40%2C%22TRAIL_SHOULDER_W%22%3A8%7D&paint=%7B%22badner_bahn%22%3A%7B%22neutral%22%3Atrue%7D%2C%22bus%22%3A%7B%22hex%22%3A%220a295d%22%7D%2C%22nightline%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22ffd200%22%7D%2C%22tram%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22c00808%22%7D%7D",
+ "network_sha256": "2db440dbd3541a88688cd37159cac1165b9df623d0a670b999cc0c226b49f480",
+ "basemap_sha256": "27d5d80294924b8482d6ad3e92855b60ed2a4a3c3afa25b70f522ead0ab9f5e8",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "b2b8ffc9e27de04d20df819cbb341d86f982cf15",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001850, 4 cpus",
+ "started_at": "2026-10-12T20:09:21.356Z",
+ "key": "bc282818f2fa99c2204be073791cd055093b1113163afa5e99793fbd7a8c0ef5",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7860
+  },
+  {
+   "crf": 16,
+   "kbps": 9891
+  }
+ ]
+}

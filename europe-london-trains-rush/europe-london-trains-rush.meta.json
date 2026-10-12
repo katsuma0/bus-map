@@ -1,0 +1,36 @@
+{
+ "file": "europe-london-trains-rush.mp4",
+ "title": "Morning rush in London: every Tube and DLR train, 6:30 to 9:30 am",
+ "description": "The morning rush in London, 6:30 to 9:30 am, in 25 seconds. Every Tube and DLR train inside Greater London on an average October weekday. The feed has no London Overground, Elizabeth line or National Rail trains, so they are not shown.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside Greater London are faded and not counted. Colours: Northern, Piccadilly, District, Central, Victoria and DLR, with everything else in grey.\n\nBusiest moment of the morning: 496 Tube and DLR trains at 8:31 am.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nTransport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #london",
+ "tags": [
+  "London",
+  "Transport for London",
+  "transit map",
+  "tube map",
+  "GTFS",
+  "England"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#london"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Transport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service."
+ ],
+ "licences": [
+  {
+   "feed": "bods",
+   "licence_id": "ogl-uk-3.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 10,
+ "meta_key": "30962421888f5d2887d166ed690020d6820861623d6254a94bf2533b237b936b"
+}

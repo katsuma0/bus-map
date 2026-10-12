@@ -1,0 +1,41 @@
+{
+ "file": "europe-paris-buses-rush.mp4",
+ "title": "Morning rush in Paris: every bus and tram, 6:30 to 9:30 am",
+ "description": "The morning rush in Paris, 6:30 to 9:30 am, in 25 seconds. Every bus and tram inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Paris city limits are faded and not counted. Colours: Bus, Tram and Night bus.\n\nBusiest moment of the morning: 916 vehicles at 9:15 am.\nThe weekday average uses every October 2026 weekday in each timetable. Île-de-France Mobilités starts its October timetable on October 9, so the earlier days are left out.\n\nÎle-de-France Mobilités: Open Database License 1.0. Contains information from the Île-de-France Mobilités timetables, which is made available here under the Open Database License (ODbL).\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #paris",
+ "tags": [
+  "Paris",
+  "Île-de-France Mobilités",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "Ile-de-France"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#paris"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Île-de-France Mobilités: Open Database License 1.0. Contains information from the Île-de-France Mobilités timetables, which is made available here under the Open Database License (ODbL)."
+ ],
+ "licences": [
+  {
+   "feed": "idfm",
+   "licence_id": "idfm-odbl",
+   "commercial": "check",
+   "note": "IDFM's GTFS documentation puts the timetables under the ODbL 1.0, and its PRIM portal applies the Licence Mobilités (the ODbL plus identification of the re-user) to timetable data; both allow commercial use with the ODbL notice; register as a re-user on PRIM before monetising",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "Île-de-France Mobilités: check the licence (idfm-odbl): IDFM's GTFS documentation puts the timetables under the ODbL 1.0, and its PRIM portal applies the Licence Mobilités (the ODbL plus identification of the re-user) to timetable data; both allow commercial use with the ODbL notice; register as a re-user on PRIM before monetising"
+ ],
+ "licence_flags": [
+  "Île-de-France Mobilités: check the licence (idfm-odbl): IDFM's GTFS documentation puts the timetables under the ODbL 1.0, and its PRIM portal applies the Licence Mobilités (the ODbL plus identification of the re-user) to timetable data; both allow commercial use with the ODbL notice; register as a re-user on PRIM before monetising"
+ ],
+ "publish_order": 16,
+ "meta_key": "d095e4a38655e3b15ea401d533123b0c5cdae98116785361a91ebad853800725"
+}

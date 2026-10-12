@@ -1,0 +1,36 @@
+{
+ "file": "europe-berlin-trains-day.mp4",
+ "title": "Every train in Berlin in 24 hours",
+ "description": "Every train running in Berlin on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Berlin city limits. The faded ones are just outside. Colours: U-Bahn, S-Bahn and Regional.\n\nBusiest moment: 294 trains at 4:59 pm.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nVBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #berlin",
+ "tags": [
+  "Berlin",
+  "VBB",
+  "transit map",
+  "train map",
+  "GTFS",
+  "Germany"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#berlin"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "vbb",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 3,
+ "meta_key": "bea00a7be905c61943ca6df25b093f486b435ac57db17b5be270ff515b1ecb4c"
+}

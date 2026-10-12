@@ -1,0 +1,36 @@
+{
+ "file": "europe-vienna-trains-rush.mp4",
+ "title": "Morning rush in Vienna: every U-Bahn train, 6:30 to 9:30 am",
+ "description": "The morning rush in Vienna, 6:30 to 9:30 am, in 25 seconds. Every U-Bahn train inside the city on an average October weekday. The feed has no S-Bahn trains, so they are not shown.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Vienna city limits are faded and not counted. Colours: U1, U2, U3, U4 and U6.\n\nBusiest moment of the morning: 110 U-Bahn trains at 7:27 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out National Day (October 26). Wiener Linien changed its timetables during October, so its weekday uses one typical date.\n\nWiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #vienna",
+ "tags": [
+  "Vienna",
+  "Wiener Linien",
+  "transit map",
+  "U-Bahn map",
+  "GTFS",
+  "Austria"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#vienna"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Wiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "wienerlinien",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 15,
+ "meta_key": "3b7bfe5139f3498f4c872b2a539a5488a6186095c701d9b3862a6e6599a8287f"
+}

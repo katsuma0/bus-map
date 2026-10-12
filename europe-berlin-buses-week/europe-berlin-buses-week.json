@@ -1,0 +1,42 @@
+{
+ "name": "europe-berlin-buses-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 16,
+ "kbps": 9520,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 67.2,
+ "query": "record=1&data=../build/europe-berlin-buses/week/network.json.gz&basemap=../build/europe-berlin-buses/basemap.json.gz&variant=week&render=%7B%22CAMERA_PATH%22%3A%22pull-out-north%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A1.0%2C%22LEGEND%22%3Atrue%2C%22OUTSIDE_DIM%22%3A0.75%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TRAIL_ALPHA%22%3A0.44%2C%22TRAIL_LAYER_ALPHA%22%3A0.8%2C%22TRAIL_SHOULDER_W%22%3A8%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22bus%22%3A%7B%22hex%22%3A%2295276e%22%7D%2C%22metrobus%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22f0d722%22%7D%2C%22night%22%3A%7B%22hex%22%3A%222a4f9e%22%7D%2C%22tram%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22be1414%22%7D%7D",
+ "network_sha256": "23fd6bd2ee32e01da2ee9c185b87cf6a9e0d1e02332653765031b14e2541ae01",
+ "basemap_sha256": "b27266a3330628dfc833c8f298a6adcad5bffe32754a0679b6691cad2d23f4ab",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "b2b8ffc9e27de04d20df819cbb341d86f982cf15",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001867, 4 cpus",
+ "started_at": "2026-10-12T20:13:06.723Z",
+ "key": "e6137e338865a6b8a5475259e9237929b7402993879f0624cc9375037ff5418e",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7455
+  },
+  {
+   "crf": 16,
+   "kbps": 9520
+  }
+ ]
+}

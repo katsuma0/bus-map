@@ -1,0 +1,37 @@
+{
+ "file": "europe-berlin-buses-rush.mp4",
+ "title": "Morning rush in Berlin: every bus and tram, 6:30 to 9:30 am",
+ "description": "The morning rush in Berlin, 6:30 to 9:30 am, in 25 seconds. Every bus and tram inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Berlin city limits are faded and not counted. Colours: Bus, MetroBus and Tram, with everything else in grey.\n\nBusiest moment of the morning: 1,185 vehicles at 7:29 am.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nVBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #berlin",
+ "tags": [
+  "Berlin",
+  "VBB",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "Germany"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#berlin"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "vbb",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 17,
+ "meta_key": "76569fcfbcfbfd0fcf125462362312ca852b373a8f6a36a047c4b2ab535b0821"
+}

@@ -1,0 +1,46 @@
+{
+ "name": "europe-vienna-trains-day",
+ "variant": "day",
+ "tier": "final",
+ "frames": 1500,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 50,
+ "crf": 14,
+ "kbps": 8985,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 53,
+ "query": "record=1&data=../build/europe-vienna-trains/day/network.json.gz&basemap=../build/europe-vienna-trains/basemap.json.gz&variant=day&render=%7B%22BUS_CORE_R%22%3A1.6%2C%22CAMERA_PATH%22%3A%22drift-orbit%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A1.0%2C%22LEGEND%22%3Afalse%2C%22ROUTE_ALPHA%22%3A0.3%2C%22TRAIL_MINUTES%22%3A18%2C%22TRAIL_SHOULDER_W%22%3A8%7D&paint=%7B%22u1%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22e3000f%22%7D%2C%22u2%22%3A%7B%22hex%22%3A%22a862a4%22%7D%2C%22u3%22%3A%7B%22dL%22%3A0%2C%22hex%22%3A%22ef7c00%22%7D%2C%22u4%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22319f49%22%7D%2C%22u6%22%3A%7B%22dL%22%3A-0.22%2C%22hex%22%3A%229d6830%22%7D%7D",
+ "network_sha256": "d75b4179dfe91e7e52606e049b996558f7b75b0b5183da701ac149c2517febf3",
+ "basemap_sha256": "27d5d80294924b8482d6ad3e92855b60ed2a4a3c3afa25b70f522ead0ab9f5e8",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "b2b8ffc9e27de04d20df819cbb341d86f982cf15",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001858, 4 cpus",
+ "started_at": "2026-10-12T20:09:52.869Z",
+ "key": "21db2153e6784753e36f4bd1efb5bc97843bd30b36456ff63f1da415503379f8",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 5354
+  },
+  {
+   "crf": 16,
+   "kbps": 6940
+  },
+  {
+   "crf": 14,
+   "kbps": 8985
+  }
+ ]
+}

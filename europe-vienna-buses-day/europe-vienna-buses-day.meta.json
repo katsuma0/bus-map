@@ -1,0 +1,37 @@
+{
+ "file": "europe-vienna-buses-day.mp4",
+ "title": "Every bus and tram in Vienna in 24 hours",
+ "description": "Every bus and tram running in Vienna on an average October weekday, from the morning rush to the next morning, in 50 seconds. VOR's regional buses also run in Vienna but are not in the feed, so they are not shown.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Vienna city limits. The faded ones are just outside. Colours: Bus, Tram, Night bus and Badner Bahn.\n\nBusiest moment: 966 vehicles at 7:36 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out National Day (October 26). Wiener Linien changed its timetables during October, so its weekday uses one typical date.\n\nWiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #vienna",
+ "tags": [
+  "Vienna",
+  "Wiener Linien",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "Austria"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#vienna"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Wiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "wienerlinien",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 9,
+ "meta_key": "089ba4efa72d4878ab7b8ee1bc962e5bf555ca8c7a303d57b6d264f0c631c552"
+}

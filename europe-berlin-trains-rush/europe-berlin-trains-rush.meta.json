@@ -1,0 +1,36 @@
+{
+ "file": "europe-berlin-trains-rush.mp4",
+ "title": "Morning rush in Berlin: every train, 6:30 to 9:30 am",
+ "description": "The morning rush in Berlin, 6:30 to 9:30 am, in 25 seconds. Every train inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Berlin city limits are faded and not counted. Colours: U-Bahn, S-Bahn and Regional.\n\nBusiest moment of the morning: 291 trains at 7:59 am.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nVBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #berlin",
+ "tags": [
+  "Berlin",
+  "VBB",
+  "transit map",
+  "train map",
+  "GTFS",
+  "Germany"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#berlin"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "VBB (Verkehrsverbund Berlin-Brandenburg): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "vbb",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 12,
+ "meta_key": "cb5ad9817bd6e48d9385cad6104597974a6257f703467404ce348d982d015bab"
+}

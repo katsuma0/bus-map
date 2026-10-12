@@ -1,0 +1,42 @@
+{
+ "file": "europe-rome-day.mp4",
+ "title": "Every bus, tram and metro train in Rome in 24 hours",
+ "description": "Every bus, tram and metro train running in Rome on an average October weekday, from the morning rush to the next morning, in 50 seconds. The feed has no FL regional trains, no Roma-Lido, Roma-Viterbo or Termini-Giardinetti trains and no Cotral buses, so they are not shown.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Rome city limits. The faded ones are just outside. Colours: Metro, Tram and ATAC bus, with everything else in grey.\n\nBusiest moment: 1,763 vehicles at 8:30 am.\nThe weekday average uses every October 2026 weekday in each timetable. Roma Servizi per la Mobilità starts its October timetable on October 9, so the earlier days are left out.\n\nRoma Servizi per la Mobilità: Roma Servizi per la Mobilità open data licence.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #rome",
+ "tags": [
+  "Rome",
+  "Roma Servizi per la Mobilità",
+  "transit map",
+  "bus map",
+  "tram map",
+  "metro map",
+  "GTFS",
+  "Lazio"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#rome"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Roma Servizi per la Mobilità: Roma Servizi per la Mobilità open data licence."
+ ],
+ "licences": [
+  {
+   "feed": "rsm",
+   "licence_id": "rsm-open-data",
+   "commercial": "check",
+   "note": "Roma Capitale's open data catalogue lists the GTFS (publisher Roma Servizi per la Mobilità) under CC BY-SA and Transitland records CC BY 3.0 from the RSM dataset page; both allow commercial use with credit (BY-SA also asks that adaptations carry the same licence); the RSM page asks users to accept its licence, whose text could not be read from here",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "Roma Servizi per la Mobilità: check the licence (rsm-open-data): Roma Capitale's open data catalogue lists the GTFS (publisher Roma Servizi per la Mobilità) under CC BY-SA and Transitland records CC BY 3.0 from the RSM dataset page; both allow commercial use with credit (BY-SA also asks that adaptations carry the same licence); the RSM page asks users to accept its licence, whose text could not be read from here"
+ ],
+ "licence_flags": [
+  "Roma Servizi per la Mobilità: check the licence (rsm-open-data): Roma Capitale's open data catalogue lists the GTFS (publisher Roma Servizi per la Mobilità) under CC BY-SA and Transitland records CC BY 3.0 from the RSM dataset page; both allow commercial use with credit (BY-SA also asks that adaptations carry the same licence); the RSM page asks users to accept its licence, whose text could not be read from here"
+ ],
+ "publish_order": 5,
+ "meta_key": "9ce7ba55340fcefea3561f9dbed2010b46ef236d19e6d53e0fe24ff522b2f082"
+}

@@ -1,0 +1,37 @@
+{
+ "file": "europe-london-buses-day.mp4",
+ "title": "Every bus and tram in London in 24 hours",
+ "description": "Every bus and tram running in London on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside Greater London. The faded ones are just outside. Colours: Bus, Superloop, Night bus and Tram, with everything else in grey.\n\nBusiest moment: 6,544 vehicles at 3:55 pm.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nTransport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #london",
+ "tags": [
+  "London",
+  "Transport for London",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "England"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#london"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Transport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service."
+ ],
+ "licences": [
+  {
+   "feed": "bods",
+   "licence_id": "ogl-uk-3.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 4,
+ "meta_key": "f0af633c33ed594e17756663e9c018b5eb075ca062582dc821b1d6a9d1b31864"
+}

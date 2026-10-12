@@ -1,0 +1,37 @@
+{
+ "file": "europe-london-buses-rush.mp4",
+ "title": "Morning rush in London: every bus and tram, 6:30 to 9:30 am",
+ "description": "The morning rush in London, 6:30 to 9:30 am, in 25 seconds. Every bus and tram inside Greater London on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside Greater London are faded and not counted. Colours: Bus, Superloop, Night bus and Tram, with everything else in grey.\n\nBusiest moment of the morning: 6,311 vehicles at 8:20 am.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nTransport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #london",
+ "tags": [
+  "London",
+  "Transport for London",
+  "transit map",
+  "bus map",
+  "tram map",
+  "GTFS",
+  "England"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#london"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Transport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service."
+ ],
+ "licences": [
+  {
+   "feed": "bods",
+   "licence_id": "ogl-uk-3.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 13,
+ "meta_key": "4f3d1109183b290c50b2f1cd45cb159d39e5b2bc7cf5d2601d233d68b02d6948"
+}

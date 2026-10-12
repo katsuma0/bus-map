@@ -1,0 +1,36 @@
+{
+ "file": "europe-vienna-trains-week.mp4",
+ "title": "A week of every U-Bahn train in Vienna",
+ "description": "A week of every U-Bahn train in Vienna, Monday to Sunday, in 60 seconds. The feed has no S-Bahn trains, so they are not shown.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Vienna city limits are faded and not counted. Colours: U1, U2, U3, U4 and U6.\n\nBusiest moment: 113 U-Bahn trains, Monday at 7:27 am.\nThe daily averages use every October 2026 date in each timetable and leave out National Day (October 26). October 24 and October 25 are left out because the clocks change. Wiener Linien changed its timetables during October, so its Monday, Tuesday, Wednesday, Thursday and Friday each use one typical date.\n\nWiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #vienna",
+ "tags": [
+  "Vienna",
+  "Wiener Linien",
+  "transit map",
+  "U-Bahn map",
+  "GTFS",
+  "Austria"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#vienna"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Wiener Linien (Wiener Linien and Wiener Lokalbahnen): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "wienerlinien",
+   "licence_id": "cc-by-4.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 24,
+ "meta_key": "84922a302a17e02124f15562b83ba5036b071dd7a97988f33f948c5d17e997aa"
+}

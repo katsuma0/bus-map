@@ -1,0 +1,38 @@
+{
+ "name": "europe-paris-trains-day",
+ "variant": "day",
+ "tier": "final",
+ "frames": 1500,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 50,
+ "crf": 18,
+ "kbps": 9181,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 81.7,
+ "query": "record=1&data=../build/europe-paris-trains/day/network.json.gz&basemap=../build/europe-paris-trains/basemap.json.gz&variant=day&render=%7B%22BUS_CORE_R%22%3A1.6%2C%22BUS_HALO_ALPHA%22%3A0.07%2C%22CAMERA_PATH%22%3A%22drift-sway%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A1.0%2C%22LEGEND%22%3Afalse%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TRAIL_MINUTES%22%3A18%2C%22TRAIL_SHOULDER_W%22%3A8%7D&paint=%7B%22metro%22%3A%7B%22neutral%22%3A%22c9cfd2%22%7D%2C%22rer_a%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22eb2132%22%7D%2C%22rer_b%22%3A%7B%22hex%22%3A%225091cb%22%7D%2C%22rer_c%22%3A%7B%22hex%22%3A%22ffcc30%22%7D%2C%22rer_d%22%3A%7B%22dL%22%3A0%2C%22hex%22%3A%22008b5b%22%7D%2C%22rer_e%22%3A%7B%22hex%22%3A%22b94e9a%22%7D%7D",
+ "network_sha256": "4911568f13f7fb47ce9d9b0c52d2bd3c4049e2648d9980f6c17e4b96662be4f9",
+ "basemap_sha256": "fcda802c9f9cfc2495a7778983b6304a64c95010649a962c85ac14d4a581017d",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "b2b8ffc9e27de04d20df819cbb341d86f982cf15",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001855, 4 cpus",
+ "started_at": "2026-10-12T20:09:06.915Z",
+ "key": "298ac31c3555f740a8587d6c7150685966cbeaeb540b82d491c6d9e73c5b000d",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 9181
+  }
+ ]
+}

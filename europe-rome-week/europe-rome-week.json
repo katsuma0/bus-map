@@ -1,0 +1,42 @@
+{
+ "name": "europe-rome-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 16,
+ "kbps": 8217,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 97.6,
+ "query": "record=1&data=../build/europe-rome/week/network.json.gz&basemap=../build/europe-rome/basemap.json.gz&variant=week&render=%7B%22CAMERA_PATH%22%3A%22pull-out-south%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A1.05%2C%22LEGEND%22%3Atrue%2C%22TIME_WARP_GAMMA%22%3A1.5%2C%22TRAIL_LAYER_ALPHA%22%3A0.8%2C%22TRAIL_SHOULDER_W%22%3A8%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22atac%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22e2001a%22%7D%2C%22metro_a%22%3A%7B%22dL%22%3A0%2C%22hex%22%3A%22e27439%22%7D%2C%22metro_b%22%3A%7B%22hex%22%3A%220570b5%22%7D%2C%22metro_c%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22008456%22%7D%2C%22tram%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22f2c500%22%7D%7D",
+ "network_sha256": "3d1565012daf7025c13d18fbde1366a96b84c5001a21dcb2d72bc57c02a06224",
+ "basemap_sha256": "8c93933e544d755e1d8752d8fa86829d595f106a6ab240a879b7498ba91beda4",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "b2b8ffc9e27de04d20df819cbb341d86f982cf15",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001864, 4 cpus",
+ "started_at": "2026-10-12T20:12:32.590Z",
+ "key": "db67bdb6457ce0129c85ec9cf758cd13cd02bb90fd0ad3023137e28f314129f1",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 6406
+  },
+  {
+   "crf": 16,
+   "kbps": 8217
+  }
+ ]
+}

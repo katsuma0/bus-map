@@ -1,0 +1,36 @@
+{
+ "file": "europe-london-trains-week.mp4",
+ "title": "A week of every Tube and DLR train in London",
+ "description": "A week of every Tube and DLR train in London, Monday to Sunday, in 60 seconds. The feed has no London Overground, Elizabeth line or National Rail trains, so they are not shown.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside Greater London are faded and not counted. Colours: Northern, Piccadilly, District, Central, Victoria and DLR, with everything else in grey.\n\nBusiest moment: 497 Tube and DLR trains, Monday at 8:31 am.\nThe daily averages use every October 2026 date in each timetable. October 24 and October 25 are left out because the clocks change. Transport for London has fewer than three usable October Saturdays and Sundays, so its Saturday and Sunday each use one typical date.\n\nTransport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransport #london",
+ "tags": [
+  "London",
+  "Transport for London",
+  "transit map",
+  "tube map",
+  "GTFS",
+  "England"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransport",
+  "#london"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Transport for London (Bus Open Data Service, Department for Transport): Open Government Licence v3.0. Contains public sector information licensed under the Open Government Licence v3.0, taken from the Bus Open Data Service."
+ ],
+ "licences": [
+  {
+   "feed": "bods",
+   "licence_id": "ogl-uk-3.0",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 19,
+ "meta_key": "99a0d4c294bc0eff9709628bc6701110203c6287099298678a8a6d67d82c7f3f"
+}
