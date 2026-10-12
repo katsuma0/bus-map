@@ -47,16 +47,69 @@ class Feed(bn.Feed):
     The area build asks for trips, routes and stops several times per feed;
     TTC's trips.txt alone takes seconds to parse. Callers treat the rows as
     read-only.
+
+    With `clip_box` ([w, s, e, n] degrees) the feed is clipped to the trips
+    that stop inside the box (`clip_trips`): trips.txt and frequencies.txt
+    hold only their rows and read_stop_times reads only their stop times, so
+    every count, class and statistic describes the area. A national file
+    (BODS: Great Britain, 5.2 GB of stop times) is read this way.
     """
 
-    def __init__(self, feed_id, path):
+    CLIPPED_TABLES = ("trips", "frequencies")
+
+    def __init__(self, feed_id, path, clip_box=None, chunksize=2_000_000):
         super().__init__(feed_id, path)
         self._tables = {}
+        self.clip_trips = None
+        self.clip_stats = None
+        if clip_box is not None:
+            self.clip_trips, self.clip_stats = clip_trip_ids(self, clip_box, chunksize)
 
     def table(self, name):
         if name not in self._tables:
-            self._tables[name] = super().table(name)
+            if self.clip_trips is not None and name in self.CLIPPED_TABLES:
+                self._tables[name] = self._clipped_table(name)
+            else:
+                self._tables[name] = super().table(name)
         return self._tables[name]
+
+    def _clipped_table(self, name):
+        """The rows bn.Feed.table returns, streamed, keeping only the clipped trips."""
+        import csv
+        import io
+        info = self.members.get(name)
+        if info is None:
+            return []
+        out = []
+        with self.zf.open(info) as fh:
+            for r in csv.DictReader(io.TextIOWrapper(fh, encoding="utf-8-sig", newline="")):
+                row = {(k or "").strip(): (v or "").strip() for k, v in r.items()}
+                if row.get("trip_id", "") in self.clip_trips:
+                    out.append(row)
+        return out
+
+
+def clip_trip_ids(feed, box, chunksize):
+    """(trip_ids with a stop inside box, stats): one pass over stop_times, two columns at a time."""
+    w, s, e, n = (float(v) for v in box)
+    stops = valid_stops(feed)
+    inside = {sid for sid, (lon, lat, _name) in stops.items() if w <= lon <= e and s <= lat <= n}
+    keep, seen, rows = set(), set(), 0
+    info = feed.members.get("stop_times")
+    if info is not None:
+        with feed.zf.open(info) as fh:
+            reader = pd.read_csv(fh, dtype=str, usecols=lambda c: c.strip() in {"trip_id", "stop_id"},
+                                 keep_default_na=False, na_filter=False, encoding="utf-8-sig",
+                                 skipinitialspace=True, chunksize=chunksize)
+            for chunk in reader:
+                chunk.columns = [c.strip() for c in chunk.columns]
+                tid = chunk["trip_id"].str.strip()
+                hit = chunk["stop_id"].str.strip().isin(inside).to_numpy()
+                rows += len(chunk)
+                seen.update(tid.unique())
+                keep.update(tid[hit].unique())
+    return keep, {"box": [w, s, e, n], "stops_inside": len(inside), "stops": len(stops),
+                  "trips_kept": len(keep), "trips_seen": len(seen), "stop_time_rows": rows}
 
 
 def parse_ymd(s):
@@ -353,6 +406,9 @@ def shared(values):
 def read_stop_times(feed, trip_ids, chunksize, stops=None):
     """A4: stop_times of `trip_ids`, grouped per trip exactly as build_feed groups them.
 
+    On a clipped feed (Feed `clip_box`) the rows of other trips are dropped
+    first, so `max_t` and `rows_read` describe the clipped feed too.
+
     Each chunk is reduced to the kept rows at once: trip and stop ids stripped,
     rows of unknown stops dropped, stop_sequence parsed, and equal strings made
     one object, so a kept row costs a few pointers instead of five fresh str
@@ -363,6 +419,7 @@ def read_stop_times(feed, trip_ids, chunksize, stops=None):
     if stops is None:
         stops = valid_stops(feed)
     keep = set(trip_ids)
+    clip = getattr(feed, "clip_trips", None)
     info = feed.members.get("stop_times")
     cols = {k: [] for k in ("trip", "stop", "seq", "arr", "dep", "arr_raw", "dep_raw")}
     max_t, rows = 0.0, 0
@@ -377,6 +434,8 @@ def read_stop_times(feed, trip_ids, chunksize, stops=None):
                     if c not in chunk.columns:
                         chunk[c] = ""
                 chunk = chunk[STOP_TIME_COLUMNS].fillna("")
+                if clip is not None:
+                    chunk = chunk[chunk["trip_id"].str.strip().isin(clip).to_numpy()]
                 rows += len(chunk)
                 a, d = parse_times(chunk["arrival_time"]), parse_times(chunk["departure_time"])
                 m = np.fmax(a, d)
