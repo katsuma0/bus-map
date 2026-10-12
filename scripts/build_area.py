@@ -302,7 +302,9 @@ def main():
         feed = composite.Feed(fid, path, clip_box=clip_box, chunksize=chunk)
         if feed.clip_stats:
             cs = feed.clip_stats
-            log(f"  {fid}: clipped to the area box: {cs['trips_kept']} of {cs['trips_seen']} trips stop at "
+            # London's area_clip box is far smaller than its area box, and the counts are for it.
+            where = "the area box" if clip is True else f"the area_clip box {list(clip_box)}"
+            log(f"  {fid}: clipped to {where}: {cs['trips_kept']} of {cs['trips_seen']} trips stop at "
                 f"{cs['stops_inside']} of {cs['stops']} stops inside it ({time.time() - t0:.0f}s)")
         svc = composite.service_dates(feed)
         counts0 = composite.trips_per_date(feed, svc)
