@@ -758,7 +758,7 @@ whose name has that word, "the New York City limits"; or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
 Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city" or "the town",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
-each mode the title names (`bus map`, `streetcar map`, `train map`; a mode a batch adds for a city
+each mode the title names (`bus map`, `streetcar map`, `tram map`, `train map`; a mode a batch adds for a city
 whose rail is its metro alone, so the title does not say every train: `tube map` for `tube`,
 `U-Bahn map` for `ubahn`, `metro map` for `metro`). The first tag and the
 video's own hashtag name the place without a lowercase leading article, and `place_tags` spells out
