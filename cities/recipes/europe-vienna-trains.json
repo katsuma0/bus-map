@@ -45,6 +45,7 @@
     "id": "u1",
     "label": "U1",
     "hex": "#e3000f",
+    "dL": -0.12,
     "match": [
      {
       "feed": "wienerlinien",
@@ -52,7 +53,7 @@
      }
     ],
     "verified": true,
-    "source": "wienerlinien.zip route_color E3000F on U1"
+    "source": "wienerlinien.zip routes.txt route_color E3000F on U1; pinned at dL -0.12 (trail #cb6d62) so it reads red and U3 can keep its orange source step (0.134)"
    },
    {
     "id": "u2",
@@ -65,12 +66,13 @@
      }
     ],
     "verified": true,
-    "source": "wienerlinien.zip route_color A862A4 on U2"
+    "source": "wienerlinien.zip routes.txt route_color A862A4 on U2; source step, trail #db95d6"
    },
    {
     "id": "u3",
     "label": "U3",
     "hex": "#ef7c00",
+    "dL": 0,
     "match": [
      {
       "feed": "wienerlinien",
@@ -78,12 +80,13 @@
      }
     ],
     "verified": true,
-    "source": "wienerlinien.zip route_color EF7C00 on U3"
+    "source": "wienerlinien.zip routes.txt route_color EF7C00 on U3; pinned at the source step (trail #ec9c63); free, it was laddered to dL -0.12 and sat 0.085 from U6 brown"
    },
    {
     "id": "u4",
     "label": "U4",
     "hex": "#319f49",
+    "dL": 0.1,
     "match": [
      {
       "feed": "wienerlinien",
@@ -91,13 +94,13 @@
      }
     ],
     "verified": true,
-    "source": "wienerlinien.zip route_color 319F49 on U4"
+    "source": "wienerlinien.zip routes.txt route_color 319F49 on U4; pinned at dL +0.10 (trail #9ae7a3): at the source step it is 0.069 from the slate city line, and at -0.12 it is 0.010 from U1 red under deuteranopia"
    },
    {
     "id": "u6",
     "label": "U6",
     "hex": "#9d6830",
-    "dL": -0.2,
+    "dL": -0.22,
     "match": [
      {
       "feed": "wienerlinien",
@@ -105,7 +108,7 @@
      }
     ],
     "verified": true,
-    "source": "wienerlinien.zip route_color 9D6830 on U6; pinned at dL -0.20 so it reads brown next to U3's orange"
+    "source": "wienerlinien.zip routes.txt route_color 9D6830 on U6; pinned at dL -0.22 (trail #966129) so it reads brown, 0.123 from U1 red (0.108 at -0.20)"
    },
    {
     "id": "other",

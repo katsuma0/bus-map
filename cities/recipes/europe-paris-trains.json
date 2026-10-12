@@ -42,9 +42,25 @@
   "legend": false,
   "groups": [
    {
+    "id": "metro",
+    "label": "Métro",
+    "neutral": "#c9cfd2",
+    "match": [
+     {
+      "feed": "idfm",
+      "route_type": [
+       1
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the 16 Métro lines (1 to 14, 3B, 7B) as one light neutral web under the five RER colours; idfm.zip gives each line its own route_color, more than the 7 a video holds. #c9cfd2 instead of #e3e7ea: the near-white web (0.058 from the white dot core) hid the Métro trains' dots in the committed stills; #c9cfd2 is 0.133 from the core and 0.093 from the city line"
+   },
+   {
     "id": "rer_a",
     "label": "RER A",
     "hex": "#eb2132",
+    "dL": -0.12,
     "match": [
      {
       "feed": "idfm",
@@ -54,7 +70,7 @@
      }
     ],
     "verified": true,
-    "source": "idfm.zip routes.txt route_color EB2132 on RER A"
+    "source": "idfm.zip routes.txt route_color EB2132 on RER A; pinned at dL -0.12 (trail #cb6d67) so it reads red and clears RER E (0.091 at the source step)"
    },
    {
     "id": "rer_b",
@@ -90,6 +106,7 @@
     "id": "rer_d",
     "label": "RER D",
     "hex": "#008b5b",
+    "dL": 0,
     "match": [
      {
       "feed": "idfm",
@@ -99,7 +116,7 @@
      }
     ],
     "verified": true,
-    "source": "idfm.zip routes.txt route_color 008B5B on RER D"
+    "source": "idfm.zip routes.txt route_color 008B5B on RER D (route_id IDFM:C01728). Pinned at the source step dL 0 (trail #63c997): at -0.12 (#3aa273) it sat at RER A's lightness and was 0.029 from RER A under deuteranopia on the Châtelet to Gare de Lyon corridor the two share, and 0.043 from the Other grey (Transilien lines run beside it for 114 km). Now 0.115 deutan and 0.210 protan from RER A, 0.095 and 0.128 from the grey. It is 0.077 from the slate city line, a renderer warning, which the batch accepts as New York's B/D/F/M (0.069) and Chicago's Orange Line (0.067) did; RER D crosses the city line at two points only"
    },
    {
     "id": "rer_e",
@@ -117,23 +134,10 @@
     "source": "idfm.zip routes.txt route_color B94E9A on RER E"
    },
    {
-    "id": "metro",
-    "label": "Métro",
-    "neutral": "#e3e7ea",
-    "match": [
-     {
-      "feed": "idfm",
-      "route_type": [
-       1
-      ]
-     }
-    ],
-    "verified": false,
-    "source": "chosen: the 16 Métro lines as one light neutral web under the five RER colours; idfm.zip gives each line its own colour, more than the 7 a video holds"
-   },
-   {
     "id": "other",
-    "label": "Other"
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
    }
   ]
  }

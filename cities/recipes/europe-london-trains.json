@@ -40,37 +40,9 @@
   "legend": false,
   "groups": [
    {
-    "id": "central",
-    "label": "Central",
-    "brand": "tfl:central",
-    "verified": false,
-    "source": "TfL Colour Standard, Central line E32017"
-   },
-   {
-    "id": "district",
-    "label": "District",
-    "brand": "tfl:district",
-    "verified": false,
-    "source": "TfL Colour Standard, District line 00782A"
-   },
-   {
-    "id": "piccadilly",
-    "label": "Piccadilly",
-    "brand": "tfl:piccadilly",
-    "verified": false,
-    "source": "TfL Colour Standard, Piccadilly line 003688"
-   },
-   {
-    "id": "victoria",
-    "label": "Victoria",
-    "brand": "tfl:victoria",
-    "verified": false,
-    "source": "TfL Colour Standard, Victoria line 0098D4"
-   },
-   {
     "id": "northern",
     "label": "Northern",
-    "neutral": "#e3e7ea",
+    "neutral": "#c9cfd2",
     "match": [
      {
       "feed": "bods",
@@ -78,18 +50,48 @@
      }
     ],
     "verified": false,
-    "source": "chosen: the Northern line is black on TfL's maps; a dark map draws it as a light neutral, as TfL's dark maps do"
+    "source": "chosen: the Northern line is black (000000) in the TfL Colour Standard and has no hue; drawn as the light neutral #c9cfd2, the batch's neutral for a line with no hue (the Paris Métro uses the same)"
+   },
+   {
+    "id": "piccadilly",
+    "label": "Piccadilly",
+    "brand": "tfl:piccadilly",
+    "verified": false,
+    "source": "TfL Colour Standard, Piccadilly line 003688 (brands.json rule tfl:piccadilly, which carries the pin dL -0.12, trail #608cd5, darker than Victoria as on the Tube map); BODS routes.txt has no route_color and the standard could not be read from here"
+   },
+   {
+    "id": "district",
+    "label": "District",
+    "brand": "tfl:district",
+    "verified": false,
+    "source": "TfL Colour Standard, District line 00782A (brands.json rule tfl:district, pin dL -0.20 there, trail #3c8749, 0.228 from the slate city line); unverified as above"
+   },
+   {
+    "id": "central",
+    "label": "Central",
+    "brand": "tfl:central",
+    "verified": false,
+    "source": "TfL Colour Standard, Central line E32017 (brands.json rule tfl:central, pin dL -0.12 there, trail #cb6e61, reads red not salmon); unverified as above"
+   },
+   {
+    "id": "victoria",
+    "label": "Victoria",
+    "brand": "tfl:victoria",
+    "verified": false,
+    "source": "TfL Colour Standard, Victoria line 0098D4 (brands.json rule tfl:victoria, pin dL 0 there, trail #5bbdf3 at the source step); unverified as above"
    },
    {
     "id": "dlr",
     "label": "DLR",
     "brand": "tfl:dlr",
     "verified": false,
-    "source": "TfL Colour Standard, DLR 00A4A7"
+    "source": "TfL Colour Standard, DLR 00A4A7 (brands.json rule tfl:dlr, pin dL -0.20 there, trail #008588). At -0.12 (#00a0a3) it was 0.023 from the Other grey under protanopia (0.056 deuteranopia) on the Stratford to Canning Town corridor it shares with the Jubilee line; at -0.20 it is 0.140 (0.122 deutan, 0.085 protan)"
    },
    {
     "id": "other",
-    "label": "Other lines"
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope); Jubilee (grey A0A5A9 in the standard) reads true in it"
    }
   ]
  }

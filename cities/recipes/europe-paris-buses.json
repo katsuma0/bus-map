@@ -46,6 +46,7 @@
     "id": "bus",
     "label": "Bus",
     "hex": "#00aa91",
+    "rest": true,
     "match": [
      {
       "feed": "idfm",
@@ -54,13 +55,28 @@
       ]
      }
     ],
-    "rest": true,
     "verified": false,
-    "source": "chosen: RATP jade 00AA91 of the RATP logo, approximate; idfm.zip gives each bus line its own colour"
+    "source": "chosen: RATP jade 00AA91 of the RATP logo, approximate; idfm.zip gives the 1967 bus routes 185 different route_colors (FFBE00 on 140, the most common), one per line, so none is the network's"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#ff5a00",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color FF5A00 on T3a (and T11); T3b 00643C, T2 A0006E, T9 3C91DC and the other trams of the frame join it; pinned at dL -0.12 (trail #c97152) so it reads orange, not peach"
    },
    {
     "id": "noctilien",
-    "label": "Noctilien",
+    "label": "Night bus",
     "hex": "#3c3c96",
     "match": [
      {
@@ -72,26 +88,13 @@
      }
     ],
     "verified": false,
-    "source": "chosen: Noctilien night blue, approximate"
-   },
-   {
-    "id": "tram",
-    "label": "Tram",
-    "hex": "#ff5a00",
-    "match": [
-     {
-      "feed": "idfm",
-      "mode": [
-       "tram"
-      ]
-     }
-    ],
-    "verified": true,
-    "source": "idfm.zip routes.txt route_color FF5A00 on T3a, the tram that rings Paris (T11 too)"
+    "source": "chosen: Noctilien blue (a Noctilien stop shows a blue sign with an N, ratp.fr/noctiliens via a search extract), approximate; idfm.zip gives the 59 N routes 21 different route_colors; labelled 'Night bus' (the batch's English word for every night network: London, Paris, Berlin, Vienna); the brand is Noctilien, the Paris night network"
    },
    {
     "id": "other",
-    "label": "Other"
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
    }
   ]
  }

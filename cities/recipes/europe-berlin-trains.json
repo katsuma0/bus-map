@@ -54,12 +54,13 @@
      }
     ],
     "verified": false,
-    "source": "chosen: the blue of the U-Bahn sign, approximate; vbb.zip gives each U line its own colour"
+    "source": "chosen: the blue of the U-Bahn sign, approximate; vbb.zip gives each U line its own route_color"
    },
    {
     "id": "sbahn",
     "label": "S-Bahn",
     "hex": "#008d4f",
+    "dL": 0.1,
     "match": [
      {
       "feed": "vbb",
@@ -69,7 +70,7 @@
      }
     ],
     "verified": false,
-    "source": "chosen: the green of the S-Bahn sign, approximate; vbb.zip gives most S lines their own colour"
+    "source": "chosen: the green of the S-Bahn sign, approximate; vbb.zip gives most S lines their own route_color. Pinned at dL +0.10 (trail #8ee8ae). At -0.12 (#46a16b) it was 0.045 from the Regional coral under protanopia, and the two run side by side for 237 km (the Stadtbahn and the radial lines); now 0.307 (0.212 deutan, 0.306 protan)"
    },
    {
     "id": "regional",
@@ -85,11 +86,8 @@
      }
     ],
     "verified": false,
-    "source": "chosen: DB red EC0016 for the regional trains (DB Regio, ODEG, NEB), approximate"
-   },
-   {
-    "id": "other",
-    "label": "Other"
+    "source": "chosen: DB red EC0016 for the regional trains (DB Regio, ODEG, NEB), approximate. Pinned at dL -0.12 (trail #cb6d63) so it reads DB red, not coral (#f49287 at the source step), and sits darker than the S-Bahn for both kinds of red-green colour blindness",
+    "dL": -0.12
    }
   ]
  }

@@ -44,69 +44,62 @@
     "id": "bus",
     "label": "Bus",
     "brand": "tfl",
+    "rest": true,
     "match": [
+     {
+      "brand": "tfl",
+      "mode": [
+       "bus"
+      ]
+     },
      {
       "feed": "bods",
       "agency": [
-       "London Underground (TfL)",
-       "London Docklands Light Railway - TfL",
-       "London Tramlink",
-       "IFS Cloud Cable Car",
-       "Thames Clippers",
-       "Woolwich Free Ferry",
-       "Arriva London",
-       "Arriva London North",
-       "Arriva London South",
-       "Docklands Buses",
-       "Go Ahead London",
-       "London Sovereign",
-       "London Transit",
-       "London United",
-       "Metroline Travel",
-       "Quality Line",
-       "Stagecoach London",
-       "Sullivan Buses",
-       "Transport UK",
-       "Uno"
+       "Go Ahead Luton Parkway",
+       "FIRST CAPITAL EAST LIMI"
       ],
       "mode": [
        "bus"
       ]
-     }
-    ],
-    "rest": true,
-    "verified": false,
-    "source": "TfL red DC241F of the London bus roundel (TfL Colour Standard)"
-   },
-   {
-    "id": "night",
-    "label": "Night",
-    "hex": "#1c3f94",
-    "match": [
+     },
      {
       "feed": "bods",
       "agency": [
-       "London Underground (TfL)",
-       "London Docklands Light Railway - TfL",
-       "London Tramlink",
-       "IFS Cloud Cable Car",
-       "Thames Clippers",
-       "Woolwich Free Ferry",
-       "Arriva London",
-       "Arriva London North",
-       "Arriva London South",
-       "Docklands Buses",
-       "Go Ahead London",
-       "London Sovereign",
-       "London Transit",
-       "London United",
-       "Metroline Travel",
-       "Quality Line",
-       "Stagecoach London",
-       "Sullivan Buses",
-       "Transport UK",
-       "Uno"
+       "Metrobus"
       ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^(127|264|320|35[389]|403|43[49]|450|463|633|R\\d+|S4)$"
+     }
+    ],
+    "verified": false,
+    "source": "TfL Colour Standard, London Buses DC241F (brands.json tfl, which carries the pin dL -0.12, trail #cb6e62, London red not salmon); read from a search extract because tfl.gov.uk does not resolve here; BODS has no route_color. The 2nd and 3rd clauses take TfL routes BODS files under Go Ahead Luton Parkway, FIRST CAPITAL EAST LIMI and Metrobus (all 22 Metrobus routes the regex takes run 64 to 100% of their length inside Greater London; the 20 it leaves (SL7 aside) run 0 to 11% inside)"
+   },
+   {
+    "id": "superloop",
+    "label": "Superloop",
+    "hex": "#e42313",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "bods",
+      "mode": [
+       "bus"
+      ],
+      "short": "^SL\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "Superloop Red RGB 228,35,19 (E42313) of TfL's Superloop logo and colour standards V3 (FOI-1086-2324), read from a search extract. It is the bus red's family, so it is pinned at dL +0.10 (trail #ffbfb4, a light red) to stand apart from Bus at -0.12 (0.223)"
+   },
+   {
+    "id": "night",
+    "label": "Night bus",
+    "hex": "#0019a8",
+    "match": [
+     {
+      "brand": "tfl",
       "mode": [
        "bus"
       ],
@@ -114,18 +107,19 @@
      }
     ],
     "verified": false,
-    "source": "chosen: TfL Blue 1C3F94 (TfL design idiom) for the N routes"
+    "source": "chosen: TfL Corporate Blue (Pantone 072, digital Beck Blue 0019A8) for the N routes; TfL gives night routes no colour of their own. Source step, trail #8ab0fe"
    },
    {
     "id": "tram",
     "label": "Tram",
     "brand": "tfl:trams",
     "verified": false,
-    "source": "TfL Colour Standard, London Trams 84B817"
+    "source": "TfL Colour Standard, London Trams 84B817 (brands.json rule tfl:trams, which carries the pin dL -0.20, trail #60812b); BODS has no route_color. Kept the brands.json hex rather than the unverified 5FB526: at -0.20 it is 0.068 from Bus red under protanopia (5FB526: 0.055) on the Croydon streets the trams share with buses"
    },
    {
     "id": "other",
-    "label": "Other"
+    "label": "Other",
+    "source": "web/themes.json slate.colors.foreign #8f9893: buses outside TfL (Heathrow hotel shuttles, rail replacement, county routes from Herts, Surrey, Kent, Essex and Berkshire)"
    }
   ]
  }

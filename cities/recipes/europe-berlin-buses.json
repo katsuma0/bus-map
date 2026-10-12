@@ -45,7 +45,8 @@
    {
     "id": "bus",
     "label": "Bus",
-    "brand": "vbb",
+    "hex": "#95276e",
+    "rest": true,
     "match": [
      {
       "feed": "vbb",
@@ -57,14 +58,14 @@
       ]
      }
     ],
-    "rest": true,
     "verified": false,
-    "source": "BVG yellow F0D722 of its buses, approximate"
+    "source": "chosen: the purple of the Berlin Bus signet, approximate; vbb.zip gives all 220 BVG bus routes no route_color"
    },
    {
-    "id": "night",
-    "label": "Night",
-    "hex": "#2a4f9e",
+    "id": "metrobus",
+    "label": "MetroBus",
+    "hex": "#f0d722",
+    "dL": 0.1,
     "match": [
      {
       "feed": "vbb",
@@ -74,16 +75,17 @@
       "mode": [
        "bus"
       ],
-      "short": "^N\\d+$"
+      "short": "^M(11|19|21|27|29|32|36|37|41|43|44|45|46|48|49|76|77|82|85)$"
      }
     ],
     "verified": false,
-    "source": "chosen: night blue for BVG's N routes, approximate"
+    "source": "chosen: BVG yellow F0D722 (vbb.zip route_color of U4, the brands.json vbb colour) for BVG's Metro network; pinned at dL +0.10 (trail #e3d372) to clear the slate city line (0.080 at the source step)"
    },
    {
     "id": "tram",
     "label": "Tram",
     "hex": "#be1414",
+    "dL": -0.12,
     "match": [
      {
       "feed": "vbb",
@@ -96,11 +98,32 @@
      }
     ],
     "verified": false,
-    "source": "chosen: BVG tram red, approximate; vbb.zip gives 18 of 27 BVG tram routes no colour"
+    "source": "chosen: the red of the Berlin Tram signet, approximate; vbb.zip gives all 27 BVG tram routes no route_color; pinned at dL -0.12 (trail #cb6e62) so it reads red, not salmon, and sits 0.148 from Bus (0.087 at the source step)"
+   },
+   {
+    "id": "night",
+    "label": "Night bus",
+    "hex": "#2a4f9e",
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+X?$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: night blue for BVG's N routes, approximate; vbb.zip gives them no route_color"
    },
    {
     "id": "other",
-    "label": "Other"
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
    }
   ]
  }
