@@ -768,6 +768,33 @@ class Units(unittest.TestCase):
                               "--out", os.path.join(tmp, "one.geojson"), check=False)
             self.assertNotEqual(p.returncode, 0)
 
+    def test_boundary_region(self):
+        """fetch keeps a region only when asked; select takes one for a city that is a region (Kuala Lumpur)."""
+        import fetch_boundary as fb
+        self.assertEqual(fb.parse_subtypes(""), ["locality", "localadmin", "county"])
+        self.assertEqual(fb.parse_subtypes("locality,localadmin,county,region"),
+                         ["locality", "localadmin", "county", "region"])
+        with self.assertRaises(SystemExit):
+            fb.parse_subtypes("county,state")
+        row = lambda sub, name="Kuala Lumpur", region="MY-14", cls="land": {  # noqa: E731
+            "subtype": sub, "class": cls, "country": "MY", "region": region, "names": {"primary": name}}
+        three = fb.keeps("MY", "MY-14", fb.parse_subtypes(""))
+        self.assertTrue(three(row("locality")))
+        self.assertFalse(three(row("region")), "the default three never keep a region")
+        four = fb.keeps("MY", "MY-14", fb.parse_subtypes("locality,localadmin,county,region"))
+        self.assertTrue(four(row("region")))
+        self.assertFalse(four(row("region", region="MY-10")))
+        self.assertFalse(four(row("region", cls="maritime")))
+        self.assertFalse(four(row("region", name=" ")))
+        sq = U.load_json(os.path.join(U.ROOT, "tests", "fixtures", "test", "centre.geojson"))
+        feats = [{"type": "Feature", "geometry": sq["geometry"],
+                  "properties": {"id": i, "name": "Kuala Lumpur", "subtype": st, "area_km2": km2}}
+                 for i, st, km2 in (("loc", "locality", 30.0), ("reg", "region", 242.8))]
+        self.assertEqual(fb.choose(feats, "Kuala Lumpur", ["region"], 243.0)["properties"]["id"], "reg")
+        self.assertEqual(fb.choose(feats, "Kuala Lumpur", ["locality", "region"], 30.0)["properties"]["id"], "loc")
+        with self.assertRaises(ValueError):
+            fb.choose(feats[:1], "Kuala Lumpur", ["region"], 243.0)
+
     def test_mask_rle_round_trip(self):
         poly = shapely.Polygon([(0, 0), (1, 0), (1, 1), (0.5, 0.4), (0, 1)])
         mask, grid = tn.build_mask(poly, [0, 0, 1, 1], 0.025)

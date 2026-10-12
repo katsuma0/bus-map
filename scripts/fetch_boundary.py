@@ -11,7 +11,9 @@
 `fetch` runs once per area. It reads the division_area parquet files of the
 release with the row-group bbox pruning of fetch_overture.py and keeps land
 localities, localadmins and counties of one country and region that carry a
-primary name. `select` picks one city from that file by its exact name and
+primary name; `--subtypes` adds `region` for an area whose city is itself a
+region, as Kuala Lumpur (MY-14, a federal territory) and Bangkok (TH-10) are,
+with no locality polygon of their own. `select` picks one city from that file by its exact name and
 census area, and writes it as a single GeoJSON Feature for trim_network.py.
 The selected Feature's properties are also printed as one JSON line on stdout.
 `union` merges Features that `select` (or a recipe's own file) wrote into one
@@ -29,7 +31,30 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 SUBTYPES = ("locality", "localadmin", "county")
+# A region is a state or province, kept only when an area asks for it, so the
+# divisions file of every other area holds exactly what it held before.
+ALLOWED_SUBTYPES = SUBTYPES + ("region",)
 MAX_AREA_ERROR = 0.20
+
+
+def parse_subtypes(text):
+    """A comma list of subtypes in order; empty means the default three. Unknown ones exit."""
+    subtypes = [s.strip() for s in (text or "").split(",") if s.strip()] or list(SUBTYPES)
+    bad = [s for s in subtypes if s not in ALLOWED_SUBTYPES]
+    if bad:
+        sys.exit(f"unknown subtypes {bad}: use {', '.join(ALLOWED_SUBTYPES)}")
+    return subtypes
+
+
+def keeps(country, region, subtypes):
+    """The fetch filter: land divisions of one country and region, of the given subtypes, with a primary name."""
+    wanted = set(subtypes)
+
+    def keep(r):
+        names = r.get("names") or {}
+        return (r.get("country") == country and r.get("region") == region and r.get("class") == "land"
+                and r.get("subtype") in wanted and bool((names.get("primary") or "").strip()))
+    return keep
 
 
 def area_km2(geom):
@@ -63,11 +88,8 @@ def fetch(args):
     fo.RELEASE = args.release
     fo.BBOX = bbox
 
-    def keep(r):
-        names = r.get("names") or {}
-        return (r.get("country") == args.country and r.get("region") == args.region and r.get("class") == "land"
-                and r.get("subtype") in SUBTYPES and bool((names.get("primary") or "").strip()))
-
+    subtypes = parse_subtypes(args.subtypes)
+    keep = keeps(args.country, args.region, subtypes)
     feats = fo.pull("divisions", "division_area", ["id", "division_id", "names", "subtype", "class", "country", "region"], keep)
     out = []
     for f in feats:
@@ -81,7 +103,7 @@ def fetch(args):
     # Parquet file and row-group order is not part of the contract; ids are.
     out.sort(key=lambda f: f["properties"]["id"])
     write_json(args.out, {"type": "FeatureCollection", "features": out})
-    print(f"wrote {args.out}: {len(out)} divisions ({', '.join(f'{s} {sum(1 for f in out if f['properties']['subtype'] == s)}' for s in SUBTYPES)})",
+    print(f"wrote {args.out}: {len(out)} divisions ({', '.join(f'{s} {sum(1 for f in out if f['properties']['subtype'] == s)}' for s in subtypes)})",
           file=sys.stderr)
 
 
@@ -105,7 +127,7 @@ def choose(features, name, subtypes, target_km2):
 def select(args):
     with open(args.inp, encoding="utf-8") as fh:
         fc = json.load(fh)
-    subtypes = [s.strip() for s in args.subtypes.split(",") if s.strip()] or list(SUBTYPES)
+    subtypes = parse_subtypes(args.subtypes)
     try:
         best = choose(fc["features"], args.name, subtypes, args.area_km2)
     except ValueError as e:
@@ -178,11 +200,14 @@ def main():
     f.add_argument("--country", required=True)
     f.add_argument("--region", required=True)
     f.add_argument("--bbox", required=True, help="west,south,east,north")
+    f.add_argument("--subtypes", default=",".join(SUBTYPES),
+                   help=f"comma list of the subtypes to keep, of {', '.join(ALLOWED_SUBTYPES)}")
     f.add_argument("--out", required=True)
     s = sub.add_parser("select", help="one city out of a fetched divisions file")
     s.add_argument("--in", dest="inp", required=True)
     s.add_argument("--name", required=True)
-    s.add_argument("--subtypes", default=",".join(SUBTYPES), help="comma list in preference order")
+    s.add_argument("--subtypes", default=",".join(SUBTYPES),
+                   help=f"comma list in preference order, of {', '.join(ALLOWED_SUBTYPES)}")
     s.add_argument("--area-km2", type=float, required=True)
     s.add_argument("--out", required=True)
     u = sub.add_parser("union", help="one Feature out of several selected ones")

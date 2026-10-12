@@ -495,6 +495,11 @@ Additions made while implementing (they extend, never change, the formats below)
   tuning knob `camamp` (`CAMERA_AMP`, right after the frame knobs in every pass, arms v x 0.75 and
   v x 1.25 capped at 1.5, with a clip, `motion.jpg` and `camera.jpg` of frames 0, N/4, N/2 and
   3N/4; auto pick b unless an arm strobes less by more than 0.0005);
+* `boundary.subtypes` may name `region`: Kuala Lumpur (a federal territory, `MY-14`) and Bangkok
+  (`TH-10`) are Overture regions with no locality polygon. `fetch_boundary.py fetch --subtypes` keeps
+  them, and make.py passes it (the three and `region`) only for an area with a recipe that names
+  `region`, whose divisions file is then `<region>-<area>-region.geojson`; every other area's command
+  line, file name and bytes stay as they were;
 * colour groups (2.16, B19): a recipe's `colors` block names its video's 1 to 7 colours (by line, by
   kind of service or by operator) with rules on the store's route fields; the trim writes them as
   `meta.groups` with `meta.color_by "group"`, make.py passes their colours as `paint=` (never in the
@@ -540,7 +545,7 @@ does today).
 | `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; not with a boundary of several divisions; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
-| `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
+| `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order; `region` may be named too, for a city that is a state or province of its own (Kuala Lumpur `MY-14`, Bangkok `TH-10`), which Overture holds only as a region |
 | `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
 | `modes` | [str] | no | every batch mode | the batch mode ids this video keeps (`["rail"]`, `["bus", "streetcar"]`); the trim drops the other modes' trips (2.15) |

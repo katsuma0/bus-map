@@ -146,17 +146,21 @@ write_gz(os.path.join(cfg["built_dir"], "basemap.json.gz"), {"origin": cfg["orig
 
 STUB_FETCH_BOUNDARY = STUB_COMMON + r'''
 cmd = sys.argv[1]
-log("fetch_boundary", cmd)
+log("fetch_boundary", cmd, *([arg("--subtypes")] if cmd == "fetch" and "--subtypes" in sys.argv else []))
 if cmd == "fetch":
-    # The test squares stand in for Overture division areas, named as the fixtures name them.
+    # The test squares stand in for Overture division areas, named as the fixtures name them;
+    # with region in --subtypes each also comes as a region, as Kuala Lumpur does.
     import glob
     os.makedirs(os.path.dirname(arg("--out")), exist_ok=True)
     feats = []
+    subs = ["locality"] + (["region"] if "region" in (arg("--subtypes") or "").split(",") else [])
     for i, p in enumerate(sorted(glob.glob("tests/fixtures/test/*.geojson"))):
-        f = json.load(open(p))
-        f["properties"] = {"id": f"area-{i}", "division_id": f"div-{i}", "name": f["properties"]["name"],
-                           "subtype": "locality", "class": "land", "area_km2": 36.0 if "north" in p else 64.0}
-        feats.append(f)
+        for sub in subs:
+            f = json.load(open(p))
+            f["properties"] = {"id": f"{'area' if sub == 'locality' else sub}-{i}", "division_id": f"div-{i}",
+                               "name": f["properties"]["name"], "subtype": sub, "class": "land",
+                               "area_km2": 36.0 if "north" in p else 64.0}
+            feats.append(f)
     json.dump({"type": "FeatureCollection", "features": feats}, open(arg("--out"), "w"), sort_keys=True)
 elif cmd == "union":
     # Every --in Feature as one MultiPolygon, with the properties fetch_boundary.py union writes.
@@ -564,6 +568,24 @@ class Validation(unittest.TestCase):
         make.validate_lock({"batch": "gta", "areas": {}, "boundaries": {}, "extra": 1}, self.batch, errors)
         self.assertTrue(any("unknown key 'extra'" in e for e in errors))
 
+    def test_boundary_subtypes(self):
+        """region is a subtype a recipe may name (Kuala Lumpur, Bangkok); nothing else beyond the three."""
+        for ok in (["locality"], ["region"], ["locality", "region"]):
+            r = json.loads(json.dumps(self.recipe))
+            r["boundary"]["subtypes"] = ok
+            self.assertEqual(self.recipe_errors(r), [], ok)
+        for bad in (["state"], [], "region"):
+            r = json.loads(json.dumps(self.recipe))
+            r["boundary"]["subtypes"] = bad
+            self.assertTrue(any("subtypes: must be a non-empty list of locality, localadmin, county, region" in e
+                                for e in self.recipe_errors(r)), bad)
+        self.assertIsNone(make.division_subtypes([self.recipe]))
+        r = json.loads(json.dumps(self.recipe))
+        r["boundary"]["subtypes"] = ["region"]
+        self.assertEqual(make.division_subtypes([self.recipe, r]), ["locality", "localadmin", "county", "region"])
+        r["boundary"]["file"] = "tests/fixtures/test/north.geojson"
+        self.assertIsNone(make.division_subtypes([r]), "a boundary file fetches nothing")
+
     def test_review_videos_key_is_accepted(self):
         self.assertIn("review_videos", self.batch)
         self.assertEqual(self.batch_errors(self.batch), [])
@@ -925,6 +947,37 @@ class Derivation(Scratch):
         self.assertEqual(self.repo.calls(), [], "a second lock reuses the pinned divisions and the boundary stamp")
         self.repo.run("build", "test", "--city", "test-north")
         self.assertIn("test-north boundary: up to date", self.repo.run("build", "test", "--city", "test-north").stdout)
+
+    def test_region_boundary(self):
+        """A recipe that names region fetches its area's regions too and selects one; the others' fetch is as before."""
+        r = self.repo.read_json("cities/recipes/test-north.json")
+        del r["boundary"]["file"]
+        r["boundary"]["subtypes"] = ["region"]
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), ["fetch_boundary fetch locality,localadmin,county,region",
+                                             "fetch_boundary select"])
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        b = lock["boundaries"]["test-north"]
+        self.assertEqual((b["id"], b["division_id"], b["subtype"]), ("region-1", "div-1", "region"))
+        div = lock["areas"]["tsukuba"]["divisions"]
+        self.assertEqual(div["key"], "JP-08-tsukuba-region")
+        info = self.repo.read_json("cache/overture/2026-09-23.1/divisions/JP-08-tsukuba-region.geojson.json")
+        self.assertEqual(info["subtypes"], ["locality", "localadmin", "county", "region"])
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), [], "a second lock reuses the pinned divisions")
+        # Back to a locality: the lock fetches the file without regions, under the old name, as before.
+        r["boundary"]["subtypes"] = ["locality"]
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), ["fetch_boundary fetch", "fetch_boundary select"])
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        self.assertEqual(lock["areas"]["tsukuba"]["divisions"]["key"], "JP-08-tsukuba")
+        self.assertNotIn("subtypes", self.repo.read_json("cache/overture/2026-09-23.1/divisions/JP-08-tsukuba.geojson.json"))
+        self.assertEqual(lock["boundaries"]["test-north"]["subtype"], "locality")
 
     def test_derived_configs(self):
         recipe = self.pl.recipe("test-north", self.batch)
