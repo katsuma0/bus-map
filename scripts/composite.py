@@ -342,13 +342,30 @@ def valid_stops(feed):
     return stops
 
 
+def shared(values):
+    """An object array of `values` in which equal strings are one object (a per-chunk factorize)."""
+    codes, uniques = pd.factorize(values)
+    if len(codes) and (codes >= 0).all():
+        return np.asarray(uniques, dtype=object).take(codes)
+    return np.asarray(values, dtype=object)
+
+
 def read_stop_times(feed, trip_ids, chunksize, stops=None):
-    """A4: stop_times of `trip_ids`, grouped per trip exactly as build_feed groups them."""
+    """A4: stop_times of `trip_ids`, grouped per trip exactly as build_feed groups them.
+
+    Each chunk is reduced to the kept rows at once: trip and stop ids stripped,
+    rows of unknown stops dropped, stop_sequence parsed, and equal strings made
+    one object, so a kept row costs a few pointers instead of five fresh str
+    objects. Paris's 12 million kept rows took 7 GB the other way and London's
+    23 million did not fit in 15. The arrays are those build_feed builds
+    (lines 511 to 520), row for row.
+    """
     if stops is None:
         stops = valid_stops(feed)
     keep = set(trip_ids)
     info = feed.members.get("stop_times")
-    parts, max_t, rows = [], 0.0, 0
+    cols = {k: [] for k in ("trip", "stop", "seq", "arr", "dep", "arr_raw", "dep_raw")}
+    max_t, rows = 0.0, 0
     if info is not None:
         wanted = set(STOP_TIME_COLUMNS)
         with feed.zf.open(info) as fh:
@@ -366,24 +383,35 @@ def read_stop_times(feed, trip_ids, chunksize, stops=None):
                 if len(m) and not np.all(np.isnan(m)):
                     max_t = max(max_t, float(np.nanmax(m)))
                 sel = chunk["trip_id"].str.strip().isin(keep).to_numpy()
-                chunk = chunk[sel].assign(_arr=a[sel], _dep=d[sel])
-                parts.append(chunk)
-    if parts:
-        st = pd.concat(parts, ignore_index=True)
-    else:
-        st = pd.DataFrame({c: pd.Series(dtype=object) for c in STOP_TIME_COLUMNS + ["_arr", "_dep"]})
-    # The same filters and the same stable grouping as build_feed lines 512 to 519.
-    st = st.assign(trip_id=st["trip_id"].str.strip(), stop_id=st["stop_id"].str.strip())
-    st = st[st["stop_id"].isin(stops.keys())]
-    seq = pd.to_numeric(st["stop_sequence"].str.strip(), errors="coerce").fillna(0).to_numpy(dtype=np.int64)
-    perm, ranges = bn.grouped(st["trip_id"].to_numpy(), seq)
+                if not sel.any():
+                    continue
+                k = chunk[sel]
+                a, d = a[sel], d[sel]
+                # The same filters as build_feed lines 512 to 519, row by row.
+                stop = k["stop_id"].str.strip()
+                ok = stop.isin(stops.keys()).to_numpy()
+                k, a, d, stop = k[ok], a[ok], d[ok], stop[ok]
+                seq = pd.to_numeric(k["stop_sequence"].str.strip(), errors="coerce").fillna(0).to_numpy(dtype=np.int64)
+                cols["trip"].append(shared(k["trip_id"].str.strip().to_numpy(dtype=object)))
+                cols["stop"].append(shared(stop.to_numpy(dtype=object)))
+                cols["seq"].append(seq)
+                cols["arr"].append(np.asarray(a, dtype=float))
+                cols["dep"].append(np.asarray(d, dtype=float))
+                cols["arr_raw"].append(shared(k["arrival_time"].to_numpy(dtype=object)))
+                cols["dep_raw"].append(shared(k["departure_time"].to_numpy(dtype=object)))
+                del chunk, k, stop
+    dtypes = {"trip": object, "stop": object, "seq": np.int64, "arr": float, "dep": float, "arr_raw": object,
+              "dep_raw": object}
+    arr = {c: (np.concatenate(v) if v else np.zeros(0, dtype=dtypes[c])) for c, v in cols.items()}
+    del cols
+    perm, ranges = bn.grouped(arr["trip"], arr["seq"])
     out = StopTimes(
         ranges=ranges,
-        stop=st["stop_id"].to_numpy()[perm],
-        arr=st["_arr"].to_numpy(dtype=float)[perm],
-        dep=st["_dep"].to_numpy(dtype=float)[perm],
-        arr_raw=st["arrival_time"].to_numpy()[perm],
-        dep_raw=st["departure_time"].to_numpy()[perm],
+        stop=arr["stop"][perm],
+        arr=arr["arr"][perm],
+        dep=arr["dep"][perm],
+        arr_raw=arr["arr_raw"][perm],
+        dep_raw=arr["dep_raw"][perm],
         max_t=max_t, rows_read=rows)
     return out
 
