@@ -90,6 +90,14 @@ def range_label(dates):
     return f"{MONTHS[lo.month - 1]} {lo.day} to {MONTHS[hi.month - 1]} {hi.day}"
 
 
+def dates_label(dates):
+    """October 10 and 11; October 31 and November 1."""
+    ds = [iso_date(d) for d in sorted(dates)]
+    if len({(d.year, d.month) for d in ds}) == 1:
+        return f"{MONTHS[ds[0].month - 1]} {join_words(str(d.day) for d in ds)}"
+    return join_words(date_label(d) for d in sorted(dates))
+
+
 def month_name(ym):
     return MONTHS[int(ym[5:7]) - 1]
 
@@ -109,6 +117,19 @@ def inside_feeds(netmeta):
         return v if v is not None else f.get("inside_share") or 0
     feeds = [f for f in netmeta.get("feeds", []) if ivm(f) > 0]
     return sorted(feeds, key=lambda f: (-(f.get("inside_share") or 0), -ivm(f), f["id"]))
+
+
+def drawn_feeds(netmeta):
+    """Feeds whose trips the video draws on screen in its window, for the credits and the licence flags:
+    a neighbour's buses on screen, faded outside the boundary, are its data too. Those with vehicles
+    inside come first, busiest first, then the rest by trips drawn. A netmeta without window_trips
+    (written before make.py recorded them) has only the inside counts to go on."""
+    feeds = netmeta.get("feeds", [])
+    if not any("window_trips" in f for f in feeds):
+        return inside_feeds(netmeta)
+    drawn = [f for f in feeds if (f.get("window_trips") or 0) > 0]
+    return sorted(drawn, key=lambda f: (-(f.get("inside_share") or 0), -(f.get("inside_vehicle_minutes") or 0),
+                                        -f["window_trips"], f["id"]))
 
 
 def present_modes(netmeta, modes):
@@ -131,15 +152,19 @@ def count_noun(netmeta, modes, n):
 
 
 def limits_words(recipe, place, templates):
-    """Where the counted vehicles are: one city's limits, or the divisions a union boundary joins."""
+    """Where the counted vehicles are: one place's limits, or the divisions a union boundary joins."""
     s = templates["sentences"]
     b = recipe.get("boundary")
     if isinstance(b, list) and len(b) > 1:
         parts = join_words(clean(p["name"]) for p in b)
         return (fmt(s["limits_many"], {"place": place, "parts": parts}, "limits_many"),
                 fmt(s["the_city_many"], {"place": place}, "the_city_many"))
-    return (fmt(s["limits_one"], {"place": place}, "limits_one"),
-            fmt(s["the_city_one"], {"place": place}, "the_city_one"))
+    # The recipe's limits says what the place is: Oakville and Whitby are towns. A place that already
+    # says it (New York City, Mexico City) would read "the New York City city limits".
+    kind = recipe.get("limits") or "city"
+    key = "limits_one_city" if re.search(rf"\b{re.escape(kind)}\b", place, re.IGNORECASE) else "limits_one"
+    return (fmt(s[key], {"place": place, "kind": kind}, key),
+            fmt(s["the_city_one"], {"place": place, "kind": kind}, "the_city_one"))
 
 
 def colors_sentence(netmeta, templates):
@@ -152,7 +177,11 @@ def colors_sentence(netmeta, templates):
     words, other = [], None
     for g in netmeta.get("groups") or []:
         if g["id"] == "other":
-            other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
+            # The trim lists other when any route it keeps falls in it, and its share is the inside
+            # share at the morning peak minute alone, so neither says whether the video draws anything
+            # grey: Philadelphia's M line has share 0 and runs faded west of the city line all day.
+            if g.get("window_trips", 1) > 0:
+                other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
             continue
         lg = g.get("legend")
         w = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])
@@ -165,7 +194,38 @@ def colors_sentence(netmeta, templates):
     return " " + fmt(s["colors"], {"groups": join_words(words)}, "sentences")
 
 
-def dates_sentence(netmeta, templates, week):
+def label_feeds(netmeta, month, mlabel):
+    """(lead, others): the fallback feeds whose month the label follows, and whether the video draws any
+    other feed. Burlington Transit has no October timetable and runs most of Burlington's buses, so that
+    video is an average November weekday while GO and Oakville Transit keep October's timetables."""
+    if mlabel == month_name(month):
+        return [], True
+    lead = [f for f in inside_feeds(netmeta) if f.get("month_used") not in (None, month)
+            and month_name(f["month_used"]) == mlabel and all_dates(f.get("dates"))]
+    ids = {f["id"] for f in lead}
+    return lead, any(f["id"] not in ids for f in drawn_feeds(netmeta))
+
+
+def timetables_sentence(variant, month, lead, others, templates):
+    """{timetables}: which timetables the video uses. When the label follows a fallback feed, the reason
+    comes first and the batch month is named for the other feeds only, so the description never says
+    "an average November weekday" and then "I took the October 2026 timetables"."""
+    s = templates["sentences"]
+    mname, year = month_name(month), month[:4]
+    if not lead:
+        return fmt(s[f"timetables_{variant}"], {"month": mname, "year": year}, "sentences")
+    n = "many" if len(lead) > 1 else "one"
+    rest = fmt(s["fallback_others"], {"month": mname, "year": year}, "sentences") if others else ""
+    why = fmt(s["fallback_lead"], {"feed": join_words(clean(f["name"]) for f in lead), "month": mname,
+                                   "has": s[f"has_{n}"], "it": s[f"it_{n}"], "others": rest,
+                                   "range": range_label([d for f in lead for d in all_dates(f["dates"])])},
+              "sentences")
+    return fmt(s[f"timetables_{variant}_fallback"], {"fallback": why}, "sentences")
+
+
+def dates_sentence(netmeta, templates, week, lead=(), others=True):
+    """The dates each timetable averages and what they leave out. `lead` are the fallback feeds the
+    timetables sentence already explained (label_feeds), so their fallback is not said twice."""
     s = templates["sentences"]
     month = netmeta.get("month") or ""
     mname, year = month_name(month), month[:4]
@@ -180,8 +240,15 @@ def dates_sentence(netmeta, templates, week):
     hol = join_words(f"{name} ({date_label(d)})" for d, name in sorted(holidays.items()))
     kind = "week" if week else "day"
     leaves = fmt(s[f"leaves_out_{kind}"], {"holidays": hol}, "sentences") if hol else ""
-    out = [fmt(s[f"dates_{kind}"], {"month": mname, "year": year, "leaves_out": leaves}, "sentences")]
+    lead_ids = {f["id"] for f in lead}
+    if lead and not others:
+        out = [fmt(s[f"dates_{kind}_lead"], {"leaves_out": leaves}, "sentences")]
+    else:
+        out = [fmt(s[f"dates_{kind}"], {"month": mname, "year": year, "leaves_out": leaves,
+                                        "which": s["which_others" if lead else "which_each"]}, "sentences")]
     for f in feeds:
+        if f["id"] in lead_ids:
+            continue
         used = f.get("month_used")
         if used and used != month and all_dates(f.get("dates")):
             out.append(fmt(s["fallback"], {"feed": clean(f["name"]), "month": mname,
@@ -189,26 +256,50 @@ def dates_sentence(netmeta, templates, week):
     if dst:
         labels = join_words(date_label(d) for d in sorted(dst))
         out.append(fmt(s["dst_one" if len(dst) == 1 else "dst_many"], {"dates": labels}, "sentences"))
+    # Each caveat once: a feed's reduced days in one sentence, and feeds with the same caveat in one
+    # sentence. A GTA week had four sentences on GO alone (October 10, October 11, a timetable change,
+    # too few weekend dates), and New York's trains said the same two things of LIRR and Metro-North.
+    caveats = []
     for f in feeds:
-        for x in sorted((x for x in f.get("excluded", []) or [] if x.get("why") == "low"), key=lambda x: x["date"]):
-            out.append(fmt(s["low"], {"feed": clean(f["name"]), "date": date_label(x["date"]),
-                                      "weekday": DAYS[iso_date(x["date"]).weekday()]}, "sentences"))
-    for f in feeds:
+        low = tuple(sorted({x["date"] for x in f.get("excluded", []) or [] if x.get("why") == "low"}))
         rule, dates = f.get("rule"), f.get("dates")
         if isinstance(rule, dict):
             classes = [k for k in CLASS_ORDER if rule.get(k) == "median-date"]
         else:
             classes = ["wd"] if rule == "median-date" else []
-        few = [k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3]
-        changed = [k for k in classes if k not in few]
-        for group, key in ((changed, "median_changed"), (few, "median_few")):
-            if not group:
-                continue
-            out.append(fmt(s[key], {"feed": clean(f["name"]), "month": mname,
-                                    "days": join_words(CLASS_DAYS[k][0] for k in group),
-                                    "days_plural": join_words(CLASS_DAYS[k][1] for k in group),
-                                    "verb": s["verb_one" if len(group) == 1 else "verb_many"]}, "sentences"))
+        few = tuple(k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3)
+        changed = tuple(k for k in classes if k not in few)
+        caveats.append((clean(f["name"]), low or None, (changed, few) if classes else None))
+    lows = dict(grouped((low, name) for name, low, _ in caveats if low))
+    medians = dict(grouped((median, name) for name, _, median in caveats if median))
+    # A feed's caveats come together, busiest feed first. With every reduced-day sentence first,
+    # Oshawa's week read GO, then Durham Region Transit, then GO again.
+    for _, low, median in caveats:
+        if low in lows:
+            names = lows.pop(low)
+            if len(low) == 1:
+                out.append(fmt(s["low"], {"feed": join_words(names), "date": date_label(low[0]),
+                                          "weekday": DAYS[iso_date(low[0]).weekday()]}, "sentences"))
+            else:
+                out.append(fmt(s["low_many"], {"feed": join_words(names), "dates": dates_label(low)}, "sentences"))
+        if median in medians:
+            names, (changed, few) = medians.pop(median), median
+            n = "many" if len(names) > 1 else "one"
+            days = [k for k in CLASS_ORDER if k in changed or k in few]
+            key = "median_both" if changed and few else "median_changed" if changed else "median_few"
+            out.append(fmt(s[key], {"feed": join_words(names), "month": mname, "its": s[f"its_{n}"],
+                                    "has": s[f"has_{n}"], "days": join_words(CLASS_DAYS[k][0] for k in days),
+                                    "days_plural": join_words(CLASS_DAYS[k][1] for k in few),
+                                    "verb": s["verb_one" if len(days) == 1 else "verb_many"]}, "sentences"))
     return " ".join(out)
+
+
+def grouped(items):
+    """[(key, name)] as [(key, [names])], in the order each key first comes."""
+    out = {}
+    for key, name in items:
+        out.setdefault(key, []).append(name)
+    return list(out.items())
 
 
 def licence_entry(feed, licences, allow_nc=False):
@@ -235,10 +326,24 @@ def licence_flags(entries, names):
     return out
 
 
-def credit_lines(netmeta, licences, templates):
+def data_date_line(feed, data_dates, templates):
+    """{feed} timetables as of October 4, 2026: the date a licence asks the credit to give (Metra's)."""
+    iso = (data_dates or {}).get(feed["id"])
+    if not iso:
+        raise MetaError(f"{feed['id']}: licence {feed.get('licence_id')} asks for the date the data was last "
+                        f"updated, and the lock gives none for it; lock the feed from an MDB dataset URL "
+                        f"(.../mdb-<id>-<YYYYMMDDHHMM>.zip), whose stamp is that date")
+    d = iso_date(iso)
+    return fmt(templates["sentences"]["data_date"], {"feed": clean(feed.get("name") or feed["id"]), "day": d.day,
+                                                     "month": MONTHS[d.month - 1], "year": d.year}, "data_date")
+
+
+def credit_lines(netmeta, licences, templates, data_dates=None):
+    """One line per feed the video draws, and after it the data date when its licence asks for one.
+    `data_dates` maps feed ids to the ISO date make.py reads from the lock."""
     lines = []
     s = templates["sentences"]
-    for f in inside_feeds(netmeta):
+    for f in drawn_feeds(netmeta):
         lic = licences.get("licences", {}).get(f.get("licence_id"), {})
         name, publisher = clean(f.get("name")), clean(f.get("publisher"))
         # An agency that publishes its own feed under its own name would read
@@ -250,13 +355,52 @@ def credit_lines(netmeta, licences, templates):
         if lic.get("statement"):
             line += " " + clean(lic["statement"])
         lines.append(line)
+        if lic.get("data_date"):
+            lines.append(data_date_line(f, data_dates, templates))
     return lines
 
 
-def hashtag_list(batch, place):
+def legend_mode_faults(netmeta, modes):
+    """A colour group whose legend word names a mode ("Bus") while the video draws another mode's trips
+    in it: San Diego's Coronado ferry took the MTS navy of the Bus group, so the title named a ferry the
+    legend had no word for and the map drew it as a bus. Needs window_modes, so an older netmeta passes."""
+    if netmeta.get("color_by") != "group":
+        return []
+    word_mode, label, singular = {}, {}, {}
+    for m in modes:
+        label[m["id"]] = m.get("label") or m["id"]
+        singular[m["id"]] = m.get("singular") or m["id"]
+        for w in (m["id"], m.get("label"), m.get("singular")):
+            if w:
+                word_mode[w.strip().lower()] = m["id"]
+    out = []
+    for g in netmeta.get("groups") or []:
+        lg = g.get("legend")
+        word = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])
+        mode = word_mode.get(word.strip().lower())
+        drawn = g.get("window_modes") or {}
+        stray = sorted(k for k, n in drawn.items() if k != mode and n > 0)
+        if mode and stray:
+            trips = ", ".join(f"{drawn[k]} {singular.get(k, k)} trips" for k in stray)
+            out.append(f"group {g['id']} reads {word!r} in the legend, but the video draws "
+                       f"{join_words(label.get(k, k) for k in stray)} in its colour ({trips}); give them a group of "
+                       f"their own in the recipe's colors, or leave their mode out of the recipe's modes")
+    return out
+
+
+def tag_place(place, templates):
+    """The place as a tag and a hashtag name it. "the GTA" is written as a sentence reads it, but nobody
+    searches for "the GTA" or #thegta, so a lowercase leading article goes (a capital one is part of the
+    name: The Hague). A short name that means something else on YouTube is spelled out from the
+    templates' place_tags: #gta files a video with Grand Theft Auto."""
+    bare = re.sub(r"^the\s+", "", place)
+    return (templates or {}).get("place_tags", {}).get(bare, bare)
+
+
+def hashtag_list(batch, place, templates=None):
     tags = []
     seen = set()
-    own = "#" + re.sub(r"[\W_]+", "", place.lower())
+    own = "#" + re.sub(r"[\W_]+", "", tag_place(place, templates).lower())
     for t in ["#shorts"] + list(batch.get("hashtags", [])) + [own]:
         if len(t) > 1 and t.lower() not in seen:
             seen.add(t.lower())
@@ -279,7 +423,7 @@ def tag_list(netmeta, batch, recipe, templates, modes=None):
         else:
             fixed.append(t)
     out, seen, total = [], set(), 0
-    for t in [clean(recipe["place"])] + names + fixed + ([region] if region else []):
+    for t in [tag_place(clean(recipe["place"]), templates)] + names + fixed + ([region] if region else []):
         if not t or t.lower() in seen:
             continue
         cost = len(t) + (1 if out else 0)
@@ -303,7 +447,9 @@ def check_text(field, text, banned):
 # ------------------------------------------------------------------ one video
 
 def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish_order, meta_key, sidecar=None,
-               allow_nc=False):
+               allow_nc=False, data_dates=None):
+    """One video's metadata. `data_dates` maps feed ids to the ISO date of their locked data, for a licence
+    that asks the description to give it (make.py lock_data_dates)."""
     variant = netmeta["variant"]
     stem = f"{recipe['id']}-{variant}"
     place = clean(recipe["place"])
@@ -314,13 +460,14 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     month = netmeta.get("month") or batch["month"]
     netmeta = dict(netmeta, month=month)
     mlabel = netmeta.get("month_label") or month_name(month)
-    year = month[:4]
-    if mlabel != month_name(month):
-        # The label follows a major fallback feed (Burlington: November); so does the year.
-        for f in netmeta.get("feeds", []):
-            if f.get("month_used") and month_name(f["month_used"]) == mlabel:
-                year = f["month_used"][:4]
-    credits = credit_lines(netmeta, licences, templates)
+    lead, others = label_feeds(netmeta, month, mlabel)
+    # The label follows a major fallback feed (Burlington: November); so does the year.
+    year = lead[0]["month_used"][:4] if lead else month[:4]
+    faults = legend_mode_faults(netmeta, batch["modes"])
+    if faults:
+        raise MetaError("; ".join(faults))
+    credits = credit_lines(netmeta, licences, templates, data_dates)
+    hashtags = hashtag_list(batch, place, templates)
     values = {
         "place": place, "modes_singular": singular, "modes_plural": plural,
         "peak_time": clock_text(peak["time"]), "peak_count": with_commas(round(peak["count"])),
@@ -331,11 +478,12 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         # so a sentence about the timetables names that month, as the dates
         # sentence does.
         "timetable_month": month_name(month), "timetable_year": month[:4],
+        "timetables": timetables_sentence(variant, month, lead, others, templates),
         "trips": with_commas(netmeta.get("trips_total") or 0),
-        "dates_sentence": dates_sentence(netmeta, templates, variant == "week"),
+        "dates_sentence": dates_sentence(netmeta, templates, variant == "week", lead, others),
         "colors": colors_sentence(netmeta, templates),
         "credits": "\n".join(credits), "author": defaults.get("author", ""),
-        "hashtags": " ".join(hashtag_list(batch, place)),
+        "hashtags": " ".join(hashtags),
     }
     title = fmt(templates["title"][variant], values, f"{stem} title")
     description = fmt(templates["description"][variant], values, f"{stem} description")
@@ -344,13 +492,19 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
     check_text(f"{stem} title", title, banned)
     check_text(f"{stem} description", description, banned)
     check_text(f"{stem} tags", ", ".join(tags), banned)
+    for h in hashtags:
+        why = templates.get("hashtags_banned", {}).get(h.lower())
+        if why:
+            raise MetaError(f"{stem} hashtag {h}: {why}; take it out of the batch's hashtags, or spell the place "
+                            f"out in the templates' place_tags")
     if len(title) > TITLE_MAX:
         raise MetaError(f"{stem} title is {len(title)} characters, the limit is {TITLE_MAX}: {title}")
     if len(description) > DESCRIPTION_MAX:
         raise MetaError(f"{stem} description is {len(description)} characters, the limit is {DESCRIPTION_MAX}")
     batch_feeds = {f["id"]: f for a in batch["areas"] for f in a["feeds"]}
     entries, errors, names = [], [], {}
-    for f in netmeta.get("feeds", []):
+    # The feeds this video draws, as the credits: a split video's flags leave out the other modes' feeds.
+    for f in drawn_feeds(netmeta):
         bf = dict(batch_feeds.get(f["id"], {}), **{k: f[k] for k in ("id", "licence_id") if k in f})
         bf.setdefault("allow_nc", batch_feeds.get(f["id"], {}).get("allow_nc"))
         names[f["id"]] = clean(f.get("name") or bf.get("name") or f["id"])
@@ -366,7 +520,7 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         flags.append(f"bitrate floor not met: {sidecar.get('kbps')} kbps at crf {sidecar.get('crf')}")
     return {
         "file": f"{stem}.mp4", "title": title, "description": description, "tags": tags,
-        "hashtags": hashtag_list(batch, place), "category": batch.get("category"),
+        "hashtags": hashtags, "category": batch.get("category"),
         "credits": credits, "licences": entries, "flags": flags, "licence_flags": licence_flags(entries, names),
         "publish_order": publish_order, "meta_key": meta_key,
     }

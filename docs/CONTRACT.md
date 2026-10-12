@@ -537,6 +537,7 @@ does today).
 | `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
+| `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; not with a boundary of several divisions; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
@@ -585,7 +586,7 @@ does today).
   "modes": [{"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 700, 701, 702, 704, 11]}],
   "cities": ["gta-toronto", "gta-mississauga"],
   "variants_default": ["day", "rush", "week"],
-  "hashtags": ["#shorts", "#transit", "#gta"],
+  "hashtags": ["#shorts", "#transit", "#ontario"],
   "category": "Travel & Events",
   "release": {"tag": "shorts-gta", "name": "Shorts: GTA top 10"}
 }
@@ -725,7 +726,11 @@ commercial use").
 
 Each `ogl-*` statement follows the Toronto one with its own licence name ("..." above). An unknown `licence_id` is a validation
 error. `commercial: no` fails `plan` and `meta` unless the feed has `allow_nc`; `check` goes into
-`flags`, the CSV's `licence_flags` and the release notes.
+`flags`, the CSV's `licence_flags` and the release notes. A licence with `"data_date": true` (Metra's,
+whose terms ask for the date the data was last updated) puts `sentences.data_date`, "Metra timetables
+as of October 4, 2026.", after the credit of each of its feeds a video draws; the date is the MDB
+dataset stamp of the feed's URL in the lock (`.../mdb-<id>-<YYYYMMDDHHMM>.zip`, `tld-` for a
+Transitland copy), and a feed locked from a tag, a path or any other URL fails `make.py meta`.
 
 `cities/templates/shorts_en.json` holds every visible and metadata string (D5, B10). Placeholders
 filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak_time}`,
@@ -736,11 +741,27 @@ open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
 major fallback feed sets the label (Burlington: November), for sentences about the timetables;
-`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits", or
+`{timetables}`, the variant's sentence about them (`sentences.timetables_<variant>`, "I took the
+October 2026 timetables, ..."), which, when a major fallback feed sets the label, opens with the
+reason instead (`timetables_<variant>_fallback` and `fallback_lead`: "Burlington Transit has no
+October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies.");
+`{dates_sentence}` then says "in the other timetables" and leaves that feed's fallback out, so the
+description says it once. `{dates_sentence}` gives each caveat once: a feed's reduced days in one
+sentence (`low`, `low_many`: "GO Transit ran a reduced timetable on October 10 and 11, so those days
+are left out."), its median-date classes in one (`median_changed`, `median_few`, `median_both`), and
+feeds with the same caveats in one ("Long Island Rail Road and Metro-North Railroad changed their
+timetables during October and have fewer than three usable October Mondays, so their Monday and
+Friday each use one typical date."); a feed's two sentences come together, busiest feed first;
+`{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
+with the recipe's `limits` for `{kind}`: "the Oakville town limits"; `limits_one_city` for a place
+whose name has that word, "the New York City limits"; or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
-Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city",
+Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city" or "the town",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
-each mode the title names (`bus map`, `streetcar map`, `train map`).
+each mode the title names (`bus map`, `streetcar map`, `train map`). The first tag and the
+video's own hashtag name the place without a lowercase leading article, and `place_tags` spells out
+a short name: `the GTA` is tagged `Greater Toronto Area`, `#greatertorontoarea`. A hashtag in
+`hashtags_banned` fails `meta` with its reason: on YouTube `#gta` files a video with Grand Theft Auto.
 `{author}` is `cities/defaults.json` `author`, the channel's name `SOtownships`: every description
 ends its credits with `Made by SOtownships.`, and the on-screen credit (2.7 `credit_template`, B9)
 names it too. The legacy configs keep their own `Made by Katsuma Onishi` lines.
@@ -1071,7 +1092,20 @@ Network metadata `<stem>.netmeta.json` (D, from the network meta, before renderi
 "modes_present" (the B9 rule: modes with at least 0.5 inside vehicles in some minute of the
 window, over the recipe's modes), "groups", "color_by" (the meta's, `"group"` for colour groups), "credit", "seconds",
 "build_key"}`. The sidecar's `query` holds `paint=` as it holds `brandhex=`. `make.py meta` needs only this, the
-batch, the recipe and the templates, so metadata can be rebuilt without the network or a re-render.
+batch, the recipe, the lock and the templates, so metadata can be rebuilt without the network or a re-render.
+The netmeta also carries `netmeta_version` (2) and, from the network's trips and shapes, `window_trips`
+on each feed and colour group and `window_modes` on each group (those trips by mode): the trips the video
+draws in its window by the page's rule (B7) whose shape enters its view, the variant's frame after
+`FRAME_ZOOM` and the km shifts (B2 step 9b) grown on every side by the camera's reach, `CAMERA_DRIFT` x
+`CAMERA_AMP` of the frame width (B18). That is what comes on screen, inside the boundary or faded outside;
+a trip the trim keeps only for its margin beyond the frame never does. A video's credits, licence flags
+and licence checks cover the feeds with `window_trips`, those with vehicles inside first, so a split
+city's buses leave out its trains' feeds and a neighbour on screen faded outside is credited; a netmeta
+without them falls back to the feeds with vehicles inside, and `make.py meta` rewrites an older netmeta
+from the network when the network is there. The colours sentence names other's grey only when other
+has `window_trips` (its `share` is the inside share at the morning peak minute alone), and a group whose
+legend word names a mode (its id, label or singular: `Bus`, `trains`) while it draws another mode fails
+`make.py meta` (San Diego's Coronado ferry in `Bus`).
 
 Metadata `<stem>.meta.json` (D): `{"file", "title", "description", "tags", "hashtags", "category",
 "credits": [str], "licences": [{"feed", "licence_id", "commercial", "note", "allow_nc"}],
@@ -1154,7 +1188,7 @@ see **Copy without `modes`** below. The additions:
   `release`, `source`), `release` and `source` (`Overture <release> division_area <id> + <id> ...`).
   The frame fits the union's bbox (D3.2) unless the recipe pins one, and the outline, the dimming
   mask and every count use the union. `place` is written as the text reads it (`"place": "the GTA"`: `412 trains in the GTA`,
-  title `THE GTA`, hashtag `#thegta`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
+  title `THE GTA`, tag `Greater Toronto Area`, hashtag `#greatertorontoarea`); a card line that opens with it is capitalised by the page. In metadata `{limits}` lists the divisions
   instead of "the <place> city limits", and `{the_city}` reads "the region".
   A union is usually far larger than one city: the GTA (Toronto and the Peel, York, Durham and
   Halton regions, 139 x 136 km) fits a 325.5 km frame, where its trains are specks, so its recipe

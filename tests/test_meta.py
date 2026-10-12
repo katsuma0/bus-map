@@ -187,19 +187,20 @@ class GTA(unittest.TestCase):
 
     def test_dates_sentences(self):
         d = self.metas["gta-burlington-day"]["description"]
-        self.assertIn("The weekday average uses every October 2026 weekday in each timetable and leaves out "
+        self.assertIn("The weekday average uses every October 2026 weekday in the other timetables and leaves out "
                       "Thanksgiving (October 12).", d)
-        self.assertIn("Burlington Transit has no October timetable, so it uses November 2 to 27.", d)
         self.assertIn("on an average November weekday", d)
-        # The subtitle month follows Burlington's fallback; the timetables are mostly October's.
-        self.assertIn("I took the October 2026 timetables", d)
-        self.assertIn("The timetables are from October 2026.", self.metas["gta-burlington-rush"]["description"])
+        # The subtitle month follows Burlington's fallback; the other timetables are October's.
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 27 for it and October "
+                      "2026 for the other agencies.", d)
+        self.assertNotIn("I took the October 2026 timetables", d)
+        self.assertIn("The timetables are from October 2026.", self.metas["gta-markham-rush"]["description"])
+        self.assertIn("I took the October 2026 timetables", self.metas["gta-markham-day"]["description"])
         w = self.metas["gta-toronto-week"]["description"]
         self.assertIn("October 31 is left out because the clocks change that night.", w)
         self.assertIn("GO Transit ran a reduced timetable on October 10, so that Saturday is left out.", w)
-        self.assertIn("GO Transit changed its timetables during October, so its Tuesday uses one typical date.", w)
-        self.assertIn("GO Transit has fewer than three usable October Saturdays and Sundays, so its Saturday and "
-                      "Sunday each use one typical date.", w)
+        self.assertIn("GO Transit changed its timetables during October and has fewer than three usable October "
+                      "Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use one typical date.", w)
         # Only feeds with vehicles inside the city are mentioned.
         self.assertNotIn("Burlington", self.metas["gta-toronto-day"]["description"])
 
@@ -329,8 +330,12 @@ class Split(unittest.TestCase):
         self.assertIn("only includes vehicles inside Toronto, Peel Region, York Region, Durham Region and Halton "
                       "Region. The faded ones are just outside.", m["description"])
         self.assertNotIn("city limits", m["description"])
-        self.assertIn("#thegta", m["hashtags"])
+        self.assertIn("#greatertorontoarea", m["hashtags"])
+        self.assertIn("#greatertorontoarea", m["description"])
         self.assertNotIn("#gta", m["hashtags"], "on YouTube #gta files a video with Grand Theft Auto")
+        self.assertNotIn("#thegta", m["hashtags"])
+        self.assertEqual(m["tags"][0], "Greater Toronto Area")
+        self.assertNotIn("the GTA", m["tags"])
         r = self.meta("gta-toronto", "rush", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
         self.assertEqual(r["title"], "Morning rush in the GTA: every train, 6:30 to 9:30 am")
         self.assertIn("Every train inside the region on an average October weekday.", r["description"])
@@ -394,6 +399,317 @@ class Colours(unittest.TestCase):
             self.assertEqual(branded, plain)
 
 
+class Review(unittest.TestCase):
+    """Findings of the USA batch's description review, made general for every batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, rid, variant, nm=None, recipe=None, batch=None, **kw):
+        recipe = recipe or self.pl.recipe(rid, self.batch)
+        return sm.build_meta(batch=batch or self.batch, recipe=recipe, netmeta=nm or netmeta(self.batch, recipe, variant),
+                             templates=self.pl.templates(), licences=self.pl.licences(), defaults=self.pl.defaults(),
+                             publish_order=1, meta_key="0" * 64, **kw)
+
+    def test_place_named_city(self):
+        for place in ("New York City", "Mexico City", "Quebec City", "Kansas City", "Panama City"):
+            recipe = dict(self.pl.recipe("gta-markham", self.batch), place=place)
+            d = {v: self.meta("gta-markham", v, recipe=recipe)["description"] for v in ("day", "rush", "week")}
+            self.assertIn(f"only includes vehicles inside the {place} limits. The faded ones", d["day"])
+            self.assertIn(f"Vehicles outside the {place} limits are faded and not counted.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} limits are faded and not counted.", d["week"])
+            for text in d.values():
+                self.assertNotIn("City city", text)
+        # Only the whole word: Felicity is a city like any other, and Markham keeps its city limits.
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), place="Felicity")
+        self.assertIn("inside the Felicity city limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
+        self.assertIn("inside the Markham city limits.", self.meta("gta-markham", "day")["description"])
+
+    def split_netmeta(self, rid, variant, modes, drawn, inside):
+        """A netmeta of a video that keeps `modes`, with window_trips per feed and inside shares."""
+        recipe = dict(self.pl.recipe(rid, self.batch), modes=modes)
+        nm = netmeta(self.batch, recipe, variant)
+        for f in nm["feeds"]:
+            f["window_trips"] = drawn.get(f["id"], 0)
+            f["inside_share"] = inside.get(f["id"], 0.0)
+            f["inside_vehicle_minutes"] = f["inside_share"] * 1e5
+        nm.update(modes=[m for m in self.batch["modes"] if m["id"] in modes], modes_present=modes)
+        return recipe, nm
+
+    def test_flags_follow_the_feeds_the_video_draws(self):
+        # Buses: GO's buses are drawn, UP Express (a train) is not, and MiWay runs only outside the city.
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["bus", "streetcar"],
+                                        {"ttc": 30000, "go": 900, "miway": 400}, {"ttc": 0.97, "go": 0.03})
+        m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe)
+        self.assertEqual([e["feed"] for e in m["licences"]], ["ttc", "go", "miway"])
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit"])
+        self.assertEqual(m["flags"], m["licence_flags"])
+        self.assertEqual([c.split(" (")[0] for c in m["credits"]], ["TTC", "GO Transit", "MiWay"])
+        self.assertNotIn("UP Express", m["description"])
+        # Trains: UP Express is drawn, so its flag is back, and the buses' feeds are gone.
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["rail"], {"ttc": 2700, "go": 350, "upx": 160},
+                                        {"ttc": 0.85, "go": 0.12, "upx": 0.03})
+        m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe)
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit", "UP Express"])
+        self.assertEqual([e["feed"] for e in m["licences"]], ["ttc", "go", "upx"])
+        # A non-commercial feed the video does not draw no longer stops it.
+        b = json.loads(json.dumps(self.batch))
+        next(f for f in b["areas"][0]["feeds"] if f["id"] == "milton")["licence_id"] = "cc-by-nc-4.0"
+        next(f for f in nm["feeds"] if f["id"] == "milton")["licence_id"] = "cc-by-nc-4.0"
+        self.meta("gta-toronto", "day", nm=nm, recipe=recipe, batch=b)
+        # A rush window can leave out a feed the day draws.
+        recipe, nm = self.split_netmeta("gta-toronto", "rush", ["rail"], {"ttc": 600, "go": 99}, {"ttc": 0.85, "go": 0.15})
+        m = self.meta("gta-toronto", "rush", nm=nm, recipe=recipe)
+        self.assertEqual([f.split(":")[0] for f in m["licence_flags"]], ["GO Transit"])
+        # A netmeta of an older make.py has only the inside counts, as before.
+        nm = netmeta(self.batch, self.pl.recipe("gta-toronto", self.batch), "day")
+        self.assertEqual([f["id"] for f in sm.drawn_feeds(nm)], ["ttc", "go", "miway", "yrt", "upx"])
+
+    def test_grey_only_when_other_is_drawn(self):
+        t = self.pl.templates()
+        groups = [{"id": "rr", "label": "Regional Rail", "share": 0.4311, "legend": True, "window_trips": 634},
+                  {"id": "b", "label": "B", "share": 0.3576, "legend": True, "window_trips": 568},
+                  {"id": "l", "label": "L", "share": 0.2113, "legend": True, "window_trips": 332},
+                  {"id": "other", "label": "Other", "share": 0.0, "legend": False, "window_trips": 0}]
+        nm = {"color_by": "group", "groups": groups}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L.")
+        # Share 0 is the inside share at the morning peak alone: Philadelphia's M line runs grey west of the
+        # city line all day, so its grey is named.
+        groups[-1]["window_trips"] = 126
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L, with everything else in grey.")
+        # A netmeta of an older make.py says nothing of the window, so the clause stays as it was.
+        del groups[-1]["window_trips"]
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Regional Rail, B and L, with everything else in grey.")
+        # A named other is dropped the same way.
+        nm = {"color_by": "group", "groups": [{"id": "frequent", "label": "Frequent", "window_trips": 10},
+                                              {"id": "other", "label": "Local", "legend": True, "window_trips": 0}]}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Frequent.")
+        recipe = self.pl.recipe("gta-markham", self.batch)
+        nm = dict(netmeta(self.batch, recipe, "rush"), color_by="group", groups=groups[:3] + [dict(groups[3], window_trips=0)])
+        self.assertIn("are faded and not counted. Colours: Regional Rail, B and L.\n\n",
+                      self.meta("gta-markham", "rush", nm=nm)["description"])
+
+    def test_data_date_line(self):
+        lic = self.pl.licences()["licences"]
+        self.assertEqual([k for k, v in lic.items() if v.get("data_date")], ["metra-gtfs"])
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["rail"], {"ttc": 2700, "go": 350},
+                                        {"ttc": 0.85, "go": 0.15})
+        next(f for f in nm["feeds"] if f["id"] == "go")["licence_id"] = "metra-gtfs"
+        m = self.meta("gta-toronto", "day", nm=nm, recipe=recipe, data_dates={"go": "2026-10-04", "ttc": "2026-09-16"})
+        i = next(i for i, c in enumerate(m["credits"]) if c.startswith("GO Transit"))
+        self.assertEqual(m["credits"][i + 1], "GO Transit timetables as of October 4, 2026.")
+        self.assertEqual(len(m["credits"]), 3, "a date only where the licence asks for one")
+        self.assertIn("Not sponsored, affiliated or operated by Metra.\nGO Transit timetables as of October 4, 2026.\n",
+                      m["description"])
+        # Without the date the metadata fails rather than publish a description the licence does not allow.
+        for dates in (None, {}, {"ttc": "2026-09-16"}):
+            with self.assertRaises(sm.MetaError) as cm:
+                self.meta("gta-toronto", "day", nm=nm, recipe=recipe, data_dates=dates)
+            self.assertIn("go: licence metra-gtfs asks for the date the data was last updated", str(cm.exception))
+        # A video that does not draw the feed needs no date.
+        recipe, nm = self.split_netmeta("gta-toronto", "day", ["bus"], {"ttc": 30000}, {"ttc": 1.0})
+        next(f for f in nm["feeds"] if f["id"] == "go")["licence_id"] = "metra-gtfs"
+        self.assertNotIn("as of", self.meta("gta-toronto", "day", nm=nm, recipe=recipe)["description"])
+
+    def test_legend_word_names_one_mode(self):
+        b = json.loads(json.dumps(self.batch))
+        b["modes"].append({"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4]})
+        recipe = self.pl.recipe("gta-markham", self.batch)
+
+        def nm_with(groups):
+            nm = dict(netmeta(b, recipe, "day"), color_by="group",
+                      groups=[{"id": i, "label": lab, "legend": lg, "window_modes": wm, "window_trips": sum(wm.values())}
+                              for i, lab, lg, wm in groups])
+            nm["modes"], nm["modes_present"] = b["modes"], ["bus", "rail", "ferry"]
+            return nm
+
+        sd = [("bus", "Bus", True, {"bus": 5801, "ferry": 90}), ("rapid", "Rapid", True, {"bus": 940}),
+              ("blue_line", "Blue Line", "Trolley", {"rail": 295})]
+        with self.assertRaises(sm.MetaError) as cm:
+            self.meta("gta-markham", "day", nm=nm_with(sd), batch=b)
+        self.assertIn("group bus reads 'Bus' in the legend, but the video draws ferries in its colour (90 ferry trips)",
+                      str(cm.exception))
+        # The ferry in a group of its own: title, legend and colours sentence all name it.
+        sd[0] = ("bus", "Bus", True, {"bus": 5801})
+        m = self.meta("gta-markham", "day", nm=nm_with(sd + [("ferry", "Ferry", True, {"ferry": 90})]), batch=b)
+        self.assertEqual(m["title"], "Every bus, train and ferry in Markham in 24 hours")
+        self.assertIn("Colours: Bus, Rapid, Trolley and Ferry.", m["description"])
+        # A mode id is a mode word too, and a group that mixes modes under a word that names none passes.
+        with self.assertRaises(sm.MetaError):
+            self.meta("gta-markham", "day", nm=nm_with([("rail", "Rail", True, {"rail": 700, "streetcar": 20})]), batch=b)
+        self.meta("gta-markham", "day", nm=nm_with([("go", "GO", True, {"bus": 900, "rail": 350})]), batch=b)
+        # An older netmeta has no window_modes and passes as it did.
+        self.meta("gta-markham", "day", nm=nm_with([("bus", "Bus", True, {})]), batch=b)
+
+
+class GTAReview(unittest.TestCase):
+    """Findings of the GTA batch's description review, made general for every batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, rid, variant, nm=None, recipe=None, batch=None):
+        recipe = recipe or self.pl.recipe(rid, self.batch)
+        return sm.build_meta(batch=batch or self.batch, recipe=recipe,
+                             netmeta=nm or netmeta(self.batch, recipe, variant), templates=self.pl.templates(),
+                             licences=self.pl.licences(), defaults=self.pl.defaults(), publish_order=1,
+                             meta_key="0" * 64)
+
+    def test_label_fallback_said_once(self):
+        """Burlington Transit has no October timetable and the label says November: the description leads with
+        November, says why once, and names October only for the other feeds."""
+        why = ("Burlington Transit has no October timetable, so I used November 2 to 27 for it and October 2026 "
+               "for the other agencies.")
+        for v, rest in (("day", "I kept the trips that run on at least half of the weekdays and put each vehicle "
+                                "where its schedule says it is."),
+                        ("rush", "I kept the trips that run on at least half of the weekdays and placed each "
+                                 "vehicle by its schedule.")):
+            d = self.meta("gta-burlington", v)["description"]
+            self.assertIn(f"{why} {rest}", d, v)
+            self.assertEqual(d.count("no October timetable"), 1, v)
+            self.assertNotIn("October 2026 timetables", d, v)
+            self.assertNotIn("in each timetable", d, v)
+            self.assertIn("The weekday average uses every October 2026 weekday in the other timetables and leaves "
+                          "out Thanksgiving (October 12).", d, v)
+            self.assertLess(d.index("average November weekday"), d.index(why), v)
+        # A week whose label follows the fallback, with Burlington Transit's November dates.
+        recipe = self.pl.recipe("gta-burlington", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        nov = NOV_WEEKDAYS + ["2026-11-28", "2026-11-29"]
+        for f in nm["feeds"]:
+            if f["id"] == "burlington":
+                f["dates"] = {k: [d for d in nov if sm.iso_date(d).weekday() == i]
+                              for i, k in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
+        w = self.meta("gta-burlington", "week", nm=nm)["description"]
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 29 for it and October "
+                      "2026 for the other agencies. Each day is the average of that weekday, so Saturday is a "
+                      "typical Saturday, not one particular one.", w)
+        self.assertIn("The daily averages use every October 2026 date in the other timetables", w)
+        self.assertEqual(w.count("no October timetable"), 1)
+
+    def test_label_fallback_alone(self):
+        """A video that draws only the fallback feed names no batch month at all."""
+        recipe = self.pl.recipe("gta-burlington", self.batch)
+        nm = netmeta(self.batch, recipe, "day")
+        for f in nm["feeds"]:
+            if f["id"] != "burlington":
+                f.update(window_trips=0, inside_share=0.0, inside_vehicle_minutes=0.0)
+            else:
+                f.update(window_trips=500, excluded=[{"date": "2026-11-11", "why": "holiday", "name": "A holiday"}])
+        d = self.meta("gta-burlington", "day", nm=nm)["description"]
+        self.assertIn("Burlington Transit has no October timetable, so I used November 2 to 27 for it. I kept", d)
+        self.assertIn("The weekday average uses every weekday in that range and leaves out A holiday "
+                      "(November 11).", d)
+        self.assertNotIn("the other", d)
+        self.assertNotIn("October 2026", d)
+
+    def test_minor_fallback_stays_a_caveat(self):
+        """Burlington Transit's few buses in Oakville leave the label at October: the batch month leads and the
+        fallback is a caveat after the dates."""
+        recipe = self.pl.recipe("gta-oakville", self.batch)
+        nm = netmeta(self.batch, recipe, "day")
+        for f in nm["feeds"]:
+            if f["id"] == "burlington":
+                f.update(inside_share=0.02, inside_vehicle_minutes=2000.0)
+        d = self.meta("gta-oakville", "day", nm=nm)["description"]
+        self.assertIn("on an average October weekday", d)
+        self.assertIn("I took the October 2026 timetables, kept the trips", d)
+        self.assertIn("The weekday average uses every October 2026 weekday in each timetable and leaves out "
+                      "Thanksgiving (October 12). Burlington Transit has no October timetable, so it uses November "
+                      "2 to 27.", d)
+
+    def test_each_caveat_once(self):
+        """A feed's reduced days make one sentence, a feed's median-date classes make one, and feeds with the
+        same caveats share one."""
+        recipe = self.pl.recipe("gta-toronto", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        same = {"mon": "median-date", "fri": "median-date"}
+        for f in nm["feeds"]:
+            if f["id"] == "go":
+                f["excluded"].append({"date": "2026-10-11", "why": "low", "trips": 1200, "median": 1392})
+            if f["id"] in ("yrt", "miway"):
+                f["rule"] = same
+                f["dates"] = dict(f["dates"], mon=["2026-10-19"], fri=["2026-10-02", "2026-10-09", "2026-10-16"])
+        w = self.meta("gta-toronto", "week", nm=nm)["description"]
+        dates = w.split("\n\n")[2]
+        self.assertIn("GO Transit ran a reduced timetable on October 10 and 11, so those days are left out. ", dates)
+        self.assertIn("GO Transit changed its timetables during October and has fewer than three usable October "
+                      "Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use one typical date.", dates)
+        self.assertIn("MiWay and York Region Transit changed their timetables during October and have fewer than "
+                      "three usable October Mondays, so their Monday and Friday each use one typical date.", dates)
+        self.assertEqual(dates.count("GO Transit"), 2)
+        self.assertEqual(dates.count("reduced timetable"), 1)
+        self.assertEqual(dates.count("York Region Transit"), 1)
+        # One feed with one kind of caveat reads as before.
+        for f in nm["feeds"]:
+            if f["id"] == "miway":
+                f["rule"] = {"mon": "median-date"}
+        w = self.meta("gta-toronto", "week", nm=nm)["description"]
+        self.assertIn("York Region Transit changed its timetables during October and has fewer than three usable "
+                      "October Mondays, so its Monday and Friday each use one typical date.", w)
+        self.assertIn("MiWay has fewer than three usable October Mondays, so its Monday uses one typical date.", w)
+
+    def test_a_feeds_caveats_together(self):
+        """A feed's reduced days and its typical dates come one after the other, busiest feed first. Oshawa's
+        week read GO, Durham Region Transit, then GO again."""
+        recipe = self.pl.recipe("gta-toronto", self.batch)
+        nm = netmeta(self.batch, recipe, "week")
+        for f in nm["feeds"]:
+            if f["id"] == "go":
+                f["excluded"].append({"date": "2026-10-11", "why": "low", "trips": 1200, "median": 1392})
+            if f["id"] == "ttc":
+                f["rule"] = {"tue": "median-date", "wed": "median-date"}
+        dates = self.meta("gta-toronto", "week", nm=nm)["description"].split("\n\n")[2]
+        self.assertIn("the clocks change that night. TTC changed its timetables during October, so its Tuesday and "
+                      "Wednesday each use one typical date. GO Transit ran a reduced timetable on October 10 and 11, "
+                      "so those days are left out. GO Transit changed its timetables during October and has fewer "
+                      "than three usable October Saturdays and Sundays, so its Tuesday, Saturday and Sunday each use "
+                      "one typical date.", dates)
+
+    def test_place_tags_without_the_article(self):
+        """Tags and hashtags drop a lowercase leading article, and spell out a short name YouTube reads as
+        something else: the GTA is #greatertorontoarea, never #thegta or #gta (Grand Theft Auto)."""
+        cases = {"the GTA": ("Greater Toronto Area", "#greatertorontoarea"),
+                 "the Tri-Cities": ("Tri-Cities", "#tricities"),
+                 "The Hague": ("The Hague", "#thehague"),
+                 "Markham": ("Markham", "#markham")}
+        for place, (tag, hashtag) in cases.items():
+            recipe = dict(self.pl.recipe("gta-markham", self.batch), place=place)
+            m = self.meta("gta-markham", "day", recipe=recipe)
+            self.assertEqual(m["tags"][0], tag, place)
+            self.assertEqual(m["hashtags"][-1], hashtag, place)
+            self.assertTrue(m["description"].endswith(" " + hashtag), place)
+            # The title and the description keep the place as a sentence reads it.
+            self.assertIn(f"in {place} in 24 hours", m["title"], place)
+        # No batch hashtag can bring #gta back.
+        b = dict(self.batch, hashtags=["#shorts", "#transit", "#GTA"])
+        with self.assertRaisesRegex(sm.MetaError, "Grand Theft Auto"):
+            self.meta("gta-markham", "day", batch=b)
+
+    def test_town_limits(self):
+        """Oakville and Whitby are towns: their recipes say limits town, and the city limits stay the default."""
+        for rid, place in (("gta-oakville", "Oakville"), ("gta-whitby", "Whitby")):
+            self.assertEqual(self.pl.recipe(rid, self.batch).get("limits"), "town", rid)
+            d = {v: self.meta(rid, v)["description"] for v in ("day", "rush", "week")}
+            self.assertIn(f"only includes vehicles inside the {place} town limits. The faded ones", d["day"])
+            self.assertIn("Every bus and train inside the town on an average October weekday.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} town limits are faded and not counted.", d["rush"])
+            self.assertIn(f"Vehicles outside the {place} town limits are faded and not counted.", d["week"])
+            for text in d.values():
+                self.assertNotIn("city", text.split("\n\n")[1].lower(), rid)
+        self.assertIn("inside the Markham city limits.", self.meta("gta-markham", "day")["description"])
+        self.assertIn("Every bus and train inside the city on", self.meta("gta-markham", "rush")["description"])
+        # A place that names its kind says it once, for a town as for New York City.
+        recipe = dict(self.pl.recipe("gta-oakville", self.batch), place="Oakville Town")
+        self.assertIn("inside the Oakville Town limits.", self.meta("gta-oakville", "day", recipe=recipe)["description"])
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), place="New York City")
+        self.assertIn("inside the New York City limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
+
+
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
         self.assertEqual(sm.clock_text(28860), "8:01 am")
@@ -402,6 +718,9 @@ class Formatting(unittest.TestCase):
         self.assertEqual(sm.range_label(["2026-11-02", "2026-11-27"]), "November 2 to 27")
         self.assertEqual(sm.range_label(["2026-10-28", "2026-11-24"]), "October 28 to November 24")
         self.assertEqual(sm.join_words(["bus", "streetcar", "train"]), "bus, streetcar and train")
+        self.assertEqual(sm.dates_label(["2026-10-11", "2026-10-10"]), "October 10 and 11")
+        self.assertEqual(sm.dates_label(["2026-10-03", "2026-10-10", "2026-10-24"]), "October 3, 10 and 24")
+        self.assertEqual(sm.dates_label(["2026-11-01", "2026-10-31"]), "October 31 and November 1")
         self.assertEqual(sm.with_commas(12345), "12,345")
 
 

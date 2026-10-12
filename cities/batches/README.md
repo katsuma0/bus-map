@@ -38,7 +38,8 @@ recipe, and only inside `override` and `variety.card_line`.
 | `id` | `^[a-z0-9][a-z0-9-]{1,39}$` | yes | | the file name and the stem of every output |
 | `batch` | str | yes | | the batch must list this id in `cities` |
 | `area` | str | when the batch has several areas | the only area | |
-| `place` | str | yes | | the name on screen, in the title and the count line |
+| `place` | str | yes | | the name on screen, in the title and the count line; with the word City in it (New York City) the description says "the New York City limits", not "city limits" |
+| `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is: `town` makes the description say "the Oakville town limits" and "inside the town"; a place with the word in its name (New York City) says "the New York City limits"; not with a boundary of several divisions; re-renders nothing |
 | `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
@@ -108,6 +109,10 @@ name), `route_ids` (without the feed prefix) and `brand` (the routes A10 gives a
 its rules and line brands too, or exactly one rule). `{}` matches every route and only a
 `rest` group may use it. Every route lands in exactly one group: the first group without
 `rest` with a matching clause, else the first `rest` group with one, else `other`.
+A legend word that names a mode (`Bus`, `Trains`, a mode id) must hold that mode alone:
+`make.py meta` fails when the video draws another mode's trips in such a group, as San
+Diego's Coronado ferry took the MTS navy of `Bus` while the title said ferry. Give the
+mode a group of its own, or leave it out of the recipe's `modes`.
 
 `make.py` refuses, with the key and the reason: an unknown key (a `route_desc`,
 `route_color`, `route_long_name` or `trips` rule says why it is not supported), a scheme
@@ -141,7 +146,7 @@ only those: the GTA's GO is `-0.12` everywhere, so it is one deep green.
 | `modes` | list of `{id, label, singular, route_types, routes?}` | colours come from the theme; `routes` moves named routes into the mode (see below) |
 | `cities` | list of recipe ids | upload order |
 | `variants_default` | list | for recipes without `variants` |
-| `hashtags` | list of `#word` | `#shorts` always comes first in the metadata |
+| `hashtags` | list of `#word` | `#shorts` always comes first in the metadata, and each video adds its place's (`#markham`; `#greatertorontoarea` for the GTA); never `#gta`, which YouTube files with Grand Theft Auto |
 | `category` | str | YouTube category |
 | `release` | `{tag, name}` | the draft release that collects the MP4s and the CSV |
 
@@ -164,7 +169,13 @@ non-commercial licence through), and `source`, one of:
 
 Licences are matched on `licence_id` only. `commercial: no` stops `plan` and
 `meta` unless the feed has `allow_nc`; `check` is printed in the release notes and
-the CSV's `licence_flags`.
+the CSV's `licence_flags`. A video's credits and licence flags cover the feeds it
+shows on screen, inside the boundary or faded outside (not the trim's margin beyond
+the frame), so a split city's buses leave out its trains' feeds. A licence with
+`"data_date": true` (Metra's) adds `Metra timetables as of October 4, 2026.` after
+the feed's credit, from the MDB dataset stamp of the feed's URL in the lock
+(`mdb-<id>-<YYYYMMDDHHMM>.zip`); such a feed locked from a tag, a path or another
+URL fails `make.py meta`.
 
 ## Lock: `cities/locks/<batch>.lock.json`
 

@@ -16,6 +16,9 @@
 //           same speed by the cap
 //  mix      the drifts push in half as far as the pull-outs and move the
 //           city core further (their shares of the zoom and the drift)
+//  reach    on every path the view goes no further past the fitted frame
+//           than CAMERA_DRIFT x CAMERA_AMP of its width, the margin make.py
+//           view_box() adds when it credits the feeds a video shows
 //  line     at every frame the city line's bbox stays in its keep rect (the
 //           looser of the safe zone and the fitted bbox, plus 10 px, never
 //           off the frame), recomputed here from meta.boundary, unless the cap
@@ -201,21 +204,35 @@ async function lineChecks(h, query, tag, want) {
 // The paths' shares of the zoom and the drift, on a frame with room for the
 // whole move: the drifts push in half as far and travel half as far again as
 // the pull-outs, so the city core travels further while the push-in is smaller.
+// The same pages measure each path's reach past the fitted frame.
 async function mixChecks(h) {
-  const share = { 'pull-out-west': [1, 1], 'pull-out-north': [1, 1], 'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5] };
+  const share = {
+    'pull-out-west': [1, 1], 'pull-out-north': [1, 1], 'pull-out-east': [1, 1], 'pull-out-south': [1, 1],
+    'drift-orbit': [0.5, 1.5], 'drift-sway': [0.5, 1.5],
+  };
   const got = {};
   for (const [p, [zs, rs]] of Object.entries(share)) {
     const page = await h.open(`${TINY}&zoom=0.6&campath=${p}`);
     const r = await page.evaluate(() => {
       const bm = window.busmap, N = bm.totalFrames, [px, py] = bm.camera.pivot;
+      const W = bm.canvas.width, H = bm.canvas.height;
       const xs = [], ys = [];
-      for (let i = 0; i < N; i++) { const m = bm.cameraAt(i / N); xs.push(m.zoom * px + m.e); ys.push(m.zoom * py + m.f); }
-      return { cam: bm.camera, travel: Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) };
+      let past = 0;
+      for (let i = 0; i < N; i++) {
+        const m = bm.cameraAt(i / N);
+        xs.push(m.zoom * px + m.e);
+        ys.push(m.zoom * py + m.f);
+        past = Math.max(past, m.e / m.zoom, m.f / m.zoom, (W - m.e) / m.zoom - W, (H - m.f) / m.zoom - H);
+      }
+      const C = bm.config;
+      return { cam: bm.camera, travel: Math.hypot(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)),
+        reach: past / (C.CAMERA_DRIFT * C.CAMERA_AMP * W) };
     });
     const c = r.cam, k = c.scale * c.amp * c.bound;
     ok(Math.abs(c.zoom - 0.08 * zs * k) < 1e-12 && Math.abs(c.drift - 0.03 * 1080 * rs * k) < 1e-9,
       `${p}: zoom ${c.zoom} and drift ${c.drift} are not shares ${zs}, ${rs} of 0.08 and 32.4 px at factor ${k}`);
-    got[p] = { zoom: c.zoom, travel: r.travel };
+    ok(r.reach <= 1 + 1e-9, `${p}: the view goes ${r.reach.toFixed(4)} drifts past the fitted frame, make.py view_box allows 1`);
+    got[p] = { zoom: c.zoom, travel: r.travel, reach: r.reach };
     if (page.errors.length) failures.push(`${p}: page errors ${page.errors.join('; ')}`);
     await page.context().close();
   }
@@ -225,7 +242,7 @@ async function mixChecks(h) {
         `${d} against ${o}: core travel ${got[d].travel.toFixed(1)} vs ${got[o].travel.toFixed(1)} px, zoom ${got[d].zoom.toFixed(4)} vs ${got[o].zoom.toFixed(4)}`);
     }
   }
-  console.log(`  mix: ${Object.entries(got).map(([p, g]) => `${p} zoom ${(g.zoom * 100).toFixed(2)}% core ${g.travel.toFixed(0)} px`).join(', ')}`);
+  console.log(`  mix: ${Object.entries(got).map(([p, g]) => `${p} zoom ${(g.zoom * 100).toFixed(2)}% core ${g.travel.toFixed(0)} px reach ${g.reach.toFixed(3)}`).join(', ')}`);
 }
 
 // Camera on and off at one still: the HUD and the numbers do not move, the

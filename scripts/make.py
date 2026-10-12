@@ -74,6 +74,8 @@ SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 DERIVE_VERSION = 2
 KY = 110.574
 FPS = 30
+# 2: feeds and colour groups carry window_trips (what the video draws on screen), make.py meta's credits and flags.
+NETMETA_VERSION = 2
 WIDTH, HEIGHT = 1080, 1920
 
 # Code whose bytes decide outputs (F1). Every file must exist: one hashed as
@@ -324,6 +326,40 @@ def frame_box(frame, zoom=1.0, dx=0.0, dy=0.0):
     return [cx - kv * 9 / 32, cy - kv / 2, cx + kv * 9 / 32, cy + kv / 2]
 
 
+def segment_meets_box(ax, ay, bx, by, box):
+    """Liang-Barsky: whether the segment from (ax, ay) to (bx, by) has a point in `box`."""
+    t0, t1 = 0.0, 1.0
+    dx, dy = bx - ax, by - ay
+    for p, q in ((-dx, ax - box[0]), (dx, box[2] - ax), (-dy, ay - box[1]), (dy, box[3] - ay)):
+        if p == 0:
+            if q < 0:
+                return False
+            continue
+        t = q / p
+        if p < 0:
+            t0 = max(t0, t)
+        else:
+            t1 = min(t1, t)
+        if t0 > t1:
+            return False
+    return True
+
+
+def polyline_meets_box(xy, box):
+    """Whether a flat [x, y, x, y, ...] polyline enters `box`. Segments count, not just points: a rail
+    shape's points can sit kilometres apart, either side of a frame corner the line cuts."""
+    x0, y0, x1, y1 = box
+    xs, ys = xy[0::2], xy[1::2]
+    if not xs or max(xs) < x0 or min(xs) > x1 or max(ys) < y0 or min(ys) > y1:
+        return False
+    for i, (x, y) in enumerate(zip(xs, ys)):
+        if x0 <= x <= x1 and y0 <= y <= y1:
+            return True
+        if i and segment_meets_box(xs[i - 1], ys[i - 1], x, y, box):
+            return True
+    return False
+
+
 def r6(v):
     return round(float(v), 6)
 
@@ -365,7 +401,9 @@ def camera_paths(ids, chosen=None):
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
 RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "frame", "variants", "rush", "variety",
-               "override", "colors"}
+               "override", "colors", "limits"}
+# What a recipe's place is, for the description's "the Oakville town limits"; city when it says nothing.
+LIMITS = ("city", "town", "township", "village")
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
@@ -373,6 +411,11 @@ VARIETY_KEYS = {"panel_side", "card_line", "zoom", "camera"}
 # The camera paths of the page (B18), in the order camera_path() picks from:
 # web/app.js CAMERA_NAMES lists the same names in the same order.
 CAMERA_PATHS = ("pull-out-east", "pull-out-north", "pull-out-west", "pull-out-south", "drift-orbit", "drift-sway")
+# web/app.js CONFIG.CAMERA_DRIFT and CAMERA_AMP before a preset or a query sets them. No path takes the
+# view past the fitted frame by more than one drift, CAMERA_DRIFT x CAMERA_AMP of the frame width (a
+# pull-out travels one drift, a drift half of its 1.5 share), and the push-in only narrows the view, so
+# view_box() grows the frame by that much; tests/web/v4_camera.mjs holds the page to it.
+CAMERA_DRIFT, CAMERA_AMP = 0.03, 1
 OVERRIDE_KEYS = {"render", "variant_render", "brand_colors", "_why"}
 # A recipe's colour groups (2.16): what its trails, dots, legend and description colour by.
 COLORS_KEYS = {"scheme", "legend", "groups"}
@@ -423,6 +466,9 @@ LOCK_KEYS = {"batch", "locked_at", "areas", "boundaries", "tools"}
 LOCK_AREA_KEYS = {"feeds", "overture", "divisions", "dates", "rules"}
 LOCK_FEED_KEYS = {"source", "tag", "commit", "path", "url", "secret", "sha256", "bytes", "feed_version", "valid", "inputs"}
 LOCK_OVERTURE_KEYS = {"release", "bbox", "data_tag", "files"}
+# A MobilityData dataset file, .../mdb-2854-202610040138/mdb-2854-202610040138.zip: feed 2854, stamped
+# 2026-10-04 01:38 UTC. tld- marks MobilityData's copy of a Transitland feed.
+MDB_DATASET_RE = re.compile(r"/(?:mdb|tld)-\d+-(\d{4})(\d{2})(\d{2})\d{4}\.zip$")
 LOCK_DIVISIONS_KEYS = {"key", "sha256", "bbox"}
 LOCK_BOUNDARY_KEYS = {"id", "division_id", "name", "subtype", "area_km2", "frame", "clip", "file", "sha256", "parts",
                       "week_eligible", "week_why"}
@@ -565,6 +611,12 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
             errors.append(f"{where}: area is required because the batch has {len(area_ids)} areas")
     if not isinstance(recipe.get("place", ""), str) or not recipe.get("place", "x").strip():
         errors.append(f"{where}: place must be a non-empty string")
+    if "limits" in recipe:
+        if recipe["limits"] not in LIMITS:
+            errors.append(f"{where}.limits: must be one of {', '.join(LIMITS)}")
+        elif isinstance(recipe.get("boundary"), list) and len(recipe["boundary"]) > 1:
+            errors.append(f"{where}.limits: a boundary of several divisions is described by their names; "
+                          f"leave limits out")
     b = recipe.get("boundary")
     if b is not None:
         if isinstance(b, list):
@@ -1025,6 +1077,65 @@ def modes_in_window(modes, by_mode, start, end):
     return out
 
 
+def lock_data_dates(lock, area_id):
+    """Feed id to the ISO date its locked data was last updated, for the feeds whose lock URL is a
+    MobilityData dataset (mdb-<id>-<YYYYMMDDHHMM>.zip, or tld- for a Transitland mirror): that stamp is
+    when the catalogue saw the data change. A feed from a tag, a path or another URL has no entry, so
+    a licence that asks for the date (licences.json data_date) fails make.py meta rather than guess."""
+    out = {}
+    for fid, e in sorted(((lock or {}).get("areas", {}).get(area_id, {}).get("feeds") or {}).items()):
+        m = MDB_DATASET_RE.search((e.get("url") or "").split("?", 1)[0])
+        if not m:
+            continue
+        try:
+            out[fid] = datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3))).isoformat()
+        except ValueError:
+            continue
+    return out
+
+
+def window_draws(network, start, end, box=None):
+    """What a variant draws in its window [start, end): trips per feed, and per colour group and mode.
+
+    The page's rule for the trips it draws (buildOccurrences, B7): every trip repeats with the
+    network's period and a week trip runs on each day of its "w" mask, so a 1 am trip of the day
+    network is drawn near the end of a window that starts at the morning peak. With `box`, the
+    map area the video can show in km (Pipeline.view_box), a trip counts only when its shape enters
+    it: the trim keeps every trip that touches a box a quarter larger than the frame, and a
+    neighbour's buses in that margin never come on screen. A trip outside the boundary but on screen
+    counts: its vehicles are on the map, faded, and its feed's data is in the video.
+    None for a network without trips (the tests' stub trim), which says nothing either way."""
+    trips = network.get("trips") or []
+    if not trips:
+        return None
+    tl = network["meta"].get("timeline") or {}
+    period = tl.get("period") or 86400
+    week = tl.get("kind") == "week"
+    routes = network.get("routes") or []
+    shapes = network.get("shapes") or []
+    in_view = {}
+    by_feed, by_group = {}, {}
+    for trip in trips:
+        t0, t1 = trip["t"][0], trip["t"][-1]
+        w = trip.get("w") if week else 1
+        if not isinstance(w, int):
+            w = 127
+        if not any(w >> k & 1 and t1 + 86400 * k + j * period >= start and t0 + 86400 * k + j * period <= end
+                   for k in range(7) for j in (-1, 0, 1, 2)):
+            continue
+        if box is not None:
+            s = trip["s"]
+            if s not in in_view:
+                in_view[s] = polyline_meets_box(shapes[s]["xy"], box)
+            if not in_view[s]:
+                continue
+        r = routes[trip["r"]]
+        by_feed[r["feed"]] = by_feed.get(r["feed"], 0) + 1
+        gm = by_group.setdefault(r.get("group") or "other", {})
+        gm[r["mode"]] = gm.get(r["mode"], 0) + 1
+    return by_feed, by_group
+
+
 def asset_label(name, key):
     """A release asset's label: GitHub lists the label in place of the file name, so it leads with the name."""
     return f"{name} key:{key[:16]}"
@@ -1038,9 +1149,10 @@ def label_key(label):
 
 def strip_why(recipe):
     """The recipe as the render key holds it: a reason line changes no pixel, nor does a colour
-    group's scheme, source or verified flag."""
+    group's scheme, source or verified flag, nor the description's limits word (the meta key holds it)."""
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
+    r.pop("limits", None)
     colors = r.get("colors")
     if isinstance(colors, dict):
         colors.pop("scheme", None)
@@ -1572,11 +1684,13 @@ class Pipeline:
 
     def meta_key(self, batch, recipe, variant, lock, render_key=None):
         rk = render_key or self.render_key(batch, recipe, variant, lock)
+        # The data dates come from the lock's URLs, which the render key does not hold (it has their sha256).
         return sha256_json({"render_key": rk, "templates": self.templates(), "licences": self.licences(),
                             "shorts_meta": self.sha("scripts/shorts_meta.py"),
                             "hashtags": batch.get("hashtags", []), "category": batch.get("category"),
-                            "cities": batch["cities"],
-                            "publish_order": self.publish_order(batch, recipe["id"], variant, lock)})
+                            "cities": batch["cities"], "limits": recipe.get("limits"),
+                            "publish_order": self.publish_order(batch, recipe["id"], variant, lock),
+                            "data_dates": lock_data_dates(lock, self.area_of(batch, recipe)["id"])})
 
     def csv_key(self, meta_keys):
         return sha256_json(sorted(meta_keys))
@@ -2487,8 +2601,41 @@ class Pipeline:
         frames = int(r.get("HOLD_START", 0)) + int(r.get("DURATION_FRAMES", 0)) + int(r.get("HOLD_END", 0))
         return rj, bh, r, frames
 
-    def netmeta(self, batch, recipe, variant, meta, build_key):
-        """2.13 network metadata: all that make.py meta needs, so metadata can be rebuilt without the network."""
+    def page_render(self, recipe, variant, meta):
+        """The render keys the page sets for one video, in its own precedence (2.10): the preset, the
+        network's and the variant's render blocks, then the recipe's render query. A key none of them
+        names keeps the page's CONFIG default."""
+        r = {}
+        preset = meta.get("preset") or ""
+        p = self.path("web", "presets", f"{preset}.json")
+        if re.match(r"^[A-Za-z0-9_-]+$", preset) and os.path.exists(p):
+            r.update(read_json(p).get("render") or {})
+        r.update(meta.get("render") or {})
+        r.update(self.effective_render(recipe, variant, meta)[2])
+        return r
+
+    def view_box(self, recipe, variant, meta):
+        """The map a video can show, in km about the origin, or None for a network without a frame: the
+        variant's frame (the rush close-up has its own) after FRAME_ZOOM and the km shifts, as the page's
+        finishFrame() applies them, grown on every side by the camera's reach when the camera is on."""
+        fr = meta["variants"][variant].get("frame") or meta.get("frame")
+        if not fr:
+            return None
+        r = self.page_render(recipe, variant, meta)
+        box = frame_box(fr, r.get("FRAME_ZOOM", 1), r.get("FRAME_DX_KM", 0), r.get("FRAME_DY_KM", 0))
+        if r.get("CAMERA"):
+            # The page clamps both knobs to their ranges (cameraNum); an unclamped value can only widen this.
+            reach = max(0.0, r.get("CAMERA_DRIFT", CAMERA_DRIFT)) * max(0.0, r.get("CAMERA_AMP", CAMERA_AMP))
+            box = grow_km(box, reach * WIDTH * (box[3] - box[1]) / HEIGHT)
+        return box
+
+    def netmeta(self, batch, recipe, variant, meta, build_key, draws=None):
+        """2.13 network metadata: all that make.py meta needs, so metadata can be rebuilt without the network.
+
+        `draws` is window_draws() of the network: with it each feed and colour group carries the trips
+        the video draws on screen in its window (window_trips, and window_modes per group); without it,
+        or for a network with no trips, neither key is written and make.py meta falls back to the inside
+        counts."""
         V = meta["variants"][variant]
         _rj, _bh, _r, frames = self.effective_render(recipe, variant, meta)
         seconds = frames / FPS
@@ -2499,6 +2646,15 @@ class Pipeline:
         keys = ("id", "name", "publisher", "licence_id", "licence_text", "dates", "rule", "median_date", "excluded",
                 "inside_share", "inside_vehicle_minutes", "major", "month_used")
         feeds = [{k: f.get(k) for k in keys if k in f} for f in meta.get("feeds", [])]
+        groups = [dict(g) for g in meta.get("groups", [])]
+        if draws:
+            by_feed, by_group = draws
+            for f in feeds:
+                f["window_trips"] = by_feed.get(f["id"], 0)
+            for g in groups:
+                gm = by_group.get(g["id"], {})
+                g["window_trips"] = sum(gm.values())
+                g["window_modes"] = dict(sorted(gm.items()))
         tl = meta.get("timeline", {})
         return {
             "id": recipe["id"], "variant": variant, "place": meta.get("place", recipe["place"]),
@@ -2508,8 +2664,9 @@ class Pipeline:
             "peak": V["peak"], "am_peak": meta.get("am_peak"), "pm_peak": meta.get("pm_peak"),
             "window": [V.get("start"), V.get("end")],
             "feeds": feeds, "modes_present": modes_present, "modes": modes,
-            "groups": meta.get("groups", []), "color_by": meta.get("color_by"), "credit": meta.get("credit"),
+            "groups": groups, "color_by": meta.get("color_by"), "credit": meta.get("credit"),
             "seconds": seconds, "frames": frames, "trips_total": meta.get("trips_total"), "build_key": build_key,
+            "netmeta_version": NETMETA_VERSION,
         }
 
     def write_netmeta(self, batch, recipe, variant, out_dir=None):
@@ -2518,8 +2675,13 @@ class Pipeline:
         if variant not in meta.get("variants", {}):
             raise MakeError(f"{self.rel(net)} has no variant {variant}")
         man = self.read_manifest(recipe["id"])
+        # The whole network, not just its meta: what the video draws is in its trips and their shapes.
+        # Read once per video, a few seconds for the largest GTA city.
+        with gzip.open(net, "rt", encoding="utf-8") as fh:
+            V = meta["variants"][variant]
+            draws = window_draws(json.load(fh), V["start"], V["end"], box=self.view_box(recipe, variant, meta))
         nm = self.netmeta(batch, recipe, variant, meta, (man or {}).get("keys", {}).get(f"trim-{TIMELINE_OF[variant]}")
-                          or meta.get("build_key"))
+                          or meta.get("build_key"), draws=draws)
         p = os.path.join(out_dir or self.out_dir(batch), f"{stem_of(recipe['id'], variant)}.netmeta.json")
         write_json(p, nm)
         return p, meta
@@ -2646,14 +2808,7 @@ class Pipeline:
     def card_on(self, recipe, variant, meta):
         """Whether the video opens on the card (B10): CARD in the page's preset, then the network's and the
         variant's render blocks and the recipe's render query, the page's own precedence (2.10)."""
-        r = {}
-        preset = meta.get("preset") or ""
-        p = self.path("web", "presets", f"{preset}.json")
-        if re.match(r"^[A-Za-z0-9_-]+$", preset) and os.path.exists(p):
-            r.update(read_json(p).get("render") or {})
-        r.update(meta.get("render") or {})
-        r.update(self.effective_render(recipe, variant, meta)[2])
-        return bool(r.get("CARD", False))
+        return bool(self.page_render(recipe, variant, meta).get("CARD", False))
 
     @staticmethod
     def still_names(stem, t, week):
@@ -2841,7 +2996,8 @@ class Pipeline:
         return shorts_meta.build_meta(
             batch=batch, recipe=recipe, netmeta=netmeta, templates=self.templates(), licences=self.licences(),
             defaults=self.defaults(), publish_order=self.publish_order(batch, rid, variant, lock),
-            meta_key=self.meta_key(batch, recipe, variant, lock, rk), sidecar=sidecar, allow_nc=allow_nc)
+            meta_key=self.meta_key(batch, recipe, variant, lock, rk), sidecar=sidecar, allow_nc=allow_nc,
+            data_dates=lock_data_dates(lock, self.area_of(batch, recipe)["id"]))
 
     def cmd_meta(self, name, only=None, from_netmeta=None, no_upstream=False, allow_nc=False, review_dir=None,
                  out_dir=None):
@@ -2875,6 +3031,16 @@ class Pipeline:
                     continue
                 self.write_netmeta(batch, recipe, v, out_dir=src)
             netmeta = read_json(nm_path)
+            if netmeta.get("netmeta_version", 1) < NETMETA_VERSION:
+                # An older make.py's netmeta says nothing of what the video draws, so its credits and licence
+                # flags would fall back to the feeds with vehicles inside. The network rewrites it when here.
+                if not from_netmeta and os.path.exists(self.network_path(rid, v)):
+                    self.write_netmeta(batch, self.recipe(rid, batch), v, out_dir=src)
+                    netmeta = read_json(nm_path)
+                    say(f"  {stem}: rewrote a netmeta of an older make.py")
+                else:
+                    warn(f"{stem}: netmeta of an older make.py; its credits and licence flags follow the inside "
+                         f"counts, not every feed it draws")
             side = os.path.join(src, f"{stem}.json")
             sidecar = read_json(side) if os.path.exists(side) else None
             try:

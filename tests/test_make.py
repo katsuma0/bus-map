@@ -583,6 +583,18 @@ class Validation(unittest.TestCase):
         r["override"]["variant_render"] = {"night": {"TRAIL_MINUTES": 10}}
         self.assertTrue(any("unknown variant 'night'" in e for e in self.recipe_errors(r)))
 
+    def test_limits(self):
+        """The recipe's limits names what the place is (Oakville is a town); city when it says nothing."""
+        for ok in make.LIMITS:
+            self.assertEqual(self.recipe_errors(dict(self.recipe, limits=ok)), [], ok)
+        for bad in ("Town", "municipality", "", None, 1):
+            self.assertTrue(any("limits: must be one of city, town" in e
+                                for e in self.recipe_errors(dict(self.recipe, limits=bad))), bad)
+        parts = [{"name": "Toronto", "subtypes": ["county"], "area_km2": 631.1},
+                 {"name": "Peel Region", "subtypes": ["county"], "area_km2": 1246.9}]
+        errs = self.recipe_errors(dict(self.recipe, limits="town", boundary=parts))
+        self.assertTrue(any("limits: a boundary of several divisions" in e for e in errs), errs)
+
     def test_unknown_licence(self):
         b = json.loads(json.dumps(self.batch))
         b["areas"][0]["feeds"][3]["licence_id"] = "ogl-yorkshire"
@@ -1037,6 +1049,11 @@ class Derivation(Scratch):
         self.assertEqual(self.pl.render_key(self.batch, r2, "day", self.lock), k)
         b2 = dict(self.batch, title="Another title", hashtags=["#x"], category="Education")
         self.assertEqual(self.pl.render_key(b2, recipe, "day", self.lock), k)
+        # The limits word is the description's alone: it keys the metadata, not the render.
+        town = dict(recipe, limits="town")
+        self.assertEqual(self.pl.render_key(self.batch, town, "day", self.lock), k)
+        self.assertNotEqual(self.pl.meta_key(self.batch, town, "day", self.lock),
+                            self.pl.meta_key(self.batch, recipe, "day", self.lock))
         b3 = dict(self.batch, render_epoch=1)
         self.assertNotEqual(self.pl.render_key(b3, recipe, "day", self.lock), k)
         self.assertNotEqual(self.pl.render_key(self.batch, recipe, "rush", self.lock), k)
@@ -1867,6 +1884,164 @@ class Actions(Scratch):
         res = self.repo.run("fetch", "test", "--overture-only", "--push-data-tag")
         self.assertIn(f"pushed {ov['data_tag']}", res.stdout)
         self.assertEqual(git(self.repo.origin, "rev-parse", "overture/tsukuba-2026-09-23.1").stdout.strip(), plain)
+
+    def test_data_date_from_the_lock(self):
+        """A licence that asks for the data date fails make.py meta until the lock gives one, then the
+        description carries it after the feed's credit."""
+        lic = self.repo.read_json("cities/licences.json")
+        lic["licences"]["cc-by-4.0"]["data_date"] = True
+        self.repo.write_json("cities/licences.json", lic)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("metadata checks failed", res.stderr)
+        self.assertIn("tsukubus: licence cc-by-4.0 asks for the date the data was last updated", res.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.repo.root, "out/shorts/test/test-centre-day.meta.json")))
+        b = self.repo.read_json("cities/batches/test.json")
+        for f, ds in zip(b["areas"][0]["feeds"], ("mdb-2854-202610040138", "tld-217-202609160157")):
+            z = os.path.join(self.tmp, "mirror", ds, f"{ds}.zip")
+            os.makedirs(os.path.dirname(z))
+            with open(z, "wb") as fh:
+                fh.write(feed_zip(f["id"]))
+            f["source"] = {"url": "file://" + z, "sha256": make.sha256_file(z)}
+        self.repo.write_json("cities/batches/test.json", b)
+        self.repo.run("lock", "test")
+        self.repo.run("meta", "test", "--only", "test-centre-day")
+        m = load(os.path.join(self.repo.root, "out/shorts/test/test-centre-day.meta.json"))
+        self.assertIn("Tsukubus timetables as of October 4, 2026.", m["credits"])
+        self.assertIn("Tsukubane timetables as of September 16, 2026.", m["credits"])
+        self.assertIn("CC BY 4.0.\nTsukubus timetables as of October 4, 2026.\n", m["description"])
+
+    def test_netmeta_records_what_the_video_draws(self):
+        pl = make.Pipeline(self.repo.root)
+        batch = pl.load_batch("test")
+        recipe = pl.recipe("test-centre", batch)
+        meta = pl.network_meta(os.path.join(self.repo.root, "build/test-centre/day/network.json.gz"))
+        nm = pl.netmeta(batch, recipe, "day", meta, "k", draws=({"tsukubus": 12}, {"tsukubus": {"bus": 12}}))
+        self.assertEqual({f["id"]: f["window_trips"] for f in nm["feeds"]}, {"tsukubus": 12, "tsukubane": 0})
+        self.assertEqual({g["id"]: (g["window_trips"], g["window_modes"]) for g in nm["groups"]},
+                         {"tsukubus": (12, {"bus": 12}), "other": (0, {})})
+        self.assertNotIn("window_trips", meta["groups"][0], "the network's own meta is left as it was")
+        # The stub trim's network has no trips, so its netmeta says nothing either way; the count is
+        # still asked for the view, not the trim box.
+        with unittest.mock.patch.object(make, "window_draws", wraps=make.window_draws) as wd:
+            p, _meta = pl.write_netmeta(batch, recipe, "day", out_dir=os.path.join(self.tmp, "nm"))
+        box = pl.view_box(recipe, "day", meta)
+        self.assertIsNotNone(box)
+        self.assertEqual(wd.call_args.kwargs["box"], box)
+        nm = load(p)
+        self.assertEqual(nm["netmeta_version"], make.NETMETA_VERSION)
+        self.assertFalse([x for x in nm["feeds"] + nm["groups"] if "window_trips" in x])
+
+    def test_meta_rewrites_an_older_netmeta(self):
+        self.repo.run("meta", "test", "--only", "test-centre-day")
+        p = os.path.join(self.repo.root, "out/shorts/test/test-centre-day.netmeta.json")
+        nm = load(p)
+        self.assertEqual(nm["netmeta_version"], make.NETMETA_VERSION)
+        del nm["netmeta_version"]
+        self.repo.write_json(os.path.relpath(p, self.repo.root), nm)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day")
+        self.assertIn("test-centre-day: rewrote a netmeta of an older make.py", res.stdout)
+        self.assertEqual(load(p)["netmeta_version"], make.NETMETA_VERSION)
+        # A release's netmeta comes without its network: the metadata is made as before, with a warning.
+        src = os.path.join(self.tmp, "release")
+        os.makedirs(src)
+        with open(os.path.join(src, "test-centre-day.netmeta.json"), "w") as fh:
+            json.dump(nm, fh)
+        res = self.repo.run("meta", "test", "--only", "test-centre-day", "--from-netmeta", src)
+        self.assertIn("test-centre-day: netmeta of an older make.py", res.stderr)
+
+
+class Draws(unittest.TestCase):
+    """What a video draws in its window (window_draws) and the data dates of a lock (lock_data_dates)."""
+
+    @staticmethod
+    def network(kind, trips):
+        routes = [{"feed": "cta", "group": "red", "mode": "rail"}, {"feed": "metra", "group": "other", "mode": "rail"},
+                  {"feed": "cta", "group": "other", "mode": "bus"}]
+        return {"meta": {"timeline": {"kind": kind, "period": 604800 if kind == "week" else 86400}},
+                "routes": routes, "trips": [{"r": r, "t": t, **({"w": w} if w is not None else {})} for r, t, w in trips]}
+
+    def test_day_window(self):
+        net = self.network("day", [(0, [30000, 32000], None), (1, [3600, 5400], None), (2, [86000, 87000], None)])
+        # The day video starts at the morning peak and runs 24 hours: the 1 am Metra trip comes round at its end.
+        feeds, groups = make.window_draws(net, 28800, 115200)
+        self.assertEqual(feeds, {"cta": 2, "metra": 1})
+        self.assertEqual(groups, {"red": {"rail": 1}, "other": {"rail": 1, "bus": 1}})
+        # The rush, 6:30 to 9:30, draws the morning train alone.
+        feeds, groups = make.window_draws(net, 23400, 34200)
+        self.assertEqual((feeds, groups), ({"cta": 1}, {"red": {"rail": 1}}))
+        # A trip that ends as the window starts is still on the map.
+        self.assertEqual(make.window_draws(net, 32000, 34200)[0], {"cta": 1})
+
+    def test_week_mask(self):
+        # Monday only, Tuesday only, and a trip without a mask, which the page draws every day.
+        net = self.network("week", [(0, [30000, 32000], 1), (1, [30000, 32000], 2), (2, [30000, 32000], None)])
+        tuesday = (86400 + 28800, 86400 + 34200)
+        self.assertEqual(make.window_draws(net, *tuesday), ({"metra": 1, "cta": 1}, {"other": {"rail": 1, "bus": 1}}))
+        self.assertEqual(make.window_draws(net, 28800, 28800 + 604800)[0], {"cta": 2, "metra": 1})
+        self.assertIsNone(make.window_draws(dict(net, trips=[]), 0, 86400))
+
+    def test_only_what_comes_on_screen(self):
+        """The trim keeps trips a quarter of the frame beyond it; a trip counts only once its shape enters the view."""
+        shapes = [
+            [1, 1, 2, 2],              # inside
+            [11, 1, 12, 2],            # in the trim margin alone
+            [-5, 5, 15, 5],            # both points outside, the segment across the view
+            [-2, 9, 1, 12.5],          # its bbox overlaps a corner, the line passes above it
+            [10, 10.5, 10.5, 10],      # the same off the other corner
+        ]
+        feeds = ["cta", "pace", "metra", "nictd", "amtrak"]
+        net = {"meta": {"timeline": {"kind": "day", "period": 86400}},
+               "routes": [{"feed": f, "group": "other", "mode": "bus"} for f in feeds],
+               "shapes": [{"xy": xy} for xy in shapes],
+               "trips": [{"r": i, "s": i, "t": [30000, 32000]} for i in range(len(shapes))]
+               + [{"r": 1, "s": 1, "t": [31000, 33000]}]}
+        box = [0, 0, 10, 10]
+        self.assertEqual(make.window_draws(net, 0, 86400, box=box), ({"cta": 1, "metra": 1}, {"other": {"bus": 2}}))
+        # Without a box every trip of the trim counts, as for a network written before the frame was known.
+        self.assertEqual(make.window_draws(net, 0, 86400)[0], {f: 2 if f == "pace" else 1 for f in feeds})
+        self.assertTrue(make.polyline_meets_box([10, 10], box), "a point on the edge is in view")
+        self.assertFalse(make.polyline_meets_box([], box))
+
+    def test_view_box(self):
+        """The frame the page fits (finishFrame) plus the camera's reach, against web/app.js's own numbers."""
+        with open(os.path.join(REPO, "web", "app.js"), encoding="utf-8") as fh:
+            src = fh.read()
+        page = {k: float(re.search(rf"^  {k}: ([\d.]+),$", src, re.M).group(1)) for k in ("CAMERA_DRIFT", "CAMERA_AMP")}
+        self.assertEqual(page, {"CAMERA_DRIFT": make.CAMERA_DRIFT, "CAMERA_AMP": make.CAMERA_AMP})
+        pl = make.Pipeline(REPO)
+        meta = {"preset": "shorts", "render": {}, "frame": {"km_vertical": 32.0, "center_km": [0.0, 0.0]},
+                "variants": {"day": {"frame": None, "render": {}},
+                             "rush": {"frame": {"km_vertical": 16.0, "center_km": [2.0, 1.0]}, "render": {}}}}
+        recipe = {"id": "test-view", "batch": "none", "variety": {"zoom": 1.25},
+                  "override": {"render": {"FRAME_DX_KM": 1.5}}}
+
+        def near(got, want):
+            self.assertEqual(len(got), 4)
+            for g, w in zip(got, want):
+                self.assertAlmostEqual(g, w, places=9)
+
+        # The day: 32 km / 1.25 tall, 14.4 km wide, 1.5 km east, and the shorts preset's camera reaches 3% of
+        # the width (0.432 km) past it on every side.
+        near(pl.view_box(recipe, "day", meta), [1.5 - 7.2 - 0.432, -12.8 - 0.432, 1.5 + 7.2 + 0.432, 12.8 + 0.432])
+        # The rush close-up has its own frame, and variety.zoom is the day's and the week's alone.
+        near(pl.view_box(recipe, "rush", meta), [3.5 - 4.5 - 0.27, 1 - 8 - 0.27, 3.5 + 4.5 + 0.27, 1 + 8 + 0.27])
+        still = dict(recipe, variety={"zoom": 1.25, "camera": "off"})
+        near(pl.view_box(still, "day", meta), [1.5 - 7.2, -12.8, 1.5 + 7.2, 12.8])
+        loud = dict(recipe, override={"render": {"CAMERA_AMP": 2}})
+        near(pl.view_box(loud, "day", meta), [-7.2 - 0.864, -12.8 - 0.864, 7.2 + 0.864, 12.8 + 0.864])
+        self.assertIsNone(pl.view_box(recipe, "day", dict(meta, frame=None)))
+
+    def test_lock_data_dates(self):
+        base = "https://storage.googleapis.com/mobilitydata-datasets-prod"
+        lock = {"areas": {"chicago": {"feeds": {
+            "metra": {"source": "url", "url": f"{base}/mdb-2854/mdb-2854-202610040138/mdb-2854-202610040138.zip"},
+            "via": {"source": "url", "url": f"{base}/tld-217/tld-217-202610100110/tld-217-202610100110.zip"},
+            "cta": {"source": "tag", "tag": "feeds/x", "path": "gtfs/cta.zip"},
+            "odd": {"source": "url", "url": "https://example.org/feeds/mdb-2854-latest.zip"},
+            "bad": {"source": "url", "url": f"{base}/mdb-1/mdb-1-202613400000/mdb-1-202613400000.zip"}}}}}
+        self.assertEqual(make.lock_data_dates(lock, "chicago"), {"metra": "2026-10-04", "via": "2026-10-10"})
+        self.assertEqual(make.lock_data_dates(lock, "nyc"), {})
 
 
 if __name__ == "__main__":
