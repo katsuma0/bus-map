@@ -5,4 +5,10 @@
         "2026-09-07": "Labor Day", "2026-10-12": "Columbus Day", "2026-11-11": "Veterans Day",
         "2026-11-26": "Thanksgiving Day", "2026-12-25": "Christmas Day"},
  "JP": {"2026-09-21": "Respect for the Aged Day", "2026-09-22": "Citizens' Holiday", "2026-09-23": "Autumnal Equinox Day",
-        "2026-10-12": "Sports Day", "2026-11-03": "Culture Day", "2026-11-23": "Labour Thanksgiving Day"}}
+        "2026-10-12": "Sports Day", "2026-11-03": "Culture Day", "2026-11-23": "Labour Thanksgiving Day"},
+ "MY-14": {"2026-08-25": "Prophet Muhammad's Birthday", "2026-08-31": "National Day", "2026-09-16": "Malaysia Day",
+           "2026-11-08": "Deepavali", "2026-11-09": "Deepavali (replacement)", "2026-12-25": "Christmas Day"},
+ "TH": {"2026-07-28": "King's Birthday", "2026-07-29": "Asahna Bucha Day", "2026-07-30": "Buddhist Lent Day",
+        "2026-08-12": "Mother's Day", "2026-10-13": "King Bhumibol Memorial Day", "2026-10-23": "Chulalongkorn Day",
+        "2026-12-05": "Father's Day", "2026-12-07": "Father's Day (substitute)", "2026-12-10": "Constitution Day",
+        "2026-12-31": "New Year's Eve"}}
