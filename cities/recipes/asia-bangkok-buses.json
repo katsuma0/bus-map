@@ -30,13 +30,27 @@
  "variety": {
   "panel_side": "right",
   "card_line": 2,
-  "zoom": 1.05
+  "zoom": 1.0
  },
  "override": {
   "render": {},
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "BUS_HALO_R": 4
+   },
+   "rush": {
+    "BUS_CORE_R": 1.2,
+    "BUS_HALO_R": 4
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.BUS_CORE_R": "2.2 px cores fused central Bangkok into white at 8:01 (whiteout 0.049); 1.2 px keeps the corridors apart, 0.021",
+   "day.BUS_HALO_R": "8 px halos added up to white along every arterial; 4 px leaves dark gaps and lets the group colours show",
+   "rush.BUS_CORE_R": "2.2 px cores drew the close-up's arterials as solid white lines (whiteout 0.057); 1.2 px gives 0.022",
+   "rush.BUS_HALO_R": "8 px halos hid the trail colours on the close-up; at 4 px BMTA, vans and boats read by colour"
+  }
  },
  "colors": {
   "scheme": "agency",
