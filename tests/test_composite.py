@@ -127,6 +127,52 @@ class Selection(unittest.TestCase):
         self.assertEqual(sel["wd"]["dates"], [])
 
 
+class Holidays(unittest.TestCase):
+    """cities/holidays.json: real 2026 days with names, and the October days the Europe batch leans on."""
+
+    EUROPE = {"GB-ENG": [], "DE-BE": ["2026-10-03"], "FR": [], "AT": ["2026-10-26"], "IT-RM": ["2026-10-04"]}
+
+    @classmethod
+    def setUpClass(cls):
+        import json
+        with open(os.path.join(HERE, "..", "cities", "holidays.json"), encoding="utf-8") as fh:
+            cls.h = json.load(fh)
+
+    def test_every_key_holds_named_days(self):
+        for key, days in self.h.items():
+            self.assertTrue(days, key)
+            for d, name in days.items():
+                self.assertEqual(dt.date.fromisoformat(d).isoformat(), d, f"{key} {d}")
+                self.assertTrue(isinstance(name, str) and name.strip(), f"{key} {d}")
+
+    def test_european_october_days(self):
+        for key, want in self.EUROPE.items():
+            self.assertIn(key, self.h)
+            self.assertEqual(sorted(d for d in self.h[key] if d.startswith("2026-10")), want, key)
+            self.assertEqual(sorted({d[:4] for d in self.h[key]}), ["2026"], key)
+        # Fixed and Easter-based days fall where the calendars put them.
+        self.assertEqual(self.h["GB-ENG"]["2026-12-28"], "Boxing Day (substitute day)")
+        for key in ("GB-ENG", "DE-BE"):
+            self.assertIn("2026-04-03", self.h[key])          # Good Friday
+        for key in ("GB-ENG", "DE-BE", "FR", "AT", "IT-RM"):
+            self.assertIn("2026-04-06", self.h[key])          # Easter Monday
+        self.assertIn("2026-06-04", self.h["AT"])             # Corpus Christi
+
+    def test_austrian_national_day_leaves_the_october_average(self):
+        # Wiener Linien runs its Sunday timetable on Monday Oct 26.
+        counts = collections.Counter({D(2026, 10, d): 35547 for d in range(1, 32)})
+        counts[D(2026, 10, 26)] = 22490
+        tl = dict(U.TIMELINE, kind="day", month="2026-10", timezone="Europe/Vienna", holidays=self.h["AT"])
+        sel = composite.select_dates(counts, tl, "Europe/Vienna", 26 * 3600)
+        ex = {e["date"]: e for e in sel["wd"]["excluded"]}
+        self.assertEqual((ex["2026-10-26"]["why"], ex["2026-10-26"]["name"]), ("holiday", "National Day"))
+        self.assertEqual(len(sel["wd"]["dates"]), 22 - 1)
+        week = composite.select_dates(counts, dict(tl, kind="week"), "Europe/Vienna", 26 * 3600)
+        self.assertEqual([d.day for d in week["mon"]["dates"]], [5, 12, 19])
+        self.assertEqual([d.day for d in week["sat"]["dates"]], [3, 10, 17, 31])
+        self.assertEqual([d.day for d in week["sun"]["dates"]], [4, 11, 18])
+
+
 class Reading(unittest.TestCase):
     def test_parse_times_fast_path(self):
         s = pd.Series(["08:05:00", "8:05:00", "25:10:00", "", "  07:00:00", "07:00", "xx:00:00", "100:00:00", "07:00:00 ",
