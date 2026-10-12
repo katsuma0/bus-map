@@ -1777,7 +1777,9 @@ day. A brand network keeps the trips ascending. A group is rail when most of its
 
 **Legend** (`LEGEND`, query `legend`; drawn only with `HUD_LAYOUT 'shorts'` on a group network,
 else a warning). Entries from `meta.groups` in order: a group with `legend` false is left out (`other`
-by default), a legend word is one entry at its first group's place with that word and one dot per
+by default), and so is a group with no vehicle on the road in the variant's window (an occurrence,
+B7, whose trip ends at or after the window's start; Berlin's and Vienna's night buses in the 6:30 to
+9:30 rush), a legend word is one entry at its first group's place with that word and one dot per
 group (San Diego `Bus · Rapid · Trolley`, Trolley with the Blue, Green and Orange Line dots), any
 other group one entry with its label; at most 7, no numbers, nothing that moves. Geometry, every
 length times f (k, or the size over its base when held at its floor): the chips' row (baseline 14f
@@ -1817,8 +1819,9 @@ the legend.
 **Description.** `{colors}` in the day, rush and week descriptions is one plain sentence for a group
 network (`Colours: Bus, Express and Streetcar, with everything else in grey.`; `Colours: Frequent
 and Express, with Local in grey.`; `Colours: Bus, Rapid and Trolley.`), a shared legend word once in
-place of its groups; for a brand network it is empty, so that description is byte for byte what it
-was. Tags do not change.
+place of its groups, and without a group whose netmeta `window_trips` is 0 (it draws nothing in that
+video, and the legend leaves it out); for a brand network it is empty, so that description is byte
+for byte what it was. Tags do not change.
 
 **Tests.** `tests/web/v4_groups.mjs` draws every checked plan (`tests/fixtures/colours/plans.json`)
 on a group copy of the fixture and holds each trail and dormant line to the plan's exactly, with the

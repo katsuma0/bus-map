@@ -20,6 +20,8 @@
 //           labels walk the fit steps in order to two rows; seven 16-character labels drop
 //           entries with one console.error each and still end inside the 504 px column;
 //           legend=0 draws no legend and the HUD of a brand network
+//  window   a group whose trips all run outside the variant's window (night buses at 2 am in the
+//           6:30 to 9:30 rush) is left out of the rush legend and kept in the day legend
 //  chips    nothing folds for colour on a group network, with or without chips=1 at TEXT_SCALE
 //           0.6 and 1; chips=1 with legend=1 draws the legend and not the chips, with a warning
 //  paint    two paint= parameters merge: the second changes only the key it names
@@ -46,8 +48,8 @@ const SAFE = { x0: 120, y0: 290, x1: 800, y1: 1440 };
 const MIN_DE = 0.08;
 
 // A group network from the fixture: route alpha:1 and its trips once per group (g.copies
-// times when given, in g.mode when given), the groups in the order given (other last when
-// listed), meta.color_by "group".
+// times when given, in g.mode when given, g.shift seconds later when given), the groups in the
+// order given (other last when listed), meta.color_by "group".
 function groupNet(name, groups) {
   const net = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'v4_tiny', 'network.json'), 'utf8'));
   const base = net.routes[0];
@@ -55,7 +57,8 @@ function groupNet(name, groups) {
   net.routes = groups.map((g, i) => ({ ...base, id: `alpha:g${i}`, short: `g${i}`, group: g.id, mode: g.mode || base.mode }));
   net.trips = [];
   groups.forEach((g, i) => {
-    for (let k = 0; k < (g.copies || 1); k++) for (const t of baseTrips) net.trips.push({ ...t, r: i });
+    const shift = g.shift || 0;
+    for (let k = 0; k < (g.copies || 1); k++) for (const t of baseTrips) net.trips.push({ ...t, r: i, t: t.t.map((x) => x + shift) });
   });
   const m = net.meta;
   m.color_by = 'group';
@@ -223,6 +226,20 @@ try {
       `houston at TEXT_SCALE 1: ${JSON.stringify(r1 && r1.legend)}`);
     if (r1) legendBoxes('houston 1', r1);
     console.log(`  houston textscale 1      base ${r1 && r1.legend.base}, ${r1 && r1.legend.width} px, tried ${JSON.stringify(r1 && r1.legend.tried)}`);
+
+    // A group with no vehicle in the window: the fixture's trips run 7:00 to 8:45, the night group's
+    // 19 hours later (2:00 to 3:45 am), inside the day video and outside the 6:30 to 9:30 rush.
+    const night = [{ id: 'bus', label: 'Bus', legend: true }, { id: 'night', label: 'Night bus', legend: true, shift: 68400 },
+      { id: 'tram', label: 'Tram', legend: true }];
+    const np = { bus: { hex: '026bcd' }, night: { hex: 'b300b3' }, tram: { hex: 'd33517' } };
+    const nq = `${groupNet('night', night)}&${paintQ(np)}&legend=1`;
+    for (const [variant, want] of [['day', 'Bus Night bus Tram'], ['rush', 'Bus Tram']]) {
+      const r = await open(h, `${nq}&variant=${variant}`);
+      const got = r && r.legend && r.legend.entries.map((e) => e.label).join(' ');
+      ok(got === want, `night group, ${variant}: legend ${got}, want ${want}`);
+      ok(r && !r.errors.length, `night group, ${variant}: page errors ${r && r.errors.join('; ')}`);
+      console.log(`  night group ${variant.padEnd(12)} legend ${got}`);
+    }
 
     // Long labels: steps 1 to 4 in order, two rows at 24.
     const longs = ['Airport Express', 'Lakeshore Local', 'Downtown Shuttle', 'Night Network'].map((label, i) => ({ id: `g${i}`, label, legend: true }));
