@@ -166,6 +166,18 @@ class Holidays(unittest.TestCase):
         self.assertEqual([d.day for d in week["sat"]["dates"]], [3, 10, 17, 31])
         self.assertEqual([d.day for d in week["sun"]["dates"]], [4, 11, 18])
 
+    def test_bangkok_special_holiday_leaves_the_october_average(self):
+        # namtang runs the same number of trips every weekday and does not mark October 16
+        # in its calendar, so only the holiday list keeps that day out of the average.
+        counts = collections.Counter({D(2026, 10, d): 94822 for d in range(1, 32)})
+        tl = dict(U.TIMELINE, kind="day", month="2026-10", timezone="Asia/Bangkok", holidays=self.h["TH-10"])
+        sel = composite.select_dates(counts, tl, "Asia/Bangkok", 26 * 3600)
+        self.assertEqual({e["date"]: e["why"] for e in sel["wd"]["excluded"]},
+                         {"2026-10-13": "holiday", "2026-10-16": "holiday", "2026-10-23": "holiday"})
+        self.assertEqual(len(sel["wd"]["dates"]), 22 - 3)
+        week = composite.select_dates(counts, dict(tl, kind="week"), "Asia/Bangkok", 26 * 3600)
+        self.assertEqual([d.day for d in week["fri"]["dates"]], [2, 9, 30])
+
 
 class Reading(unittest.TestCase):
     def test_parse_times_fast_path(self):
