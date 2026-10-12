@@ -395,6 +395,39 @@ class AreaClip(unittest.TestCase):
             self.assertLess(meta["n_trips"], U.load_json(os.path.join(whole, "meta.json"))["n_trips"])
 
 
+class OneRun(unittest.TestCase):
+    def test_one_run_store_draws_and_counts_a_duplicate_once(self):
+        """one_run (overlapping timetable versions): the same classes and trips, each running once a date."""
+        with tempfile.TemporaryDirectory() as tmp:
+            stores, logs = {}, {}
+            for one in (False, True):
+                f = fixture_feed("drtlike")
+                if one:
+                    f["one_run"] = "two timetables file the same trips"
+                acfg = os.path.join(tmp, f"area.{one}.json")
+                U.dump_json(acfg, U.area_config("fx", ORIGIN, AREA_BOX, FIX, [f], "week", chunk=5000))
+                stores[one] = os.path.join(tmp, f"store.{one}")
+                p, _s, _g = U.run("build_area.py", "--config", acfg, "--out", stores[one])
+                logs[one] = p.stderr
+            self.assertIn("one run a date per class", logs[True])
+            self.assertNotIn("one run a date per class", logs[False])
+            a = {n: np.load(os.path.join(stores[False], n)) for n in ("trip_sha.npy", "trip_mult.npy", "trip_runs.npy",
+                                                                     "trip_dates.npy", "trip_copies.npy")}
+            b = {n: np.load(os.path.join(stores[True], n)) for n in a}
+            self.assertTrue(np.array_equal(a["trip_sha.npy"], b["trip_sha.npy"]))
+            self.assertTrue(np.array_equal(a["trip_dates.npy"], b["trip_dates.npy"]))
+            self.assertGreater(int(a["trip_mult.npy"].max()), 1)
+            self.assertEqual(int(b["trip_mult.npy"].max()), 1)
+            self.assertTrue(np.array_equal(b["trip_runs.npy"], b["trip_dates.npy"]))
+            self.assertLessEqual(int(b["trip_copies.npy"].max()), 1)
+            fa = U.load_json(os.path.join(stores[False], "meta.json"))["feeds"][0]
+            fb = U.load_json(os.path.join(stores[True], "meta.json"))["feeds"][0]
+            self.assertNotIn("one_run", fa)
+            dropped = int((a["trip_runs.npy"] - a["trip_dates.npy"]).sum())
+            self.assertGreater(dropped, 0)
+            self.assertEqual(fb["one_run"]["dropped"], dropped)
+
+
 class ModeSplit(unittest.TestCase):
     """A trim that keeps some modes: one area store, every number from the kept trips only."""
 

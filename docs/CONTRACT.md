@@ -609,7 +609,9 @@ Feed entry: `id`, `name`, `publisher`, `licence_id` (exact key into `cities/lice
 through `plan` and `meta`, printed in flags and release notes), optional `area_clip` (`true` for a
 national file such as BODS: build_area keeps only the trips that stop inside `area_box` before it
 counts, classes or reads stop times, and records the clip in the store's `feeds[].clip`; or a
-`[w, s, e, n]` box inside `area_box`, to keep only the trips that stop inside that box), `source`:
+`[w, s, e, n]` box inside `area_box`, to keep only the trips that stop inside that box), optional
+`one_run` (a reason string; the feed's timetable versions overlap, so a signature class runs at
+most once a date, A3.4a), `source`:
 
 | `source` | meaning | lock records |
 |---|---|---|
@@ -1369,6 +1371,16 @@ Oakville each have 2 classes with `mult` 2 on every weekday), and per day class 
 the member running on the earliest selected date, ties by the smallest `trip_id`; its stop times,
 shape and route are what gets built. Every set or dict that is iterated is iterated in sorted order
 (no string-hash order anywhere).
+
+**A3.4a One run a date.** A feed with `one_run` (a reason string in the batch) files the same
+trip twice on some dates: BODS (London) keeps a short-term timetable version beside the base one
+on the dates both are valid, so in October 2026 most Piccadilly line trips run twice on one
+date of each weekday (October 13 to 19) and every class of those trips gets `mult` 2. For such a feed
+`runs_c(x)` is 1 on every date a member of c runs (so `mult_c` is 1 and `runs_k = dates_k`), the
+classes keep their members, `dropped` counts the members past the first, and A3.7 measures the
+drawn classes against the classes running each date (`class_counts`) rather than the raw trips.
+The store records `feeds[].one_run.dropped`. Without the key nothing changes (Brampton's and
+Oakville's pairs stay `mult` 2).
 
 **A3.5 Half rule.** With `W_k` the selected dates of class k for that feed, class c is drawn in k
 when `2 x dates_k(c) >= |W_k|` (integers; decision 2's "at least half"), and then drawn
