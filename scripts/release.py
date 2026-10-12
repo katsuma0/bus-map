@@ -118,11 +118,14 @@ class GitHub:
             raw.append(("target_commitish", target))
         return self.api(f"repos/{self.repo}/releases", method="POST", raw=raw, typed=[("draft", "true")])
 
-    def set_notes(self, release_id, body):
+    def set_notes(self, release_id, body, tag):
         fd, tmp = tempfile.mkstemp(suffix=".json")
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
-                json.dump({"body": body}, fh)
+                # A draft's tag does not exist until it is published, and an edit without tag_name
+                # detaches the draft (it comes back as untagged-...), so find_release would miss it
+                # on the next push and every video would render again.
+                json.dump({"body": body, "tag_name": tag}, fh)
             return self.api(f"repos/{self.repo}/releases/{release_id}", method="PATCH", input_path=tmp)
         finally:
             os.remove(tmp)
