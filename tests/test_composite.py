@@ -128,7 +128,8 @@ class Selection(unittest.TestCase):
 
 
 class Holidays(unittest.TestCase):
-    """cities/holidays.json: real 2026 days with names, and the October days the Europe batch leans on."""
+    """cities/holidays.json: the October days the Europe batch leans on. The file's shape (real 2026 dates,
+    plain names) is test_make's test_holidays_file."""
 
     EUROPE = {"GB-ENG": [], "DE-BE": ["2026-10-03"], "FR": [], "AT": ["2026-10-26"], "IT-RM": ["2026-10-04"]}
 
@@ -137,13 +138,6 @@ class Holidays(unittest.TestCase):
         import json
         with open(os.path.join(HERE, "..", "cities", "holidays.json"), encoding="utf-8") as fh:
             cls.h = json.load(fh)
-
-    def test_every_key_holds_named_days(self):
-        for key, days in self.h.items():
-            self.assertTrue(days, key)
-            for d, name in days.items():
-                self.assertEqual(dt.date.fromisoformat(d).isoformat(), d, f"{key} {d}")
-                self.assertTrue(isinstance(name, str) and name.strip(), f"{key} {d}")
 
     def test_european_october_days(self):
         for key, want in self.EUROPE.items():
