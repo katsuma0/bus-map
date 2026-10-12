@@ -406,9 +406,12 @@ def camera_paths(ids, chosen=None):
 # ------------------------------------------------------------------ validation (2.1 to 2.3)
 
 RECIPE_KEYS = {"id", "batch", "area", "place", "boundary", "modes", "center", "frame", "variants", "rush", "variety",
-               "override", "colors", "limits"}
+               "override", "colors", "limits", "missing"}
 # What a recipe's place is, for the description's "the Oakville town limits"; city when it says nothing.
-LIMITS = ("city", "town", "township", "village")
+# region is a boundary that is no city's limits (London's is Greater London): the description names it.
+LIMITS = ("city", "town", "township", "village", "region")
+# The longest `missing` text: it qualifies the opening sentence, it is not a paragraph.
+MISSING_MAX = 200
 BOUNDARY_KEYS = {"name", "subtypes", "area_km2", "file"}
 FRAME_KEYS = {"km_vertical", "center_km"}
 RUSH_KEYS = {"frame", "auto"}
@@ -635,6 +638,13 @@ def validate_recipe(recipe, batch, defaults, root, errors, file_stem=None):
         elif isinstance(recipe.get("boundary"), list) and len(recipe["boundary"]) > 1:
             errors.append(f"{where}.limits: a boundary of several divisions is described by their names; "
                           f"leave limits out")
+    if "missing" in recipe:
+        m = recipe["missing"]
+        # One plain sentence or two, said after the opening one, so it must read as a sentence there.
+        if not (isinstance(m, str) and m.strip() == m and 0 < len(m) <= MISSING_MAX and m[0].isupper()
+                and m.endswith(".") and "\n" not in m):
+            errors.append(f"{where}.missing: must be one or two sentences of at most {MISSING_MAX} characters, "
+                          f"with a capital first and a full stop last, on one line (what the feeds leave out)")
     b = recipe.get("boundary")
     if b is not None:
         if isinstance(b, list):
@@ -1174,10 +1184,12 @@ def label_key(label):
 
 def strip_why(recipe):
     """The recipe as the render key holds it: a reason line changes no pixel, nor does a colour
-    group's scheme, source or verified flag, nor the description's limits word (the meta key holds it)."""
+    group's scheme, source or verified flag, nor the description's limits word or missing sentence
+    (the meta key holds them)."""
     r = copy.deepcopy(recipe)
     r.get("override", {}).pop("_why", None)
     r.pop("limits", None)
+    r.pop("missing", None)
     colors = r.get("colors")
     if isinstance(colors, dict):
         colors.pop("scheme", None)
@@ -1723,6 +1735,7 @@ class Pipeline:
                             "shorts_meta": self.sha("scripts/shorts_meta.py"),
                             "hashtags": batch.get("hashtags", []), "category": batch.get("category"),
                             "cities": batch["cities"], "limits": recipe.get("limits"),
+                            "missing": recipe.get("missing"),
                             "publish_order": self.publish_order(batch, recipe["id"], variant, lock),
                             "data_dates": lock_data_dates(lock, self.area_of(batch, recipe)["id"])})
 

@@ -763,6 +763,102 @@ class GTAReview(unittest.TestCase):
         self.assertIn("inside the New York City limits.", self.meta("gta-markham", "day", recipe=recipe)["description"])
 
 
+class EuropeReview(unittest.TestCase):
+    """Findings of the Europe stills judge on the descriptions, made general for every batch."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.pl = make.Pipeline(REPO, "tests/fixtures/gta")
+        cls.batch = cls.pl.load_batch("gta")
+
+    def meta(self, variant, nm=None, recipe=None):
+        recipe = recipe or self.pl.recipe("gta-markham", self.batch)
+        return sm.build_meta(batch=self.batch, recipe=recipe, netmeta=nm or netmeta(self.batch, recipe, variant),
+                             templates=self.pl.templates(), licences=self.pl.licences(), defaults=self.pl.defaults(),
+                             publish_order=1, meta_key="0" * 64)
+
+    def test_region_limits(self):
+        """London's boundary is Greater London, a region and no city's limits: limits region names it."""
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), place="London", limits="region",
+                      boundary={"name": "Greater London", "file": "cities/boundaries/greater-london.geojson",
+                                "area_km2": 1572.15})
+        d = {v: self.meta(v, recipe=recipe)["description"] for v in ("day", "rush", "week")}
+        self.assertIn("only includes vehicles inside Greater London. The faded ones are just outside.", d["day"])
+        self.assertIn("Every bus and train inside Greater London on an average October weekday.", d["rush"])
+        self.assertIn("Vehicles outside Greater London are faded and not counted.", d["rush"])
+        self.assertIn("Vehicles outside Greater London are faded and not counted.", d["week"])
+        for text in d.values():
+            self.assertNotIn("limits", text)
+            self.assertIn("in London", text.split("\n\n")[0], "the place stays the city's name")
+
+    def starting(self, variant, starts, feeds=("yrt",)):
+        """A netmeta whose `feeds` start their timetable on `starts`, the October weekdays before it low for that."""
+        recipe = self.pl.recipe("gta-markham", self.batch)
+        nm = netmeta(self.batch, recipe, variant)
+        for f in nm["feeds"]:
+            if f["id"] in feeds:
+                early = [d for d in OCT_WEEKDAYS if d < starts]
+                f["excluded"] = [{"date": d, "why": "start", "starts": starts, "trips": 2350, "median": 37901,
+                                  "name": None} for d in early] + [e for e in f["excluded"] if e["date"] >= starts]
+                dates = f["dates"]
+                f["dates"] = ({k: [d for d in v if d >= starts] for k, v in dates.items()} if isinstance(dates, dict)
+                              else [d for d in dates if d >= starts])
+        return nm
+
+    def test_timetable_start(self):
+        """Rome's and Paris's feeds start their October timetable on October 9, so the days before it are low:
+        the description says when the timetable starts, not that the feed ran a reduced one."""
+        nm = self.starting("day", "2026-10-09")
+        dates = self.meta("day", nm=nm)["description"].split("\n\n")[2]
+        self.assertIn("York Region Transit starts its October timetable on October 9, so the earlier days are left "
+                      "out.", dates)
+        self.assertNotIn("reduced timetable", dates)
+        self.assertIn("leaves out Thanksgiving (October 12)", dates, "a holiday after the start is still said")
+        # A holiday before the start is one of the earlier days.
+        for f in nm["feeds"]:
+            if f["id"] == "yrt":
+                f["excluded"] = [dict(e, why="holiday", name="Founders Day") if e["date"] == "2026-10-05" else e
+                                 for e in f["excluded"]]
+            else:
+                f["excluded"] = []
+        dates = self.meta("day", nm=nm)["description"].split("\n\n")[2]
+        self.assertNotIn("Founders Day", dates)
+        self.assertIn("starts its October timetable on October 9", dates)
+        # Two feeds that start on the same day share one sentence.
+        nm = self.starting("week", "2026-10-09", feeds=("yrt", "ttc"))
+        dates = self.meta("week", nm=nm)["description"].split("\n\n")[2]
+        self.assertIn("York Region Transit and TTC start their October timetables on October 9, so the earlier days "
+                      "are left out.", dates)
+
+    def test_reduced_only_on_a_day_the_feed_covered(self):
+        """A low day after the start is a reduced timetable; a fallback feed says its range, not a start."""
+        nm = self.starting("day", "2026-10-09")
+        for f in nm["feeds"]:
+            if f["id"] == "yrt":
+                f["excluded"].append({"date": "2026-10-14", "why": "low", "trips": 30000, "median": 37901,
+                                      "name": None})
+        dates = self.meta("day", nm=nm)["description"].split("\n\n")[2]
+        self.assertIn("York Region Transit starts its October timetable on October 9, so the earlier days are left "
+                      "out. York Region Transit ran a reduced timetable on October 14, so that Wednesday is left "
+                      "out.", dates)
+        # A fallback feed's range sentence already says which dates it uses: no start sentence for it.
+        for f in nm["feeds"]:
+            if f["id"] == "yrt":
+                f["month_used"] = "2026-11"
+        self.assertNotIn("starts its October timetable", self.meta("day", nm=nm)["description"])
+
+    def test_missing(self):
+        """Vienna's feed has no VOR regional buses: the recipe's missing sentence follows the opening one."""
+        gap = "VOR's regional buses are not in the feed, so they are not shown."
+        recipe = dict(self.pl.recipe("gta-markham", self.batch), missing=gap)
+        for v, opening in (("day", "to the next morning, in 50 seconds."),
+                           ("rush", "Every bus and train inside the city on an average October weekday."),
+                           ("week", "Monday to Sunday, in 60 seconds.")):
+            first = self.meta(v, recipe=recipe)["description"].split("\n\n")[0]
+            self.assertTrue(first.endswith(f"{opening} {gap}"), (v, first))
+            self.assertTrue(self.meta(v)["description"].split("\n\n")[0].endswith(opening), v)
+
+
 class Formatting(unittest.TestCase):
     def test_clock_and_ranges(self):
         self.assertEqual(sm.clock_text(28860), "8:01 am")
