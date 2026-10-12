@@ -674,6 +674,11 @@ class Validation(unittest.TestCase):
         errs = self.batch_errors(b)
         self.assertTrue(any("source.tag: must match" in e for e in errs))
         self.assertTrue(any("theme: must be one of" in e for e in errs))
+        b = json.loads(json.dumps(self.batch))
+        b["areas"][0]["feeds"][0]["area_clip"] = True
+        self.assertFalse([e for e in self.batch_errors(b) if "area_clip" in e], "a national feed clips to the area")
+        b["areas"][0]["feeds"][0]["area_clip"] = "yes"
+        self.assertTrue(any("area_clip: must be true" in e for e in self.batch_errors(b)))
 
 
 # ------------------------------------------------------------------ D-3 frames

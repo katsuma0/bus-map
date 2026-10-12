@@ -11,7 +11,9 @@ columnar store of area_store.py, which every city trim of the area reads.
 
 Feed statistics are computed before the area_box filter, and trips are
 ordered by string keys, so neither depends on which cities use the area.
-A summary per feed goes to stderr.
+A feed with `area_clip` (a national file) is the exception: it is clipped to
+the trips that stop inside the area box first, and its statistics describe
+those. A summary per feed goes to stderr.
 """
 import argparse
 import datetime as dt
@@ -292,7 +294,13 @@ def main():
         fid = fcfg["id"]
         path = os.path.join(gtfs_dir, f"{fid}.zip")
         sha = sha256_check(path, fcfg.get("sha256"))
-        feed = composite.Feed(fid, path)
+        # A national file (area_clip) keeps only the trips that stop inside the area box, before
+        # anything is counted: BODS holds all of Great Britain in 5.2 GB of stop times.
+        feed = composite.Feed(fid, path, clip_box=area_box if fcfg.get("area_clip") else None, chunksize=chunk)
+        if feed.clip_stats:
+            cs = feed.clip_stats
+            log(f"  {fid}: clipped to the area box: {cs['trips_kept']} of {cs['trips_seen']} trips stop at "
+                f"{cs['stops_inside']} of {cs['stops']} stops inside it ({time.time() - t0:.0f}s)")
         svc = composite.service_dates(feed)
         counts0 = composite.trips_per_date(feed, svc)
         stops = composite.valid_stops(feed)
@@ -332,6 +340,8 @@ def main():
             "classes": len(classes), "stored": len(built), "excluded": excluded, "by_class": by_class,
             "build": {k: v for k, v in bstats.items()},
         }
+        if feed.clip_stats:
+            rec["clip"] = feed.clip_stats
         feed_recs.append(rec)
         timeline_feeds[fid] = {"dates": {k: by_class[k]["dates"] for k in kinds}, "excluded": excluded,
                                "rule": {k: by_class[k]["rule"] for k in kinds}}

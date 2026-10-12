@@ -340,6 +340,37 @@ RULE_MODES = [dict(U.MODES[0]), dict(U.MODES[1], routes=[{"feed": "stable", "sho
               {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4]}]
 
 
+class AreaClip(unittest.TestCase):
+    def test_clipped_store_stores_the_same_trips(self):
+        """area_clip (a national file): the store's arrays are the unclipped build's, its statistics the area's."""
+        with tempfile.TemporaryDirectory() as tmp:
+            stores = {}
+            for clip in (False, True):
+                f = fixture_feed("stable")
+                if clip:
+                    f["area_clip"] = True
+                acfg = os.path.join(tmp, f"area.{clip}.json")
+                U.dump_json(acfg, U.area_config("fx", ORIGIN, AREA_BOX, FIX, [f], "day", chunk=5000))
+                stores[clip] = os.path.join(tmp, f"store.{clip}")
+                p, _s, _g = U.run("build_area.py", "--config", acfg, "--out", stores[clip])
+                if clip:
+                    self.assertIn("stable: clipped to the area box", p.stderr)
+            names = sorted(n for n in os.listdir(stores[False]) if n.endswith(".npy"))
+            self.assertEqual(names, sorted(n for n in os.listdir(stores[True]) if n.endswith(".npy")))
+            for n in names:
+                self.assertEqual(read_bytes(os.path.join(stores[False], n)), read_bytes(os.path.join(stores[True], n)), n)
+            fa = U.load_json(os.path.join(stores[False], "meta.json"))["feeds"][0]
+            fb = U.load_json(os.path.join(stores[True], "meta.json"))["feeds"][0]
+            self.assertNotIn("clip", fa)
+            import composite
+            far = [t for t in composite.Feed("stable", os.path.join(FIX, "stable.zip")).table("trips") if t["route_id"] == "R5"]
+            self.assertEqual(fb["clip"]["trips_seen"] - fb["clip"]["trips_kept"], len(far))   # the far trip of each timetable
+            self.assertEqual(fa["by_class"]["wd"]["dates"], fb["by_class"]["wd"]["dates"])
+            self.assertEqual(fa["by_class"]["wd"]["median"] - fb["by_class"]["wd"]["median"], 1)
+            self.assertGreater(fa["build"]["dropped_box"], 0)
+            self.assertEqual(fb["build"]["dropped_box"], 0)
+
+
 class ModeSplit(unittest.TestCase):
     """A trim that keeps some modes: one area store, every number from the kept trips only."""
 

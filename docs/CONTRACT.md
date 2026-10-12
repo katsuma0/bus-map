@@ -606,7 +606,9 @@ does today).
 
 Feed entry: `id`, `name`, `publisher`, `licence_id` (exact key into `cities/licences.json`),
 `licence_text` (the display string), optional `allow_nc` (a reason string; lets a `no` licence
-through `plan` and `meta`, printed in flags and release notes), `source`:
+through `plan` and `meta`, printed in flags and release notes), optional `area_clip` (`true` for a
+national file such as BODS: build_area keeps only the trips that stop inside `area_box` before it
+counts, classes or reads stop times, and records the clip in the store's `feeds[].clip`), `source`:
 
 | `source` | meaning | lock records |
 |---|---|---|
