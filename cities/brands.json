@@ -1,0 +1,33 @@
+{
+ "version": 1,
+ "agencies": [
+  {"id": "mta-bus", "feeds": ["bus-bk", "bus-mn", "bus-qn", "bus-bx", "bus-si", "busco"], "label": "Bus", "credit": "MTA Bus", "color": "#0039a6", "verified": false, "lines": "none", "alt": null,
+   "source": "the NYC bus feeds give each route a map colour (EE352E, 6CBE45, FAA61A, 006CB7, B933AD, 00AEEF, 00933C) with no brand majority; MTA blue from the logo, approximate", "rules": []},
+  {"id": "mta-subway", "feeds": ["subway"], "label": "Subway", "credit": "NYC Subway", "color": "#eb6800", "verified": true, "lines": "rail", "alt": null,
+   "source": "subway.zip routes.txt: EB6800 (B D F FX M) on 5 of 29 routes, the most common informative colour; the other lines keep their route_color (A C E 0062CF, N Q R W F6BC26, 1 2 3 D82233, 4 5 6 009952, 7 9A38A1, G 799534, J Z 8E5C33, SIR 08179C)",
+   "rules": [{"id": "grey", "label": "L and shuttles", "short": "^(L|S)$", "color": "#6d7f99", "verified": false,
+              "source": "L and the three S shuttles are grey 7C858C in subway.zip, which is not informative; this slate stands in, approximate"}]},
+  {"id": "lirr", "feeds": ["lirr"], "label": "LIRR", "color": "#a626aa", "verified": false, "lines": "none", "alt": null,
+   "source": "lirr.zip gives each of its 12 branches its own colour, so none is the agency's; A626AA is the Ronkonkoma Branch (and Greenport, outside the area), approximate", "rules": []},
+  {"id": "mnr", "feeds": ["mnr"], "label": "MNR", "credit": "Metro-North", "color": "#ee0034", "verified": true, "lines": "none", "alt": null,
+   "source": "mnr.zip route_color EE0034 on 4 of 6 lines (New Haven and its branches)", "rules": []},
+  {"id": "cta", "feeds": ["cta"], "label": "CTA", "color": "#0065bd", "verified": false, "lines": "rail", "alt": null,
+   "source": "cta.zip: buses are grey 99999C or 414145 on 105 of 124 routes (not informative) and B71234 on 18 express routes; CTA blue 0065BD is the J14 colour, approximate; L lines keep their own colours", "rules": []},
+  {"id": "metra", "feeds": ["metra"], "label": "Metra", "color": "#0042a8", "verified": false, "lines": "none", "alt": null,
+   "source": "metra.zip: each of the 11 lines has its own colour, none shared; Metra blue taken from the SWS line, approximate", "rules": []},
+  {"id": "houmetro", "feeds": ["houmetro"], "label": "METRO", "color": "#004080", "verified": true, "lines": "rail", "alt": null,
+   "source": "houmetro.zip route_color 004080 on 105 of 106 bus routes; METRORail Red EF0000, Green 3E7E00, Purple 40007E keep their colours", "rules": []},
+  {"id": "valleymetro", "feeds": ["valleymetro"], "agency_names": ["Valley Metro"], "label": "Valley Metro", "color": "#591769", "verified": true, "lines": "rail", "alt": null,
+   "source": "valleymetro.zip route_color 591769 on all 108 bus routes; Rail A 1E8ECD, B B76912 and the streetcar 6D8932 keep their colours", "rules": []},
+  {"id": "septa", "feeds": ["septa-bus"], "label": "SEPTA", "color": "#ef3340", "verified": true, "lines": "rail", "alt": null,
+   "source": "septa-bus.zip: buses are 1A1818 (near black, not informative) on 116 routes and EF3340 on 24, the most common informative colour; Metro lines L1 0097D6, B F26100, M1 5F249F, T 5A960A, G1 FFD700, D DC2E6B keep theirs", "rules": []},
+  {"id": "septa-rr", "feeds": ["septa-rail"], "label": "Regional Rail", "credit": "SEPTA Regional Rail", "color": "#4f758b", "verified": true, "lines": "none", "alt": null,
+   "source": "septa-rail.zip route_color 4F758B on all 13 lines", "rules": []},
+  {"id": "via", "feeds": ["via"], "label": "VIA", "color": "#2d5da2", "verified": true, "lines": "none", "alt": null,
+   "source": "via.zip route_color 2D5DA2 on 33 of 88 routes, the most common; CB2128 and 609FBF mark other route families", "rules": []},
+  {"id": "mts", "feeds": ["mts"], "agency_names": ["MTS"], "label": "MTS", "color": "#000099", "verified": true, "lines": "rail", "alt": null,
+   "source": "mts.zip route_color 000099 on 84 of 98 bus routes; Trolley Blue 0000FF, Green 009900, Orange FF6600, Copper B87333 keep their colours",
+   "rules": [{"id": "rapid", "label": "Rapid", "short": "^2\\d\\d$", "color": "#cc0000", "verified": true,
+              "source": "mts.zip route_color CC0000 on the 10 Rapid routes, 201 to 290"}]}
+ ]
+}

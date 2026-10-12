@@ -1,0 +1,149 @@
+{
+ "id": "usa-chicago-buses",
+ "batch": "usa",
+ "area": "chicago",
+ "place": "Chicago",
+ "boundary": {
+  "name": "Chicago",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 607.44
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -87.68,
+  41.84
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "rush": {
+    "TITLE_SCRIM": 1.3,
+    "BUS_CORE_R": 1.2,
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "PANEL_ALPHA": 1.15
+   },
+   "day": {
+    "TRAIL_MINUTES": 27,
+    "BUS_CORE_R": 1.2
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the North Side grid at 2.7:1; 1.3 (alpha clamps at 1) gives 5.6:1",
+   "day.TRAIL_MINUTES": "second round with 1.2 px dots: 27 min keeps the grid thin and unfused, Loop no whiter, strobe 0.0040 to 0.0037",
+   "TRAIL_SHOULDER_W": "8 px trims the haze beside the dense grid at 1:1, lines stay legible and dots sharp, strobe unchanged",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (8:10 to 8:58 in 3 s), night still flows, strobe 0.0066 to 0.0060",
+   "day.BUS_CORE_R": "second round: 1.2 px dots still read as buses after VP9, the coloured grid shows, strobe 0.0060 to 0.0040",
+   "rush.BUS_CORE_R": "the day's 1.2 px dots; no rush dotcore knob, and 2.2 px dots strobe 0.0090 in the rush clip",
+   "rush.FRAME_ZOOM": "0.9 keeps O'Hare inside the left edge and the South Side clear of the buttons; fewer buses under the HUD",
+   "rush.TRAIL_MINUTES": "9 min draws the blue and red corridors as unbroken thin lines, no fusing, strobe 0.0037 to 0.0035",
+   "rush.PANEL_ALPHA": "the HUD sits on the South Side grid in the rush; 1.15 lifts the credit from 3.5 to 4.1 at P99, the grid still shows"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "frequent",
+    "label": "Frequent",
+    "hex": "#0065bd",
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "4",
+       "9",
+       "12",
+       "20",
+       "34",
+       "35",
+       "47",
+       "49",
+       "53",
+       "54",
+       "55",
+       "60",
+       "63",
+       "66",
+       "72",
+       "74",
+       "77",
+       "79",
+       "81",
+       "82",
+       "85",
+       "95",
+       "J14"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: CTA blue 0065BD (route_color of J14 in cta.zip); the 22 other Frequent Network routes are dark grey 414145. Class: CTA Frequent Network (10 min or better 6am-9pm), 20 routes at launch plus 35, 74, 85 from 23 Aug 2026 = the 23 routes coloured 414145 or 0065BD in this September feed"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#b71234",
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "2",
+       "X4",
+       "6",
+       "X9",
+       "10",
+       "26",
+       "X49",
+       "100",
+       "120",
+       "121",
+       "125",
+       "134",
+       "135",
+       "136",
+       "143",
+       "146",
+       "147",
+       "148",
+       "169",
+       "192"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "cta.zip routes.txt route_color B71234 on 18 express routes"
+   },
+   {
+    "id": "other",
+    "label": "Local",
+    "legend": true,
+    "verified": true,
+    "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

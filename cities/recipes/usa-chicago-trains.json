@@ -1,0 +1,167 @@
+{
+ "id": "usa-chicago-trains",
+ "batch": "usa",
+ "area": "chicago",
+ "place": "Chicago",
+ "boundary": {
+  "name": "Chicago",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 607.44
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -87.68,
+  41.84
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "BASE_ROADS_GAIN": 0.75
+  },
+  "variant_render": {
+   "rush": {
+    "TITLE_SCRIM": 1.3,
+    "FRAME_ZOOM": 0.9,
+    "FRAME_DY_KM": -2.55,
+    "TRAIL_MINUTES": 9,
+    "PANEL_ALPHA": 1.32
+   },
+   "day": {
+    "BUS_CORE_R": 1.6
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the North Side grid at 2.7:1; 1.3 (alpha clamps at 1) gives 5.6:1",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp and visible at phone size, the Loop stops being a white cluster, strobe 0.0028 to 0.0016",
+   "BASE_ROADS_GAIN": "0.75 quiets the orange street grid so the Orange and Brown lines stand out; streets still read after the round trip",
+   "rush.FRAME_ZOOM": "0.9 brings the O'Hare branch and far south trains back inside x 120..800; safe share 0.887 to 0.902",
+   "rush.FRAME_DY_KM": "-2.6 km lifts the Dan Ryan Red Line off the clock text; safe share 0.90 to 0.93, only the far north tips meet the scrim",
+   "rush.TRAIL_MINUTES": "9 min joins the Pink, Green and Blue lines into whole corridors at phone size, no fusing; strobe 0.00244 to 0.00241",
+   "rush.PANEL_ALPHA": "1.32 dims the city outline under the credit line with no visible box edge; credit P99 contrast 3.8 to 4.1"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "red",
+    "label": "Red Line",
+    "hex": "#c60c30",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "Red"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "cta.zip routes.txt route_color C60C30 on route_id Red; pinned at dL -0.12 (trail #db6466) so it reads red, not salmon"
+   },
+   {
+    "id": "blue",
+    "label": "Blue Line",
+    "hex": "#00a1de",
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "Blue"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "cta.zip routes.txt route_color 00A1DE on route_id Blue"
+   },
+   {
+    "id": "brown",
+    "label": "Brown Line",
+    "hex": "#ae5f2f",
+    "dL": -0.2,
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "Brn"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: CTA Brown 62361B at its own hue with OKLCH chroma raised from 0.074 to 0.12; pinned at dL -0.20 (trail #ae5f2f) so it reads rust brown on the amber grid, not the grey of the Metra lines"
+   },
+   {
+    "id": "green",
+    "label": "Green Line",
+    "hex": "#009b3a",
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "G"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "cta.zip routes.txt route_color 009B3A on route_id G"
+   },
+   {
+    "id": "orange",
+    "label": "Orange Line",
+    "hex": "#ff9558",
+    "dL": 0,
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "Org"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: CTA Orange F9461C turned 15 degrees toward orange (OKLCH h34 to h49); at its own hue the envelope draws it salmon, the Red Line's family; pinned at the source step (trail #ff9558)"
+   },
+   {
+    "id": "pink",
+    "label": "Pink Line",
+    "hex": "#e27ea6",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "cta",
+      "route_ids": [
+       "Pink"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "cta.zip routes.txt route_color E27EA6 on route_id Pink; pinned at dL +0.10 (trail #ffbfd6, light pink)"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}
