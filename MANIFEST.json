@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "vienna",
+ "files": {
+  "2026-09-23.1/divisions/AT-9-vienna+region.geojson": {
+   "sha256": "85ac421bac48717679a60416a7580dcbc6bfaef243cf79fcf59a2ce515b9baf6",
+   "bytes": 61204,
+   "parts": [
+    "2026-09-23.1/divisions/AT-9-vienna+region.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/vienna/segments.geojson": {
+   "sha256": "397402bfabb012d6eaf41e3a3ee395335fd5a41c4348d145cc622004ba60c0da",
+   "bytes": 147318743,
+   "parts": [
+    "2026-09-23.1/vienna/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/vienna/water.geojson": {
+   "sha256": "3d366f16de0f0f14ccb74ec3fcb1ba061cfcf372f02fd367d2774e6e5197c0bf",
+   "bytes": 21410178,
+   "parts": [
+    "2026-09-23.1/vienna/water.geojson.gz.000"
+   ]
+  }
+ }
+}
