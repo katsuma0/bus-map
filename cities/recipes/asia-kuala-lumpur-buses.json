@@ -32,10 +32,29 @@
   "zoom": 1.05
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "PANEL_ALPHA": 1.15,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "TRAIL_MINUTES": 9
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min cuts strobe 0.0054 to 0.0052 and closes gaps on the trunk corridors; lines stay thin, not fused",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp points at 1:1 after VP9; with the final picks strobe is 0.0020 vs 0.0036 at 2.2",
+   "PANEL_ALPHA": "Feeder trails cross the credit at 6 pm; 1.15 lifts its contrast 5.93 to 6.29, the blurred backdrop stays soft",
+   "OUTSIDE_DIM": "0.75 quiets the busy Selangor feeders so the KL shape reads at a glance; text contrast 6.87 to 7.01",
+   "rush.FRAME_ZOOM": "0.81 lifts safe share to 0.89, over the limit; the rush stays closer than the day and the core clears the clock",
+   "rush.TRAIL_MINUTES": "9 min joins the trunk and feeder beads into thin coloured lines, strobe 0.00285 to 0.00281, no white"
+  }
  },
  "colors": {
   "scheme": "type",

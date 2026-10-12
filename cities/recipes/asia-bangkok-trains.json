@@ -33,9 +33,25 @@
  },
  "override": {
   "render": {},
-  "variant_render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6,
+    "PANEL_ALPHA": 1.15
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "day.BUS_CORE_R": "1.6 px dots still read as trains on the RT, line colours show between them, strobe 0.0023 to 0.0014",
+   "rush.FRAME_ZOOM": "0.9 lifts the Green and Yellow south ends out from under the clock; safe share 0.959 to 0.985",
+   "rush.TRAIL_MINUTES": "9 min joins the Blue and Yellow beads into thin lines without white; strobe 0.00232 to 0.00225",
+   "rush.BUS_CORE_R": "1.6 px dots stay sharp points on the RT like the Markham target; strobe 0.00225 to 0.00133",
+   "rush.PANEL_ALPHA": "the city outline crosses the credit in the close-up; 1.15 lifts contrast from 4.50 to 5.41"
+  }
  },
  "colors": {
   "scheme": "line",

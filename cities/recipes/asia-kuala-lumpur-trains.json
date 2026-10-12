@@ -32,10 +32,23 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "BASE_ROADS_GAIN": 0.75
+  },
+  "variant_render": {
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "FRAME_DY_KM": -1.42,
+    "TRAIL_MINUTES": 9
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "BASE_ROADS_GAIN": "0.75 quiets the street mesh inside the city so the dark Kajang green and KTM blue lines stand out",
+   "rush.FRAME_ZOOM": "0.9 hides the fewest trains under the clock (safe share 0.85); 1.1 pushes the south lines further under it",
+   "rush.FRAME_DY_KM": "-1.42 lifts the core above the clock, safe share 0.87; the north end of the lines stays under the subtitle",
+   "rush.TRAIL_MINUTES": "9 min draws each line's colour end to end on the close-up, strobe 0.00239 to 0.00234, no fusing"
+  }
  },
  "colors": {
   "scheme": "line",

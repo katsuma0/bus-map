@@ -33,23 +33,40 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8
+  },
   "variant_render": {
    "day": {
     "BUS_CORE_R": 1.2,
-    "BUS_HALO_R": 4
+    "BUS_HALO_R": 4,
+    "TRAIL_MINUTES": 18
    },
    "rush": {
-    "BUS_CORE_R": 1.2,
-    "BUS_HALO_R": 4
+    "BUS_CORE_R": 1.0,
+    "BUS_HALO_R": 4,
+    "FRAME_ZOOM": 0.9,
+    "FRAME_DX_KM": -3.77,
+    "FRAME_DY_KM": -3.77,
+    "TRAIL_MINUTES": 14
+   },
+   "week": {
+    "BUS_HALO_ALPHA": 0.06
    }
   },
   "brand_colors": {},
   "_why": {
    "day.BUS_CORE_R": "2.2 px cores fused central Bangkok into white at 8:01 (whiteout 0.049); 1.2 px keeps the corridors apart, 0.021",
    "day.BUS_HALO_R": "8 px halos added up to white along every arterial; 4 px leaves dark gaps and lets the group colours show",
-   "rush.BUS_CORE_R": "2.2 px cores drew the close-up's arterials as solid white lines (whiteout 0.057); 1.2 px gives 0.022",
-   "rush.BUS_HALO_R": "8 px halos hid the trail colours on the close-up; at 4 px BMTA, vans and boats read by colour"
+   "rush.BUS_CORE_R": "1.2 px cores strobed 0.0044, over the 0.004 limit, on the close-up; 1.0 px gives 0.0035 and still reads as dots",
+   "rush.BUS_HALO_R": "8 px halos hid the trail colours on the close-up; at 4 px BMTA, vans and boats read by colour",
+   "day.TRAIL_MINUTES": "18 min cuts strobe 0.0038 to 0.0035 for whiteout +0.0002; the arterials stay separate thin lines",
+   "TRAIL_SHOULDER_W": "8 px shoulders take the haze off the dense central arterials in the round trip; strobe 0.0035 either way",
+   "rush.FRAME_ZOOM": "0.9 shows more of the city around the core and lifts safe share 0.81 to 0.84; 1.1 crops the core at the left",
+   "rush.FRAME_DX_KM": "-3.77 km brings the Rattanakosin core in from the left edge to the band's centre; safe share 0.849",
+   "rush.FRAME_DY_KM": "-3.77 km lifts the core and the river bend up from the clock; safe share 0.852 clears the 0.85 limit",
+   "rush.TRAIL_MINUTES": "14 min cuts the close-up's strobe to 0.0044 (from 0.0052 at 6); corridors stay thin separate lines, whiteout 0.012",
+   "week.BUS_HALO_ALPHA": "0.06 halos calm the week: strobe 0.0023 to 0.0008, whiteout 0.001, the group colours read; motion stays 0.30"
   }
  },
  "colors": {
