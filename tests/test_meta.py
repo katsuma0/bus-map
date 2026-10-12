@@ -323,6 +323,20 @@ class Split(unittest.TestCase):
         self.assertIn("Busiest moment: 3,951 buses at 8:01 am.", m["description"])
         self.assertEqual(m["tags"][-4:], ["transit map", "bus map", "GTFS", "Ontario"])
 
+    def test_metro_mode_tags(self):
+        """A batch mode for a city whose rail is its metro alone (London's Tube and DLR, Vienna's U-Bahn,
+        Rome's Metro) keeps a map tag of its own, so the title can say what the video draws."""
+        templates = self.pl.templates()
+        for mid, label, want in (("tube", "Tube and DLR trains", "tube map"), ("ubahn", "U-Bahn trains", "U-Bahn map"),
+                                 ("metro", "metro trains", "metro map")):
+            modes = [{"id": "bus", "label": "buses", "singular": "bus", "route_types": [3]},
+                     {"id": mid, "label": label, "singular": label[:-1], "route_types": []}]
+            batch = {"areas": [{"id": "a", "region": "CA-ON"}], "modes": modes}
+            tags = sm.tag_list({"feeds": [], "modes_present": [mid]}, batch, {"place": "Toronto"}, templates, modes)
+            self.assertEqual(tags[-3:], [want, "GTFS", "Ontario"], mid)
+            tags = sm.tag_list({"feeds": [], "modes_present": ["bus", mid]}, batch, {"place": "Toronto"}, templates, modes)
+            self.assertEqual(tags[-4:], ["bus map", want, "GTFS", "Ontario"], mid)
+
     def test_region_of_several_divisions(self):
         m = self.meta("gta-toronto", "day", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
         self.assertEqual(m["title"], "Every train in the GTA in 24 hours")
