@@ -65,13 +65,15 @@
   "colors_everything": "everything else"
  },
  "tags": ["transit map", "{mode_tags}", "GTFS"],
- "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "rail": "train map"},
+ "mode_tags": {"bus": "bus map", "streetcar": "streetcar map", "tram": "tram map", "rail": "train map", "tube": "tube map",
+               "ubahn": "U-Bahn map", "metro": "metro map"},
  "place_tags": {"GTA": "Greater Toronto Area"},
  "hashtags_banned": {"#gta": "on YouTube #gta files a video with Grand Theft Auto"},
  "regions": {"CA-ON": "Ontario", "CA-QC": "Quebec", "CA-BC": "British Columbia", "JP-08": "Ibaraki", "JP-13": "Tokyo",
              "JP-14": "Kanagawa", "JP-23": "Aichi", "JP-26": "Kyoto", "JP-27": "Osaka", "JP-01": "Hokkaido",
              "US-NY": "New York", "US-IL": "Illinois", "US-TX": "Texas", "US-AZ": "Arizona", "US-PA": "Pennsylvania",
-             "US-CA": "California", "US-FL": "Florida"},
+             "US-CA": "California", "US-FL": "Florida",
+             "GB-ENG": "England", "FR-IDF": "Ile-de-France", "IT-62": "Lazio", "DE-BE": "Germany", "AT-9": "Austria"},
  "banned": ["delve", "leverage", "utilize", "robust", "seamless", "elevate", "unlock", "harness", "curated", "bespoke",
             "crafted", "journey", "realm", "tapestry", "testament", "underscore", "pivotal", "meticulous", "boasts", "nestled"]
 }
