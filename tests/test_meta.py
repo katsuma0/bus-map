@@ -323,6 +323,19 @@ class Split(unittest.TestCase):
         self.assertIn("Busiest moment: 3,951 buses at 8:01 am.", m["description"])
         self.assertEqual(m["tags"][-4:], ["transit map", "bus map", "GTFS", "Ontario"])
 
+    def test_european_tags(self):
+        """The Europe batch: trams are tagged as trams, a region by its name, a city-state by its country."""
+        templates = self.pl.templates()
+        modes = [{"id": "bus", "label": "buses", "singular": "bus", "route_types": [3]},
+                 {"id": "tram", "label": "trams", "singular": "tram", "route_types": [0, 900]}]
+        for region, place, want in (("GB-ENG", "London", "England"), ("FR-IDF", "Paris", "Ile-de-France"),
+                                    ("IT-62", "Rome", "Lazio"), ("DE-BE", "Berlin", "Germany"), ("AT-9", "Vienna", "Austria")):
+            batch = {"areas": [{"id": "a", "region": region}], "modes": modes}
+            nm = {"feeds": [], "modes_present": ["bus", "tram"]}
+            tags = sm.tag_list(nm, batch, {"place": place}, templates, modes)
+            self.assertEqual(tags[0], place)
+            self.assertEqual(tags[-4:], ["bus map", "tram map", "GTFS", want], region)
+
     def test_region_of_several_divisions(self):
         m = self.meta("gta-toronto", "day", ["rail"], id="gta-trains", place="the GTA", boundary=GTA_PARTS)
         self.assertEqual(m["title"], "Every train in the GTA in 24 hours")
