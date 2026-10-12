@@ -1,0 +1,788 @@
+{
+ "batch": "europe",
+ "locked_at": "2026-10-12T01:14:46Z",
+ "areas": {
+  "london": {
+   "feeds": {
+    "bods": {
+     "source": "url",
+     "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2014/mdb-2014-202610120032/mdb-2014-202610120032.zip",
+     "sha256": "5d35193b894e38a23b3b8733be6e437e49a6724b0d389e384184ef22bb4e67b0",
+     "bytes": 1589742753,
+     "feed_version": "20261011_022906",
+     "valid": [
+      "2026-10-11",
+      "2027-12-07"
+     ]
+    }
+   },
+   "overture": {
+    "release": "2026-09-23.1",
+    "bbox": [
+     -0.96,
+     50.32,
+     0.98,
+     52.35
+    ],
+    "data_tag": "overture/london-2026-09-23.1",
+    "files": {
+     "segments": "77548d911f9da1d4ec0b130247e2dd134be437f6b24c7cd56ad05d0b086d8944",
+     "water": "9b8ce71d3bf9e752203d3ffffc5ade2a72a86797f599779acbe6baf9a87a665a"
+    }
+   },
+   "divisions": {
+    "key": "GB-ENG-london",
+    "sha256": null,
+    "bbox": [
+     -0.96,
+     50.32,
+     0.98,
+     52.35
+    ]
+   },
+   "dates": {
+    "day": {
+     "bods": [
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30"
+     ]
+    },
+    "week": {
+     "bods": {
+      "fri": [
+       "2026-10-16",
+       "2026-10-23",
+       "2026-10-30"
+      ],
+      "mon": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26"
+      ],
+      "sat": [
+       "2026-10-17",
+       "2026-10-31"
+      ],
+      "sun": [
+       "2026-10-11",
+       "2026-10-18"
+      ],
+      "thu": [
+       "2026-10-15",
+       "2026-10-22",
+       "2026-10-29"
+      ],
+      "tue": [
+       "2026-10-13",
+       "2026-10-20",
+       "2026-10-27"
+      ],
+      "wed": [
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28"
+      ]
+     }
+    }
+   },
+   "rules": {
+    "day": {
+     "bods": "half"
+    },
+    "week": {
+     "bods": {
+      "fri": "half",
+      "mon": "half",
+      "sat": "median-date 2026-10-31",
+      "sun": "median-date 2026-10-11",
+      "thu": "half",
+      "tue": "half",
+      "wed": "half"
+     }
+    }
+   }
+  },
+  "paris": {
+   "feeds": {
+    "idfm": {
+     "source": "url",
+     "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tdg-80921/tdg-80921-202610120019/tdg-80921-202610120019.zip",
+     "sha256": "d3f1e251c0d300f93a1e8e3456a647a3f0e000dd7fecc6ad091a33a6c884fa4f",
+     "bytes": 156660121,
+     "feed_version": "",
+     "valid": [
+      "2026-10-08",
+      "2026-11-09"
+     ]
+    }
+   },
+   "overture": {
+    "release": "2026-09-23.1",
+    "bbox": [
+     2.02,
+     48.44,
+     2.74,
+     49.18
+    ],
+    "data_tag": "overture/paris-2026-09-23.1",
+    "files": {
+     "segments": "18a8fdb88c650cd656970fb59337adff62a6072133ac8799da66fa913d7ec595",
+     "water": "69386be1d34712d574ed041a4dd10eafdf8d77b03dc8a894c97a292c9431d233"
+    }
+   },
+   "divisions": {
+    "key": "FR-IDF-paris",
+    "sha256": "cc6f8d2ee28685447f2f8f7a61c52f76a8862309e6f8151f9401cb185cb46375",
+    "bbox": [
+     2.02,
+     48.44,
+     2.74,
+     49.18
+    ]
+   },
+   "dates": {
+    "day": {
+     "idfm": [
+      "2026-10-09",
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30"
+     ]
+    },
+    "week": {
+     "idfm": {
+      "fri": [
+       "2026-10-09",
+       "2026-10-16",
+       "2026-10-23",
+       "2026-10-30"
+      ],
+      "mon": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26"
+      ],
+      "sat": [
+       "2026-10-10",
+       "2026-10-17",
+       "2026-10-31"
+      ],
+      "sun": [
+       "2026-10-11",
+       "2026-10-18"
+      ],
+      "thu": [
+       "2026-10-15",
+       "2026-10-22",
+       "2026-10-29"
+      ],
+      "tue": [
+       "2026-10-13",
+       "2026-10-20",
+       "2026-10-27"
+      ],
+      "wed": [
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28"
+      ]
+     }
+    }
+   },
+   "rules": {
+    "day": {
+     "idfm": "half"
+    },
+    "week": {
+     "idfm": {
+      "fri": "median-date 2026-10-23",
+      "mon": "half",
+      "sat": "half",
+      "sun": "median-date 2026-10-18",
+      "thu": "half",
+      "tue": "half",
+      "wed": "half"
+     }
+    }
+   }
+  },
+  "berlin": {
+   "feeds": {
+    "vbb": {
+     "source": "url",
+     "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-782/mdb-782-202610100043/mdb-782-202610100043.zip",
+     "sha256": "8631548b1b4656d1a7eb9bbcda07a107337d16e28693731252ff2357a8e375ee",
+     "bytes": 66219565,
+     "feed_version": "",
+     "valid": [
+      "2026-10-08",
+      "2026-12-12"
+     ]
+    }
+   },
+   "overture": {
+    "release": "2026-09-23.1",
+    "bbox": [
+     12.71,
+     51.57,
+     14.3,
+     53.2
+    ],
+    "data_tag": "overture/berlin-2026-09-23.1",
+    "files": {
+     "segments": "e8c05c3d4f223af761cc506e6767685e7dd0b0c1935fef016d80a9be2784aea5",
+     "water": "e2edb4d98f044891d76b7361bfe416297efc0a58649cb5964e3571aea3fd48f9"
+    }
+   },
+   "divisions": {
+    "key": "DE-BE-berlin+region",
+    "sha256": "6ff5dc9727355b7f4799423ce1fab8172ba47fae21df76adc94357d12c2f93b8",
+    "bbox": [
+     12.71,
+     51.57,
+     14.3,
+     53.2
+    ]
+   },
+   "dates": {
+    "day": {
+     "vbb": [
+      "2026-10-08",
+      "2026-10-09",
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30"
+     ]
+    },
+    "week": {
+     "vbb": {
+      "fri": [
+       "2026-10-09",
+       "2026-10-16",
+       "2026-10-23",
+       "2026-10-30"
+      ],
+      "mon": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26"
+      ],
+      "sat": [
+       "2026-10-10",
+       "2026-10-17",
+       "2026-10-31"
+      ],
+      "sun": [
+       "2026-10-11",
+       "2026-10-18"
+      ],
+      "thu": [
+       "2026-10-08",
+       "2026-10-15",
+       "2026-10-22",
+       "2026-10-29"
+      ],
+      "tue": [
+       "2026-10-13",
+       "2026-10-20",
+       "2026-10-27"
+      ],
+      "wed": [
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28"
+      ]
+     }
+    }
+   },
+   "rules": {
+    "day": {
+     "vbb": "half"
+    },
+    "week": {
+     "vbb": {
+      "fri": "median-date 2026-10-23",
+      "mon": "half",
+      "sat": "half",
+      "sun": "median-date 2026-10-11",
+      "thu": "median-date 2026-10-22",
+      "tue": "half",
+      "wed": "half"
+     }
+    }
+   }
+  },
+  "vienna": {
+   "feeds": {
+    "wienerlinien": {
+     "source": "url",
+     "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-648/mdb-648-202610060105/mdb-648-202610060105.zip",
+     "sha256": "6c085fe0bdb801b6631cd120ea499fc9693fc7737e03489c6d2c91643fe34088",
+     "bytes": 93427236,
+     "feed_version": "",
+     "valid": [
+      "2025-12-14",
+      "2026-12-12"
+     ]
+    }
+   },
+   "overture": {
+    "release": "2026-09-23.1",
+    "bbox": [
+     15.92,
+     47.59,
+     16.94,
+     48.69
+    ],
+    "data_tag": "overture/vienna-2026-09-23.1",
+    "files": {
+     "segments": "397402bfabb012d6eaf41e3a3ee395335fd5a41c4348d145cc622004ba60c0da",
+     "water": "3d366f16de0f0f14ccb74ec3fcb1ba061cfcf372f02fd367d2774e6e5197c0bf"
+    }
+   },
+   "divisions": {
+    "key": "AT-9-vienna+region",
+    "sha256": "85ac421bac48717679a60416a7580dcbc6bfaef243cf79fcf59a2ce515b9baf6",
+    "bbox": [
+     15.92,
+     47.59,
+     16.94,
+     48.69
+    ]
+   },
+   "dates": {
+    "day": {
+     "wienerlinien": [
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08",
+      "2026-10-09",
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30"
+     ]
+    },
+    "week": {
+     "wienerlinien": {
+      "fri": [
+       "2026-10-02",
+       "2026-10-09",
+       "2026-10-16",
+       "2026-10-23",
+       "2026-10-30"
+      ],
+      "mon": [
+       "2026-10-05",
+       "2026-10-12",
+       "2026-10-19"
+      ],
+      "sat": [
+       "2026-10-03",
+       "2026-10-10",
+       "2026-10-17",
+       "2026-10-31"
+      ],
+      "sun": [
+       "2026-10-04",
+       "2026-10-11",
+       "2026-10-18"
+      ],
+      "thu": [
+       "2026-10-01",
+       "2026-10-08",
+       "2026-10-15",
+       "2026-10-22",
+       "2026-10-29"
+      ],
+      "tue": [
+       "2026-10-06",
+       "2026-10-13",
+       "2026-10-20",
+       "2026-10-27"
+      ],
+      "wed": [
+       "2026-10-07",
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28"
+      ]
+     }
+    }
+   },
+   "rules": {
+    "day": {
+     "wienerlinien": "median-date 2026-10-02"
+    },
+    "week": {
+     "wienerlinien": {
+      "fri": "median-date 2026-10-02",
+      "mon": "median-date 2026-10-05",
+      "sat": "half",
+      "sun": "half",
+      "thu": "median-date 2026-10-01",
+      "tue": "median-date 2026-10-20",
+      "wed": "median-date 2026-10-21"
+     }
+    }
+   }
+  },
+  "rome": {
+   "feeds": {
+    "rsm": {
+     "source": "url",
+     "url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1294/mdb-1294-202610110011/mdb-1294-202610110011.zip",
+     "sha256": "ffa1f378bf0f43611dc34c3edb924e9c4f776fe822743a400f1ec0506f8da02f",
+     "bytes": 46050128,
+     "feed_version": "",
+     "valid": [
+      "2026-09-21",
+      "2026-12-06"
+     ]
+    }
+   },
+   "overture": {
+    "release": "2026-09-23.1",
+    "bbox": [
+     11.83,
+     40.75,
+     13.42,
+     42.74
+    ],
+    "data_tag": "overture/rome-2026-09-23.1",
+    "files": {
+     "segments": "47c69411b5ba904937c7ca10dfe1685371bb1955cf3bfd8c75753e13d659810c",
+     "water": "9e73e7202cee318df313e30066c4045ab363703ed9ef25fbe81b522e5129a4fb"
+    }
+   },
+   "divisions": {
+    "key": "IT-62-rome",
+    "sha256": "c7a0403a17dfb05b0b57a9575ade3e1ce1c3856cbcec09ff40f515a11b52e77c",
+    "bbox": [
+     11.83,
+     40.75,
+     13.42,
+     42.74
+    ]
+   },
+   "dates": {
+    "day": {
+     "rsm": [
+      "2026-10-09",
+      "2026-10-12",
+      "2026-10-13",
+      "2026-10-14",
+      "2026-10-15",
+      "2026-10-16",
+      "2026-10-19",
+      "2026-10-20",
+      "2026-10-21",
+      "2026-10-22",
+      "2026-10-23",
+      "2026-10-26",
+      "2026-10-27",
+      "2026-10-28",
+      "2026-10-29",
+      "2026-10-30"
+     ]
+    },
+    "week": {
+     "rsm": {
+      "fri": [
+       "2026-10-09",
+       "2026-10-16",
+       "2026-10-23",
+       "2026-10-30"
+      ],
+      "mon": [
+       "2026-10-12",
+       "2026-10-19",
+       "2026-10-26"
+      ],
+      "sat": [
+       "2026-10-10",
+       "2026-10-17",
+       "2026-10-31"
+      ],
+      "sun": [
+       "2026-10-11",
+       "2026-10-18"
+      ],
+      "thu": [
+       "2026-10-15",
+       "2026-10-22",
+       "2026-10-29"
+      ],
+      "tue": [
+       "2026-10-13",
+       "2026-10-20",
+       "2026-10-27"
+      ],
+      "wed": [
+       "2026-10-14",
+       "2026-10-21",
+       "2026-10-28"
+      ]
+     }
+    }
+   },
+   "rules": {
+    "day": {
+     "rsm": "half"
+    },
+    "week": {
+     "rsm": {
+      "fri": "half",
+      "mon": "half",
+      "sat": "half",
+      "sun": "median-date 2026-10-11",
+      "thu": "half",
+      "tue": "half",
+      "wed": "half"
+     }
+    }
+   }
+  }
+ },
+ "boundaries": {
+  "europe-london-trains": {
+   "id": "file:cities/boundaries/greater-london.geojson",
+   "division_id": null,
+   "name": "Greater London",
+   "subtype": "file",
+   "area_km2": 1570.72,
+   "frame": {
+    "km_vertical": 165.5,
+    "center_km": [
+     9.1,
+     -18.4
+    ]
+   },
+   "clip": [
+    -0.88,
+    50.37,
+    0.9,
+    52.3
+   ],
+   "file": "cities/boundaries/greater-london.geojson",
+   "sha256": "03f7edc2f6872fae0999f818495abaedea84f2f2e14b5b1abcb9be47e2fbfd7d"
+  },
+  "europe-london-buses": {
+   "id": "file:cities/boundaries/greater-london.geojson",
+   "division_id": null,
+   "name": "Greater London",
+   "subtype": "file",
+   "area_km2": 1570.72,
+   "frame": {
+    "km_vertical": 165.5,
+    "center_km": [
+     9.1,
+     -18.4
+    ]
+   },
+   "clip": [
+    -0.88,
+    50.37,
+    0.9,
+    52.3
+   ],
+   "file": "cities/boundaries/greater-london.geojson",
+   "sha256": "03f7edc2f6872fae0999f818495abaedea84f2f2e14b5b1abcb9be47e2fbfd7d"
+  },
+  "europe-paris-trains": {
+   "id": "97b66514-3f41-47ac-a348-9cfd51d983d5",
+   "division_id": "8ac4f7a7-3596-4267-89a6-9ae3d1c6a634",
+   "name": "Paris",
+   "subtype": "locality",
+   "area_km2": 104.59,
+   "frame": {
+    "km_vertical": 51.0,
+    "center_km": [
+     1.9,
+     -5.4
+    ]
+   },
+   "clip": [
+    2.09,
+    48.49,
+    2.67,
+    49.13
+   ]
+  },
+  "europe-paris-buses": {
+   "id": "97b66514-3f41-47ac-a348-9cfd51d983d5",
+   "division_id": "8ac4f7a7-3596-4267-89a6-9ae3d1c6a634",
+   "name": "Paris",
+   "subtype": "locality",
+   "area_km2": 104.59,
+   "frame": {
+    "km_vertical": 51.0,
+    "center_km": [
+     1.9,
+     -5.4
+    ]
+   },
+   "clip": [
+    2.09,
+    48.49,
+    2.67,
+    49.13
+   ]
+  },
+  "europe-berlin-trains": {
+   "id": "5d231bd3-41ee-4aed-84b2-e3c609063672",
+   "division_id": "59f212f3-4e73-45d4-aca6-a8c5cb0c2bfd",
+   "name": "Berlin",
+   "subtype": "region",
+   "area_km2": 883.54,
+   "frame": {
+    "km_vertical": 129.0,
+    "center_km": [
+     7.1,
+     -14.9
+    ]
+   },
+   "clip": [
+    12.79,
+    51.62,
+    14.22,
+    53.15
+   ]
+  },
+  "europe-berlin-buses": {
+   "id": "5d231bd3-41ee-4aed-84b2-e3c609063672",
+   "division_id": "59f212f3-4e73-45d4-aca6-a8c5cb0c2bfd",
+   "name": "Berlin",
+   "subtype": "region",
+   "area_km2": 883.54,
+   "frame": {
+    "km_vertical": 129.0,
+    "center_km": [
+     7.1,
+     -14.9
+    ]
+   },
+   "clip": [
+    12.79,
+    51.62,
+    14.22,
+    53.15
+   ]
+  },
+  "europe-vienna-trains": {
+   "id": "4f0b811b-6fc3-4ef1-8896-6e2eeac2202f",
+   "division_id": "b7a8bc03-5bb6-439c-a325-a5b1d9329adf",
+   "name": "Wien",
+   "subtype": "region",
+   "area_km2": 411.69,
+   "frame": {
+    "km_vertical": 83.0,
+    "center_km": [
+     4.2,
+     -7.5
+    ]
+   },
+   "clip": [
+    15.99,
+    47.64,
+    16.87,
+    48.64
+   ]
+  },
+  "europe-vienna-buses": {
+   "id": "4f0b811b-6fc3-4ef1-8896-6e2eeac2202f",
+   "division_id": "b7a8bc03-5bb6-439c-a325-a5b1d9329adf",
+   "name": "Wien",
+   "subtype": "region",
+   "area_km2": 411.69,
+   "frame": {
+    "km_vertical": 83.0,
+    "center_km": [
+     4.2,
+     -7.5
+    ]
+   },
+   "clip": [
+    15.99,
+    47.64,
+    16.87,
+    48.64
+   ]
+  },
+  "europe-rome": {
+   "id": "4a55dac8-93c0-4e22-8fa9-a164e6e66ce5",
+   "division_id": "6fe9e7a3-65c4-4a9c-9aa2-3dddad62e1ab",
+   "name": "Roma",
+   "subtype": "locality",
+   "area_km2": 1277.66,
+   "frame": {
+    "km_vertical": 161.5,
+    "center_km": [
+     11.3,
+     -15.9
+    ]
+   },
+   "clip": [
+    11.9,
+    40.8,
+    13.35,
+    42.69
+   ]
+  }
+ },
+ "tools": {
+  "python": "3.13.16",
+  "chromium": "1194",
+  "ffmpeg": "6.1.1-3ubuntu5"
+ }
+}
