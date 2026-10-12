@@ -675,6 +675,15 @@ class Validation(unittest.TestCase):
         self.assertTrue(any("source.tag: must match" in e for e in errs))
         self.assertTrue(any("theme: must be one of" in e for e in errs))
         b = json.loads(json.dumps(self.batch))
+        b["areas"][0]["feeds"][0]["area_clip"] = True
+        self.assertFalse([e for e in self.batch_errors(b) if "area_clip" in e], "a national feed clips to the area")
+        w, s, e, n = b["areas"][0]["area_box"]
+        b["areas"][0]["feeds"][0]["area_clip"] = [w + 0.1, s + 0.1, e - 0.1, n - 0.1]
+        self.assertFalse([e for e in self.batch_errors(b) if "area_clip" in e], "a box inside the area box")
+        for bad in ("yes", [w - 0.1, s, e, n], [e, s, w, n], [w, s, e]):
+            b["areas"][0]["feeds"][0]["area_clip"] = bad
+            self.assertTrue(any("area_clip: must be true" in x for x in self.batch_errors(b)), bad)
+        b = json.loads(json.dumps(self.batch))
         b["areas"][0]["feeds"][0]["one_run"] = "BODS files short-term timetable versions beside the base one"
         self.assertFalse([e for e in self.batch_errors(b) if "one_run" in e], "a reason string is the key's value")
         b["areas"][0]["feeds"][0]["one_run"] = True
