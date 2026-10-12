@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "paris",
+ "files": {
+  "2026-09-23.1/divisions/FR-IDF-paris.geojson": {
+   "sha256": "cc6f8d2ee28685447f2f8f7a61c52f76a8862309e6f8151f9401cb185cb46375",
+   "bytes": 6118129,
+   "parts": [
+    "2026-09-23.1/divisions/FR-IDF-paris.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/paris/segments.geojson": {
+   "sha256": "18a8fdb88c650cd656970fb59337adff62a6072133ac8799da66fa913d7ec595",
+   "bytes": 232993370,
+   "parts": [
+    "2026-09-23.1/paris/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/paris/water.geojson": {
+   "sha256": "69386be1d34712d574ed041a4dd10eafdf8d77b03dc8a894c97a292c9431d233",
+   "bytes": 14636075,
+   "parts": [
+    "2026-09-23.1/paris/water.geojson.gz.000"
+   ]
+  }
+ }
+}
