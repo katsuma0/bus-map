@@ -518,6 +518,32 @@ class Review(unittest.TestCase):
         self.assertIn("are faded and not counted. Colours: Regional Rail, B and L.\n\n",
                       self.meta("gta-markham", "rush", nm=nm)["description"])
 
+    def test_group_idle_in_the_window_is_not_named(self):
+        """Berlin's night buses run no trip from 6:30 to 9:30, so the rush description does not name them
+        (and the page's legend leaves them out); the day video, where they run, still does."""
+        t = self.pl.templates()
+        groups = [{"id": "bus", "label": "Bus", "legend": True, "window_trips": 3968},
+                  {"id": "metrobus", "label": "MetroBus", "legend": True, "window_trips": 892},
+                  {"id": "tram", "label": "Tram", "legend": True, "window_trips": 1334},
+                  {"id": "night", "label": "Night bus", "legend": True, "window_trips": 0},
+                  {"id": "other", "label": "Other", "legend": False, "window_trips": 917}]
+        nm = {"color_by": "group", "groups": groups}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Bus, MetroBus and Tram, with everything else in grey.")
+        groups[3]["window_trips"] = 512
+        self.assertEqual(sm.colors_sentence(nm, t),
+                         " Colours: Bus, MetroBus, Tram and Night bus, with everything else in grey.")
+        # A netmeta of an older make.py says nothing of the window, so every group is named.
+        for g in groups:
+            del g["window_trips"]
+        self.assertEqual(sm.colors_sentence(nm, t),
+                         " Colours: Bus, MetroBus, Tram and Night bus, with everything else in grey.")
+        # A shared legend word stays while one of its groups runs.
+        nm = {"color_by": "group", "groups": [
+            {"id": "a", "label": "Metro A", "legend": "Metro", "window_trips": 0},
+            {"id": "b", "label": "Metro B", "legend": "Metro", "window_trips": 40},
+            {"id": "bus", "label": "Bus", "legend": True, "window_trips": 900}]}
+        self.assertEqual(sm.colors_sentence(nm, t), " Colours: Metro and Bus.")
+
     def test_data_date_line(self):
         lic = self.pl.licences()["licences"]
         self.assertEqual([k for k, v in lic.items() if v.get("data_date")], ["metra-gtfs"])

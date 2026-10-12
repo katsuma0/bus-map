@@ -183,6 +183,10 @@ def colors_sentence(netmeta, templates):
             if g.get("window_trips", 1) > 0:
                 other = s["colors_everything"] if g.get("label", "Other") == "Other" else clean(g["label"])
             continue
+        # A group with no trip in the window draws nothing in this video, and the page's legend
+        # leaves it out (B19): Berlin's night buses in the 6:30 to 9:30 rush.
+        if g.get("window_trips", 1) == 0:
+            continue
         lg = g.get("legend")
         w = clean(lg if isinstance(lg, str) else g.get("label") or g["id"])
         if w not in words:
