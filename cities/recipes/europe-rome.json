@@ -13,7 +13,7 @@
  "modes": [
   "bus",
   "tram",
-  "rail"
+  "metro"
  ],
  "center": [
   12.496,
@@ -34,10 +34,19 @@
   "zoom": 1.05
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.4
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the central bus corridors where 12 px fused them into one haze",
+   "day.BUS_CORE_R": "1.4 px dots: at 2.2 the 1,700 buses at 8:30 am made the centre one white blob; corridors read now"
+  }
  },
  "colors": {
   "scheme": "type",
@@ -105,7 +114,7 @@
    },
    {
     "id": "atac",
-    "label": "Atac bus",
+    "label": "ATAC bus",
     "brand": "rsm",
     "match": [
      {

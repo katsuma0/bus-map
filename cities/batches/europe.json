@@ -16,7 +16,7 @@
    "holidays": "GB-ENG",
    "area_box": [-0.88, 50.37, 0.9, 52.3],
    "feeds": [
-    {"id": "bods", "name": "Transport for London timetables", "publisher": "Bus Open Data Service, Department for Transport", "licence_id": "ogl-uk-3.0", "licence_text": "Open Government Licence v3.0", "area_clip": [-0.56, 51.25, 0.38, 51.73], "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2014/mdb-2014-202610120032/mdb-2014-202610120032.zip", "sha256": "5d35193b894e38a23b3b8733be6e437e49a6724b0d389e384184ef22bb4e67b0"}}
+    {"id": "bods", "name": "Transport for London", "publisher": "Bus Open Data Service, Department for Transport", "licence_id": "ogl-uk-3.0", "licence_text": "Open Government Licence v3.0", "area_clip": [-0.56, 51.25, 0.38, 51.73], "one_run": "BODS keeps a short-term timetable version beside the base one on the dates both are valid, so most Piccadilly, District, Circle and Hammersmith & City trips are in the feed twice on a few October weekdays", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2014/mdb-2014-202610120032/mdb-2014-202610120032.zip", "sha256": "5d35193b894e38a23b3b8733be6e437e49a6724b0d389e384184ef22bb4e67b0"}}
    ]
   },
   {
@@ -73,6 +73,12 @@
   {"id": "tram", "label": "trams", "singular": "tram", "route_types": [0, 5, 900, 901, 902, 905, 906]},
   {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 12, 100, 101, 102, 103, 105, 106, 109, 400, 401, 402, 403, 405],
    "routes": [{"feed": "idfm", "short": "^(ORLYVAL|CDG VAL)$", "why": "Orlyval and CDGVAL are automated metros with route_type 0"}]},
+  {"id": "tube", "label": "Tube and DLR trains", "singular": "Tube and DLR train", "route_types": [],
+   "routes": [{"feed": "bods", "short": "^(Bakerloo|Central|Circle|District|DLR|Hammersmith & City|Jubilee|Metropolitan|Northern|Piccadilly|Victoria|Waterloo & City)$", "why": "BODS has the Tube and the DLR but no Overground, Elizabeth line or National Rail, so London's titles say Tube and DLR, not every train"}]},
+  {"id": "ubahn", "label": "U-Bahn trains", "singular": "U-Bahn train", "route_types": [],
+   "routes": [{"feed": "wienerlinien", "short": "^U[1-6]$", "why": "the Wiener Linien feed has the U-Bahn but not the ÖBB S-Bahn, so Vienna's titles say U-Bahn, not every train"}]},
+  {"id": "metro", "label": "metro trains", "singular": "metro train", "route_types": [],
+   "routes": [{"feed": "rsm", "short": "^ME(A|B|B1|C)$", "why": "the RSM feed has Metro A, B and C but not the FL lines or the Lido, Viterbo and Giardinetti railways, so Rome's titles say metro, not every train"}]},
   {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4, 1000, 1200]},
   {"id": "cable", "label": "cable cars", "singular": "cable car", "route_types": [6, 7, 1300, 1400]},
   {"id": "coach", "label": "coaches", "singular": "coach", "route_types": [200, 201, 202, 204]}

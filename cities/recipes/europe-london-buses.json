@@ -31,10 +31,23 @@
   "zoom": 1.0
  },
  "override": {
-  "render": {},
-  "variant_render": {},
+  "render": {
+   "TRAIL_SHOULDER_W": 8
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2
+   },
+   "rush": {
+    "TITLE_SCRIM": 1.0
+   }
+  },
   "brand_colors": {},
-  "_why": {}
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the bus corridors where 12 px fused them into a pink haze",
+   "day.BUS_CORE_R": "1.2 px dots: at 2.2 the 6,500 buses at 8:20 am made Greater London a white carpet; red corridors read now",
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the north London bus grid with dots through its letters; 1.0 darkens the band behind it"
+  }
  },
  "colors": {
   "scheme": "type",

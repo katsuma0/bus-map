@@ -106,7 +106,7 @@
      "bods": {
       "fri": "half",
       "mon": "half",
-      "sat": "median-date 2026-10-31",
+      "sat": "median-date 2026-10-17",
       "sun": "median-date 2026-10-11",
       "thu": "half",
       "tue": "half",
