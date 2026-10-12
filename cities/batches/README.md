@@ -42,7 +42,7 @@ recipe, and only inside `override` and `variety.card_line`.
 | `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is: `town` makes the description say "the Oakville town limits" and "inside the town"; a place with the word in its name (New York City) says "the New York City limits"; not with a boundary of several divisions; re-renders nothing |
 | `boundary` | object, or a list of them | yes | | one division, or several whose union is the boundary (see below) |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
-| `boundary.subtypes` | list of `locality`, `localadmin`, `county` | no | all three | preference order |
+| `boundary.subtypes` | list of `locality`, `localadmin`, `county`, `region` | no | the first three | preference order; `region` (a state or province) is for a city that is one, as Berlin, Wien, Kuala Lumpur (`MY-14`) and Bangkok (`TH-10`) are, which Overture holds only as a region; it makes the area's divisions file keep regions |
 | `boundary.area_km2` | number | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | path | no | | a GeoJSON Feature in the repo instead of Overture |
 | `modes` | list of batch mode ids | no | every mode | the modes this video shows; the others' trips are left out of the network and every count |
@@ -209,7 +209,9 @@ URL fails `make.py meta`.
   `clip` is the trim box plus 2 km, rounded outward to 0.01 degree; the Overture
   `bbox` is the union of the area's clips plus 5 km.
 * The divisions file is fetched once per area, before any frame exists, over the
-  area box plus 5 km: `cache/overture/<release>/divisions/<region>-<area>.geojson`.
+  area box plus 5 km: `cache/overture/<release>/divisions/<region>-<area>.geojson`, or
+  `<region>-<area>+region.geojson` (the lock's `divisions.key`) when a recipe of the area
+  names the `region` subtype, so the file of every other area holds what it did before.
   When every boundary of the area is a `boundary.file`, nothing is fetched and the
   lock records `"sha256": null`.
 * A union boundary's entry has `"subtype": "union"`, the divisions' names joined
