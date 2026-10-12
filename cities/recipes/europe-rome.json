@@ -1,0 +1,42 @@
+{
+ "id": "europe-rome",
+ "batch": "europe",
+ "area": "rome",
+ "place": "Rome",
+ "boundary": {
+  "name": "Roma",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1287.4
+ },
+ "modes": [
+  "bus",
+  "tram",
+  "rail"
+ ],
+ "center": [
+  12.496,
+  41.903
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 1,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ }
+}

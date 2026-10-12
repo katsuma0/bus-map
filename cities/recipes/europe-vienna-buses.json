@@ -1,0 +1,41 @@
+{
+ "id": "europe-vienna-buses",
+ "batch": "europe",
+ "area": "vienna",
+ "place": "Vienna",
+ "boundary": {
+  "name": "Wien",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 414.9
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  16.373,
+  48.208
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 2,
+  "zoom": 0.95
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ }
+}

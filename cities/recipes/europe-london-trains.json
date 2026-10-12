@@ -1,0 +1,38 @@
+{
+ "id": "europe-london-trains",
+ "batch": "europe",
+ "area": "london",
+ "place": "London",
+ "boundary": {
+  "name": "Greater London",
+  "file": "cities/boundaries/greater-london.geojson",
+  "area_km2": 1572.15
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -0.118,
+  51.509
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ }
+}

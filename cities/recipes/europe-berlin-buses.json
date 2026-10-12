@@ -1,0 +1,41 @@
+{
+ "id": "europe-berlin-buses",
+ "batch": "europe",
+ "area": "berlin",
+ "place": "Berlin",
+ "boundary": {
+  "name": "Berlin",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 891.1
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  13.405,
+  52.52
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ }
+}

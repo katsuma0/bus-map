@@ -1,0 +1,40 @@
+{
+ "id": "europe-vienna-trains",
+ "batch": "europe",
+ "area": "vienna",
+ "place": "Vienna",
+ "boundary": {
+  "name": "Wien",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 414.9
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  16.373,
+  48.208
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {}
+ }
+}
