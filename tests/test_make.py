@@ -152,12 +152,17 @@ if cmd == "fetch":
     import glob
     os.makedirs(os.path.dirname(arg("--out")), exist_ok=True)
     feats = []
+    # Asked for regions (a city-state), the squares come back as region divisions.
+    subtype = "region" if "region" in (arg("--subtypes") or "").split(",") else "locality"
     for i, p in enumerate(sorted(glob.glob("tests/fixtures/test/*.geojson"))):
         f = json.load(open(p))
         f["properties"] = {"id": f"area-{i}", "division_id": f"div-{i}", "name": f["properties"]["name"],
-                           "subtype": "locality", "class": "land", "area_km2": 36.0 if "north" in p else 64.0}
+                           "subtype": subtype, "class": "land", "area_km2": 36.0 if "north" in p else 64.0}
         feats.append(f)
-    json.dump({"type": "FeatureCollection", "features": feats}, open(arg("--out"), "w"), sort_keys=True)
+    fc = {"type": "FeatureCollection", "features": feats}
+    if arg("--subtypes"):
+        fc["subtypes"] = arg("--subtypes").split(",")
+    json.dump(fc, open(arg("--out"), "w"), sort_keys=True)
 elif cmd == "union":
     # Every --in Feature as one MultiPolygon, with the properties fetch_boundary.py union writes.
     ins = [sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == "--in"]
@@ -668,6 +673,12 @@ class Validation(unittest.TestCase):
         errs = self.recipe_errors(r)
         for want in ("variants: must be", "card_line: must be", "brand_colors: must map"):
             self.assertTrue(any(want in e for e in errs), want)
+        r = json.loads(json.dumps(self.recipe))
+        r["boundary"]["subtypes"] = ["region"]
+        self.assertFalse([e for e in self.recipe_errors(r) if "subtypes" in e], "a city-state names the region subtype")
+        r["boundary"]["subtypes"] = ["state"]
+        self.assertTrue(any("subtypes: must be a non-empty list of locality, localadmin, county, region" in e
+                            for e in self.recipe_errors(r)))
         b = json.loads(json.dumps(self.batch))
         b["areas"][0]["feeds"][0]["source"] = {"tag": "feeds/gta 2026", "path": "gtfs/ttc.zip"}
         b["theme"] = "neon"
@@ -925,6 +936,34 @@ class Derivation(Scratch):
         self.assertEqual(self.repo.calls(), [], "a second lock reuses the pinned divisions and the boundary stamp")
         self.repo.run("build", "test", "--city", "test-north")
         self.assertIn("test-north boundary: up to date", self.repo.run("build", "test", "--city", "test-north").stdout)
+
+    def test_region_boundary(self):
+        """A recipe that names the region subtype (Berlin, Vienna) makes its area's divisions file keep regions."""
+        r = self.repo.read_json("cities/recipes/test-north.json")
+        del r["boundary"]["file"]
+        r["boundary"]["subtypes"] = ["region"]
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.clear_calls()
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.calls(), ["fetch_boundary fetch", "fetch_boundary select"])
+        lock = self.repo.read_json("cities/locks/test.lock.json")
+        div = lock["areas"]["tsukuba"]["divisions"]
+        self.assertEqual(div["key"], "JP-08-tsukuba+region")
+        path = "cache/overture/2026-09-23.1/divisions/JP-08-tsukuba+region.geojson"
+        self.assertEqual(self.repo.read_json(path)["subtypes"], ["locality", "localadmin", "county", "region"])
+        self.assertEqual(div["sha256"], make.sha256_file(os.path.join(self.repo.root, path)))
+        self.assertEqual(lock["boundaries"]["test-north"]["subtype"], "region")
+        # fetch restores the file under the locked key.
+        os.remove(os.path.join(self.repo.root, path))
+        self.repo.run("fetch", "test", "--overture-only")
+        self.assertTrue(os.path.exists(os.path.join(self.repo.root, path)))
+        # Without a region recipe the file and its command are A7's, as before.
+        r["boundary"]["subtypes"] = ["locality"]
+        self.repo.write_json("cities/recipes/test-north.json", r)
+        self.repo.run("lock", "test")
+        self.assertEqual(self.repo.read_json("cities/locks/test.lock.json")["areas"]["tsukuba"]["divisions"]["key"],
+                         "JP-08-tsukuba")
+        self.assertNotIn("subtypes", self.repo.read_json("cache/overture/2026-09-23.1/divisions/JP-08-tsukuba.geojson"))
 
     def test_derived_configs(self):
         recipe = self.pl.recipe("test-north", self.batch)

@@ -768,6 +768,31 @@ class Units(unittest.TestCase):
                               "--out", os.path.join(tmp, "one.geojson"), check=False)
             self.assertNotEqual(p.returncode, 0)
 
+    def test_boundary_region_subtype(self):
+        """fetch_boundary.py select: a city-state is a region division (Berlin), picked only when asked for."""
+        sq = os.path.join(U.ROOT, "tests", "fixtures", "test")
+        north = U.load_json(os.path.join(sq, "north.geojson"))
+        name = north["properties"]["name"]
+        feats = [{"type": "Feature", "geometry": north["geometry"],
+                  "properties": {"id": f"area-{st}", "division_id": f"div-{st}", "name": name, "subtype": st,
+                                 "class": "land", "area_km2": 36.0}} for st in ("region", "locality")]
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "divisions.geojson")
+            U.dump_json(src, {"type": "FeatureCollection", "features": feats})
+            out = os.path.join(tmp, "boundary.geojson")
+            U.run("fetch_boundary.py", "select", "--in", src, "--name", name, "--subtypes", "region",
+                  "--area-km2", "36", "--out", out)
+            self.assertEqual(U.load_json(out)["properties"]["subtype"], "region")
+            U.run("fetch_boundary.py", "select", "--in", src, "--name", name, "--area-km2", "36", "--out", out)
+            self.assertEqual(U.load_json(out)["properties"]["subtype"], "locality", "the default list never takes a region")
+            p, _s, _g = U.run("fetch_boundary.py", "select", "--in", src, "--name", name, "--subtypes", "state",
+                              "--area-km2", "36", "--out", out, check=False)
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("--subtypes: state", p.stderr)
+        import fetch_boundary
+        self.assertEqual(fetch_boundary.SUBTYPES, ("locality", "localadmin", "county"))
+        self.assertEqual(fetch_boundary.ALL_SUBTYPES, fetch_boundary.SUBTYPES + ("region",))
+
     def test_mask_rle_round_trip(self):
         poly = shapely.Polygon([(0, 0), (1, 0), (1, 1), (0.5, 0.4), (0, 1)])
         mask, grid = tn.build_mask(poly, [0, 0, 1, 1], 0.025)

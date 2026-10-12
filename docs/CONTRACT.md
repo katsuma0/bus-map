@@ -452,7 +452,8 @@ Additions made while implementing (they extend, never change, the formats below)
 * the lock may carry `areas.<area>.rules` (the composite rule per feed and day class, next to
   `dates`), `areas.<area>.divisions.bbox`, and `boundaries.<id>.week_eligible: false` with
   `week_why` after a week trim exits 3; the divisions file is
-  `cache/overture/<release>/divisions/<region>-<area>.geojson`, one per area (`sha256` null
+  `cache/overture/<release>/divisions/<region>-<area>.geojson` (`+region` before `.geojson` when a
+  recipe of the area names the `region` subtype), one per area (`sha256` null
   when every boundary of the area is a `boundary.file`);
 * `<stem>.netmeta.json` also carries `month`, `timeline`, `window`, `modes`, `frames` and
   `trips_total`, and `<stem>.meta.json` also carries `licence_flags` (the CSV column);
@@ -540,7 +541,7 @@ does today).
 | `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; not with a boundary of several divisions; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
-| `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order |
+| `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order; may also name `region` for a city that is a state of its own (Berlin, Vienna), which makes the area's divisions file keep regions (`<region>-<area>+region.geojson`) |
 | `boundary.area_km2` | float | yes | | census area of the polygon Overture holds: land area in Canada, total area (land and water) in the US, whose locality polygons keep the harbours, rivers and bays inside the city limits (New York 1,211 km2 against 778 of land); the match must be within 20% |
 | `boundary.file` | str | no | | a GeoJSON Feature used instead of Overture (fixtures, or a city Overture lacks) |
 | `modes` | [str] | no | every batch mode | the batch mode ids this video keeps (`["rail"]`, `["bus", "streetcar"]`); the trim drops the other modes' trips (2.15) |
