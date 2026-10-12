@@ -979,6 +979,20 @@ class Derivation(Scratch):
         self.repo.run("fetch", "test", "--overture-only")
         self.assertIn("fetch_boundary fetch locality,localadmin,county,region", self.repo.calls())
         self.assertEqual(div["sha256"], make.sha256_file(os.path.join(self.repo.root, path)))
+        # A lock from before the '+' naming (the asia lock's TH-10-bangkok-region) reads as the three
+        # defaults: the fetch cannot match its pin, the error says to lock again, and the wrong file goes.
+        old = json.loads(json.dumps(lock))
+        old["areas"]["tsukuba"]["divisions"]["key"] = "JP-08-tsukuba-region"
+        self.repo.write_json("cities/locks/test.lock.json", old)
+        self.repo.clear_calls()
+        res = self.repo.run("fetch", "test", "--overture-only", check=False)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("fetch_boundary fetch", self.repo.calls())
+        self.assertIn("make.py lock test writes the current key", res.stdout + res.stderr)
+        stale = "cache/overture/2026-09-23.1/divisions/JP-08-tsukuba-region.geojson"
+        for p in (stale, stale + ".json"):
+            self.assertFalse(os.path.exists(os.path.join(self.repo.root, p)), p)
+        self.repo.write_json("cities/locks/test.lock.json", lock)
         # Back to a locality: the file, its name and its command line are as before.
         r["boundary"]["subtypes"] = ["locality"]
         self.repo.write_json("cities/recipes/test-north.json", r)

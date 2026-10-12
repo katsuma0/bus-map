@@ -2088,9 +2088,22 @@ class Pipeline:
                                           "--region", area["region"], "--bbox", ",".join(str(v) for v in bbox)]
                     + (["--subtypes", ",".join(subtypes)] if subtypes != list(SUBTYPES) else [])
                     + ["--out", self.rel(p)])
+        got = self.sha(p)
+        if want and got != want:
+            # The file is not the one the lock pins, so it must not stay in the cache, where
+            # a lock with this bbox would take it as fetched. A lock written before the extra
+            # subtypes were named with '+' has a key like MY-14-kuala-lumpur-region, which
+            # key_subtypes reads as the three defaults: the fetch then has no regions, and
+            # only a new lock fixes that, so the error says so.
+            for q in (p, info):
+                if os.path.exists(q):
+                    os.remove(q)
+            hint = ""
+            if "+" not in key and key.endswith("-region"):
+                hint = (f" If {key!r} is a key from before extra subtypes were named with '+', it asks for "
+                        f"{','.join(subtypes)} and no region; make.py lock {batch['batch']} writes the current key.")
+            raise MakeError(f"{self.rel(p)} has sha256 {got}, the lock pins {want}; the file is deleted.{hint}")
         write_json(info, {"release": rel, "bbox": bbox})
-        if want and self.sha(p) != want:
-            raise MakeError(f"{self.rel(p)} has sha256 {self.sha(p)}, the lock pins {want}")
         self.fetched_from_overture.add(self.rel(p))
         return p
 
