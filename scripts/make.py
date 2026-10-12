@@ -61,6 +61,11 @@ VARIANTS = ("day", "rush", "week")
 TIMELINE_OF = {"day": "day", "rush": "day", "week": "week"}
 THEMES = ("lake", "ink", "sodium", "slate", "teal")
 SUBTYPES = ("locality", "localadmin", "county")
+# A city that is a state or province of its own (Berlin, Wien, Kuala Lumpur, Bangkok)
+# is only a region division in Overture; an area's divisions file keeps regions only
+# when one of its recipes names them (fetch_boundary.py says why).
+OPTIONAL_SUBTYPES = ("region",)
+ALL_SUBTYPES = SUBTYPES + OPTIONAL_SUBTYPES
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,39}$")
 FEED_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 TAG_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
@@ -528,8 +533,8 @@ def validate_boundary_part(b, where, root, errors):
     if "area_km2" in b and not (is_num(b["area_km2"]) and b["area_km2"] > 0):
         errors.append(f"{where}.area_km2: must be a positive number")
     st = b.get("subtypes", list(SUBTYPES))
-    if not (isinstance(st, list) and st and all(s in SUBTYPES for s in st)):
-        errors.append(f"{where}.subtypes: must be a non-empty list of {', '.join(SUBTYPES)}")
+    if not (isinstance(st, list) and st and all(s in ALL_SUBTYPES for s in st)):
+        errors.append(f"{where}.subtypes: must be a non-empty list of {', '.join(ALL_SUBTYPES)}")
     if "file" in b and (not isinstance(b["file"], str) or not os.path.isfile(os.path.join(root, b["file"]))):
         errors.append(f"{where}.file: {b.get('file')!r} is not a file in the repo")
 
@@ -566,6 +571,19 @@ def boundary_parts(recipe):
     """The divisions of a recipe's boundary: one object, or the list whose union is the boundary."""
     b = recipe["boundary"]
     return list(b) if isinstance(b, list) else [b]
+
+
+def division_subtypes(recipes):
+    """The subtypes an area's divisions file keeps: A7's three, then each optional one (region) that a
+    boundary of the area's recipes names. A recipe's own boundary file reads no divisions file."""
+    asked = {s for r in recipes for b in boundary_parts(r) if not b.get("file") for s in b.get("subtypes", ())}
+    return list(SUBTYPES) + [s for s in OPTIONAL_SUBTYPES if s in asked]
+
+
+def key_subtypes(key):
+    """The subtypes a divisions file keeps, read back from its key (Pipeline.divisions_key), so make.py
+    fetch can fetch it again from the lock alone. No region code or area id (ID_RE) holds a '+'."""
+    return list(SUBTYPES) + key.split("+")[1:]
 
 
 def boundary_name(recipe):
@@ -1327,6 +1345,11 @@ class Pipeline:
         write_json(p, lock)
         self._cache[p] = lock
 
+    def area_recipes(self, batch, area):
+        """The recipes of the batch's cities that are in `area`, in upload order."""
+        rs = [self.recipe(rid, batch) for rid in batch["cities"]]
+        return [r for r in rs if self.area_of(batch, r)["id"] == area["id"]]
+
     def area_of(self, batch, recipe):
         aid = recipe.get("area") or batch["areas"][0]["id"]
         for a in batch["areas"]:
@@ -1581,10 +1604,14 @@ class Pipeline:
             return old.get("data_tag") or tag
         return f"{tag}-{hashlib.sha256(canonical(bbox).encode()).hexdigest()[:8]}"
 
-    def divisions_key(self, area):
+    def divisions_key(self, batch, area):
         # One file per area (A7: one fetch per area); a region code alone cannot
         # tell two areas of one state apart (Dallas and Houston are both US-TX).
-        return f"{area['region']}-{area['id']}"
+        # A file that keeps regions too is named for them (DE-BE-berlin+region),
+        # so the lock fetches again when a recipe starts or stops asking, and
+        # every other area keeps the name it had.
+        extra = division_subtypes(self.area_recipes(batch, area))[len(SUBTYPES):]
+        return f"{area['region']}-{area['id']}" + "".join(f"+{s}" for s in extra)
 
     def divisions_path(self, release, key):
         return self.path("cache", "overture", release, "divisions", f"{key}.geojson")
@@ -2033,11 +2060,12 @@ class Pipeline:
             raise MakeError(f"{recipe['id']}: rush.frame does not lie inside the day trim box")
         return be
 
-    def fetch_divisions(self, batch, area, want=None, bbox=None, refresh=False, frozen=False, tag=None):
-        """cache/overture/<release>/divisions/<key>.geojson: the cache, else the data tag, else Overture (A7 fetch)."""
+    def fetch_divisions(self, batch, area, key, want=None, bbox=None, refresh=False, frozen=False, tag=None):
+        """cache/overture/<release>/divisions/<key>.geojson: the cache, else the data tag, else Overture (A7 fetch).
+        The key, the lock's when there is one, says which subtypes the file keeps."""
         rel = batch["overture_release"]
         tag = tag or f"overture/{area['id']}-{rel}"
-        p = self.divisions_path(rel, self.divisions_key(area))
+        p = self.divisions_path(rel, key)
         bbox = bbox or self.divisions_bbox(area)
         info = p + ".json"
         if os.path.exists(p) and not refresh:
@@ -2053,9 +2081,13 @@ class Pipeline:
             return p
         if frozen and not want:
             raise MakeError("--frozen: the lock has no divisions entry; run make.py lock")
+        subtypes = key_subtypes(key)
+        # Only a file that keeps more than the default three passes --subtypes, so
+        # every other area's command line is the one it always had.
         self.run_py("fetch_boundary.py", ["fetch", "--release", rel, "--country", area["country"],
-                                          "--region", area["region"], "--bbox", ",".join(str(v) for v in bbox),
-                                          "--out", self.rel(p)])
+                                          "--region", area["region"], "--bbox", ",".join(str(v) for v in bbox)]
+                    + (["--subtypes", ",".join(subtypes)] if subtypes != list(SUBTYPES) else [])
+                    + ["--out", self.rel(p)])
         write_json(info, {"release": rel, "bbox": bbox})
         if want and self.sha(p) != want:
             raise MakeError(f"{self.rel(p)} has sha256 {self.sha(p)}, the lock pins {want}")
@@ -2073,14 +2105,13 @@ class Pipeline:
             for f in area["feeds"]:
                 feeds[f["id"]] = self.lock_feed(area, f, olda.get("feeds", {}).get(f["id"]), refresh)
                 say(f"  feed {f['id']}: {feeds[f['id']]['sha256'][:12]} {feeds[f['id']]['bytes']} bytes")
-            dkey = self.divisions_key(area)
+            dkey = self.divisions_key(batch, area)
             dbbox = self.divisions_bbox(area)
             olddiv = olda.get("divisions", {})
             keep = olddiv.get("sha256") if olddiv.get("bbox") == dbbox and olddiv.get("key") == dkey else None
-            mine = [self.recipe(rid, batch) for rid in batch["cities"]
-                    if self.area_of(batch, self.recipe(rid, batch))["id"] == area["id"]]
+            mine = self.area_recipes(batch, area)
             if any(not b.get("file") for r in mine for b in boundary_parts(r)):
-                dpath = self.fetch_divisions(batch, area, want=keep, bbox=dbbox, refresh=refresh,
+                dpath = self.fetch_divisions(batch, area, dkey, want=keep, bbox=dbbox, refresh=refresh,
                                              tag=olda.get("overture", {}).get("data_tag"))
                 divisions = {"key": dkey, "sha256": self.sha(dpath), "bbox": dbbox}
             else:
@@ -2282,8 +2313,8 @@ class Pipeline:
                     raise MakeError(f"{self.rel(p)} is missing or differs from the lock, and --no-upstream fetches nothing")
             return
         if dpath:
-            self.fetch_divisions(batch, area, want=lk["divisions"]["sha256"], bbox=lk["divisions"].get("bbox"),
-                                 frozen=frozen, tag=ov["data_tag"])
+            self.fetch_divisions(batch, area, lk["divisions"]["key"], want=lk["divisions"]["sha256"],
+                                 bbox=lk["divisions"].get("bbox"), frozen=frozen, tag=ov["data_tag"])
         ok = all(want.get(n) and self.sha(p) == want[n] for n, p in paths.items())
         if not ok and all(want.get(n) for n in paths):
             ok = self.restore_data_tag(ov["data_tag"], {self.rel(p): want[n] for n, p in paths.items()})
