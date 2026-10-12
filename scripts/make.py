@@ -981,8 +981,11 @@ def validate_batch(batch, name, licences, holidays, errors):
                 errors.append(f"{fw}.licence_id: unknown licence id {f['licence_id']!r} (cities/licences.json)")
             if "allow_nc" in f and not (isinstance(f["allow_nc"], str) and f["allow_nc"].strip()):
                 errors.append(f"{fw}.allow_nc: must be a reason string")
-            if "area_clip" in f and f["area_clip"] is not True:
-                errors.append(f"{fw}.area_clip: must be true (leave it out for a feed of the area alone)")
+            if "area_clip" in f:
+                clip = f["area_clip"]
+                if not (clip is True or (is_box(clip) and is_box(a.get("area_box")) and box_inside(clip, a["area_box"]))):
+                    errors.append(f"{fw}.area_clip: must be true (the area box) or a [w, s, e, n] box inside the "
+                                  f"area_box (leave it out for a feed of the area alone)")
             src = f.get("source")
             kind = source_kind(src)
             if kind is None:
