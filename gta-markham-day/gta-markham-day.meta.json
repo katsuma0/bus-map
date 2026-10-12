@@ -1,0 +1,66 @@
+{
+ "file": "gta-markham-day.mp4",
+ "title": "Every bus in Markham in 24 hours",
+ "description": "Every bus running in Markham on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Markham city limits. The faded ones are just outside. Colours: YRT, TTC, Viva Purple and GO, with everything else in grey.\n\nBusiest moment: 102 buses at 8:04 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Thanksgiving (October 12).\n\nYork Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.\nTTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nDurham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #markham",
+ "tags": [
+  "Markham",
+  "York Region Transit",
+  "TTC",
+  "GO Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#markham"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "York Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.",
+  "TTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "Durham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham."
+ ],
+ "licences": [
+  {
+   "feed": "yrt",
+   "licence_id": "ogl-york",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "drt",
+   "licence_id": "ogl-durham",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 6,
+ "meta_key": "f1a7fa4f2cbbab08cfa3e911cb9c26a4287642b15445f3e0aead40a10c758350"
+}

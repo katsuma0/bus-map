@@ -1,0 +1,82 @@
+{
+ "file": "gta-burlington-day.mp4",
+ "title": "Every bus in Burlington in 24 hours",
+ "description": "Every bus running in Burlington on an average November weekday, from the morning rush to the next morning, in 50 seconds.\n\nBurlington Transit has no October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies. I kept the trips that run on at least half of the weekdays and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Burlington city limits. The faded ones are just outside. Colours: Frequent, Regular and GO, with everything else in grey.\n\nBusiest moment: 65 buses at 5:45 pm.\nThe weekday average uses every October 2026 weekday in the other timetables and leaves out Thanksgiving (October 12).\n\nBurlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nOakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.\nMiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.\nBrampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.\nMilton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #burlington",
+ "tags": [
+  "Burlington",
+  "Burlington Transit",
+  "GO Transit",
+  "Oakville Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#burlington"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Burlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "Oakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.",
+  "MiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.",
+  "Brampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.",
+  "Milton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton."
+ ],
+ "licences": [
+  {
+   "feed": "burlington",
+   "licence_id": "ogl-burlington",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "oakville",
+   "licence_id": "ogl-oakville",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "miway",
+   "licence_id": "ogl-mississauga",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "brampton",
+   "licence_id": "ogl-brampton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "milton",
+   "licence_id": "ogl-milton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 10,
+ "meta_key": "4471bdb8ca421451ab6b2d878f4ea3801bc9ade612b4dce676bbb0c48b4c9828"
+}

@@ -1,0 +1,66 @@
+{
+ "file": "gta-burlington-rush.mp4",
+ "title": "Morning rush in Burlington: every bus, 6:30 to 9:30 am",
+ "description": "The morning rush in Burlington, 6:30 to 9:30 am, in 25 seconds. Every bus inside the city on an average November weekday.\n\nBurlington Transit has no October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Burlington city limits are faded and not counted. Colours: Frequent, Regular and GO, with everything else in grey.\n\nBusiest moment of the morning: 57 buses at 7:48 am.\nThe weekday average uses every October 2026 weekday in the other timetables and leaves out Thanksgiving (October 12).\n\nBurlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nOakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.\nMilton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #burlington",
+ "tags": [
+  "Burlington",
+  "Burlington Transit",
+  "GO Transit",
+  "Oakville Transit",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#burlington"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Burlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "Oakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.",
+  "Milton Transit (Town of Milton): Open Government Licence - Milton. Contains information licensed under the Open Government Licence - Milton."
+ ],
+ "licences": [
+  {
+   "feed": "burlington",
+   "licence_id": "ogl-burlington",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "oakville",
+   "licence_id": "ogl-oakville",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "milton",
+   "licence_id": "ogl-milton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 22,
+ "meta_key": "a278522ef5151669b35f50804f21a86660e4fb47d8920c89b5b00d2f55a0dcde"
+}

@@ -1,0 +1,60 @@
+{
+ "file": "gta-trains-day.mp4",
+ "title": "Every train in the GTA in 24 hours",
+ "description": "Every train running in the GTA on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside Toronto, Peel Region, York Region, Durham Region and Halton Region. The faded ones are just outside. Colours: Line 1, Line 2, GO, Line 5, Line 6, Line 4 and UP.\n\nBusiest moment: 187 trains at 8:12 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Thanksgiving (October 12).\n\nTTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nUP Express (Metrolinx): Metrolinx Open Data Licence.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #greatertorontoarea",
+ "tags": [
+  "Greater Toronto Area",
+  "TTC",
+  "GO Transit",
+  "UP Express",
+  "transit map",
+  "train map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#greatertorontoarea"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "TTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "UP Express (Metrolinx): Metrolinx Open Data Licence."
+ ],
+ "licences": [
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "upx",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising",
+  "UP Express: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 3,
+ "meta_key": "29c0e834904f46de7303ff8f1d29098597719e89fff448ab30ae8b9f1be17bbe"
+}

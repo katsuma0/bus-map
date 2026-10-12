@@ -1,0 +1,50 @@
+{
+ "name": "gta-markham-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 12,
+ "kbps": 9805,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 105,
+ "query": "record=1&data=../build/gta-markham/week/network.json.gz&basemap=../build/gta-markham/basemap.json.gz&variant=week&render=%7B%22CAMERA_PATH%22%3A%22drift-orbit%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_ZOOM%22%3A1.05%2C%22LEGEND%22%3Atrue%2C%22OUTSIDE_DIM%22%3A0.95%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22go%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%2200853e%22%7D%2C%22ttc%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ed1c24%22%7D%2C%22viva%22%3A%7B%22hex%22%3A%229461a8%22%7D%2C%22yrt%22%3A%7B%22dL%22%3A0%2C%22hex%22%3A%220058a9%22%7D%7D",
+ "network_sha256": "c85e8afbe461adcb56401a89d915c3ad9f2e33a63738b231400ca82ad7a14ef0",
+ "basemap_sha256": "fb823d74e367910dd790fb1bf00046f406acbe63f7812e4b896a53e1b46691ed",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "c875fdcad7c2e1b1848341ac040eb1a973d8e80e",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001787, 4 cpus",
+ "started_at": "2026-10-12T00:49:07.229Z",
+ "key": "e0e0e767c222e1d7c95ee320d1a90880ccce424901d66b5041ed9318e48be8d7",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 4406
+  },
+  {
+   "crf": 16,
+   "kbps": 5750
+  },
+  {
+   "crf": 14,
+   "kbps": 7574
+  },
+  {
+   "crf": 12,
+   "kbps": 9805
+  }
+ ]
+}

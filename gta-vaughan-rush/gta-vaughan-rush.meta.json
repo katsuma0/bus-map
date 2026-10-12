@@ -1,0 +1,75 @@
+{
+ "file": "gta-vaughan-rush.mp4",
+ "title": "Morning rush in Vaughan: every bus, 6:30 to 9:30 am",
+ "description": "The morning rush in Vaughan, 6:30 to 9:30 am, in 25 seconds. Every bus inside the city on an average October weekday.\n\nThe timetables are from October 2026. I kept the trips that run on at least half of the weekdays and placed each vehicle by its schedule. Vehicles outside the Vaughan city limits are faded and not counted. Colours: YRT, TTC, Züm and GO, with everything else in grey.\n\nBusiest moment of the morning: 143 buses at 7:53 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Thanksgiving (October 12).\n\nYork Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nBrampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.\nTTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.\nMiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #vaughan",
+ "tags": [
+  "Vaughan",
+  "York Region Transit",
+  "GO Transit",
+  "Brampton Transit",
+  "TTC",
+  "transit map",
+  "bus map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#vaughan"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "York Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "Brampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.",
+  "TTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.",
+  "MiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga."
+ ],
+ "licences": [
+  {
+   "feed": "yrt",
+   "licence_id": "ogl-york",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "brampton",
+   "licence_id": "ogl-brampton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "miway",
+   "licence_id": "ogl-mississauga",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 19,
+ "meta_key": "cd7c18120654ddfa9cfaa1097ab29e4a292a8f9088d20c25f3c005d8406a1e66"
+}

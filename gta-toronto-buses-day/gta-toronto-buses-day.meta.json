@@ -1,0 +1,102 @@
+{
+ "file": "gta-toronto-buses-day.mp4",
+ "title": "Every bus and streetcar in Toronto in 24 hours",
+ "description": "Every bus and streetcar running in Toronto on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Toronto city limits. The faded ones are just outside. Colours: Bus, Express and Streetcar, with everything else in grey.\n\nBusiest moment: 1,561 vehicles at 5:10 pm.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out Thanksgiving (October 12).\n\nTTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.\nGO Transit (Metrolinx): Metrolinx Open Data Licence.\nMiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.\nYork Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.\nBrampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.\nDurham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham.\nOakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.\nBurlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #ontario #toronto",
+ "tags": [
+  "Toronto",
+  "TTC",
+  "GO Transit",
+  "MiWay",
+  "York Region Transit",
+  "Brampton Transit",
+  "Durham Region Transit",
+  "transit map",
+  "bus map",
+  "streetcar map",
+  "GTFS",
+  "Ontario"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#ontario",
+  "#toronto"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "TTC (Toronto Transit Commission): Open Government Licence - Toronto. Contains information licensed under the Open Government Licence - Toronto.",
+  "GO Transit (Metrolinx): Metrolinx Open Data Licence.",
+  "MiWay (City of Mississauga): Open Government Licence - Mississauga. Contains information licensed under the Open Government Licence - Mississauga.",
+  "York Region Transit (York Region): Open Government Licence - York Region. Contains information licensed under the Open Government Licence - York Region.",
+  "Brampton Transit (City of Brampton): Open Government Licence - Brampton. Contains information licensed under the Open Government Licence - Brampton.",
+  "Durham Region Transit (Region of Durham): Open Government Licence - Durham. Contains information licensed under the Open Government Licence - Durham.",
+  "Oakville Transit (Town of Oakville): Open Government Licence - Oakville. Contains information licensed under the Open Government Licence - Oakville.",
+  "Burlington Transit (City of Burlington): Open Government Licence - Burlington. Contains information licensed under the Open Government Licence - Burlington."
+ ],
+ "licences": [
+  {
+   "feed": "ttc",
+   "licence_id": "ogl-toronto",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "go",
+   "licence_id": "metrolinx-open-data",
+   "commercial": "check",
+   "note": "read the Metrolinx open data terms before monetising",
+   "allow_nc": null
+  },
+  {
+   "feed": "miway",
+   "licence_id": "ogl-mississauga",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "yrt",
+   "licence_id": "ogl-york",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "brampton",
+   "licence_id": "ogl-brampton",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "drt",
+   "licence_id": "ogl-durham",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "oakville",
+   "licence_id": "ogl-oakville",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  },
+  {
+   "feed": "burlington",
+   "licence_id": "ogl-burlington",
+   "commercial": "yes",
+   "note": null,
+   "allow_nc": null
+  }
+ ],
+ "flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "licence_flags": [
+  "GO Transit: check the licence (metrolinx-open-data): read the Metrolinx open data terms before monetising"
+ ],
+ "publish_order": 1,
+ "meta_key": "2fcd9acae4f2034b410e6cd2a06180cc1ebdb3a2b13b4ad13b2fd2a9e21b1e06"
+}

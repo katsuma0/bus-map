@@ -1,0 +1,42 @@
+{
+ "name": "gta-trains-day",
+ "variant": "day",
+ "tier": "final",
+ "frames": 1500,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 50,
+ "crf": 16,
+ "kbps": 8296,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 56,
+ "query": "record=1&data=../build/gta-trains/day/network.json.gz&basemap=../build/gta-trains/basemap.json.gz&variant=day&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22BUS_CORE_R%22%3A1.6%2C%22BUS_HALO_ALPHA%22%3A0.07%2C%22CAMERA_PATH%22%3A%22pull-out-east%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_DX_KM%22%3A-4.6%2C%22FRAME_ZOOM%22%3A1.0%2C%22LEGEND%22%3Afalse%7D&paint=%7B%22go%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%2200853e%22%7D%2C%22line1%22%3A%7B%22hex%22%3A%22d5c82b%22%7D%2C%22line2%22%3A%7B%22hex%22%3A%22008000%22%7D%2C%22line4%22%3A%7B%22hex%22%3A%22b300b3%22%7D%2C%22line5%22%3A%7B%22hex%22%3A%22ff8000%22%7D%2C%22line6%22%3A%7B%22hex%22%3A%22808080%22%2C%22neutral%22%3A%22b4bac4%22%7D%2C%22up%22%3A%7B%22hex%22%3A%220075d2%22%7D%7D",
+ "network_sha256": "da8dc6284adb4384748ba291daa086be5934805dd856138dd90439b1d023888b",
+ "basemap_sha256": "485607106e1bacaca377d70fc52fc2aa0f9967dbb8cdf5eebb5d89de0dd60111",
+ "code_sha256": {
+  "app.js": "3d3a81938e9ba24b303a0eefb26d0453e494361155ea72e05f1c325ad7090270",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "c875fdcad7c2e1b1848341ac040eb1a973d8e80e",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001761, 4 cpus",
+ "started_at": "2026-10-12T00:44:13.073Z",
+ "key": "811737e0df8ac1cdad9b0e9ec218b47d53478963c9279b8e83e941b05893004c",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 6444
+  },
+  {
+   "crf": 16,
+   "kbps": 8296
+  }
+ ]
+}
