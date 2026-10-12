@@ -1,0 +1,27 @@
+{
+ "release": "2026-09-23.1",
+ "area": "kuala-lumpur",
+ "files": {
+  "2026-09-23.1/divisions/MY-14-kuala-lumpur+region.geojson": {
+   "sha256": "62f10a046512e197e23306800938df600d295cbdd9915fe560f8b05e66d12420",
+   "bytes": 34928,
+   "parts": [
+    "2026-09-23.1/divisions/MY-14-kuala-lumpur+region.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/kuala-lumpur/segments.geojson": {
+   "sha256": "8e4294e6deb15374cc0922c4345a00cbb7031adcdf8ff2975b647b54db6a7a49",
+   "bytes": 145727769,
+   "parts": [
+    "2026-09-23.1/kuala-lumpur/segments.geojson.gz.000"
+   ]
+  },
+  "2026-09-23.1/kuala-lumpur/water.geojson": {
+   "sha256": "23987bd1eb74bde33b8baaed485f0667242745ee66045e44c1f30f3f60d854b4",
+   "bytes": 11015001,
+   "parts": [
+    "2026-09-23.1/kuala-lumpur/water.geojson.gz.000"
+   ]
+  }
+ }
+}
