@@ -11,6 +11,7 @@ keeps a draft release in a JSON file for the Actions tests.
 """
 
 import csv
+import datetime
 import io
 import json
 import os
@@ -553,6 +554,25 @@ class Validation(unittest.TestCase):
                 self.assertEqual(self.recipe_errors(json.load(fh)), [], rid)
         b = make.Pipeline(REPO).load_batch("test")
         self.assertEqual(b["cities"], ["test-centre", "test-north"])
+
+    def test_holidays_file(self):
+        """cities/holidays.json: real 2026 dates and plain names, which descriptions quote ("leaves out
+        Chulalongkorn Day (October 23)"); Kuala Lumpur has no October holiday, Bangkok has three.
+        October 16 is a holiday in Bangkok only (the IMF and World Bank meetings), so the key is
+        Bangkok's TH-10 and there is no national TH key that a later Thai area could take it from."""
+        with open(os.path.join(REPO, "cities/holidays.json"), encoding="utf-8") as fh:
+            hol = json.load(fh)
+        for key, days in hol.items():
+            self.assertRegex(key, r"^[A-Z]{2}(-[A-Z0-9]{1,3})?$")
+            self.assertTrue(days, key)
+            for d, name in days.items():
+                self.assertEqual(datetime.date.fromisoformat(d).year, 2026, (key, d))
+                self.assertRegex(name, r"^[A-Z][A-Za-z0-9 '().-]{2,40}$", (key, d))
+        self.assertEqual([d for d in hol["MY-14"] if d.startswith("2026-10")], [])
+        self.assertNotIn("TH", hol)
+        self.assertEqual({d: n for d, n in hol["TH-10"].items() if d.startswith("2026-10")},
+                         {"2026-10-13": "King Bhumibol Memorial Day", "2026-10-16": "Bangkok special holiday",
+                          "2026-10-23": "Chulalongkorn Day"})
 
     def test_unknown_keys(self):
         r = dict(self.recipe, colour="red")
