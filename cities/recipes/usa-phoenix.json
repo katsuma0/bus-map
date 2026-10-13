@@ -1,0 +1,125 @@
+{
+ "id": "usa-phoenix",
+ "batch": "usa",
+ "area": "phoenix",
+ "place": "Phoenix",
+ "boundary": {
+  "name": "Phoenix",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1342.31
+ },
+ "center": [
+  -112.07,
+  33.57
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 9
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min draws the arterial grid as thin purple lines, no white fusion, and cuts strobe 0.0043 to 0.0041",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp white points after the round trip and cut strobe 0.0041 to 0.0024, under the limit",
+   "rush.BUS_CORE_R": "day pick carried by hand (apply skips rush): rush strobe 0.0036 at 2.2 vs 0.0020 at 1.6, dots stay sharp",
+   "rush.TRAIL_MINUTES": "9 min turns the close-up dot rows into thin purple grid lines, nothing fuses, strobe 0.0021 to 0.0020"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "valleymetro",
+    "rest": true,
+    "match": [
+     {
+      "feed": "valleymetro",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "valleymetro.zip routes.txt route_color 591769 on all 108 bus routes (Valley Metro purple)"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#2e8b57",
+    "match": [
+     {
+      "feed": "valleymetro",
+      "short": "^(5\\d\\d|I10E|I10W|I17|SME|SMW|SR51)$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: sea green; Express and RAPID buses are 591769 like every bus"
+   },
+   {
+    "id": "b_line",
+    "label": "B Line",
+    "hex": "#b76912",
+    "dL": -0.12,
+    "legend": "Rail",
+    "match": [
+     {
+      "feed": "valleymetro",
+      "route_ids": [
+       "B"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "valleymetro.zip routes.txt route_color B76912 on route_id B; pinned at dL -0.12 (trail #c9792b) because the source step is 0.038 from the amber city line"
+   },
+   {
+    "id": "a_line",
+    "label": "A Line",
+    "hex": "#1e8ecd",
+    "legend": "Rail",
+    "match": [
+     {
+      "feed": "valleymetro",
+      "route_ids": [
+       "A"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "valleymetro.zip routes.txt route_color 1E8ECD on route_id A"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json sodium.colors.foreign #a0927f, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

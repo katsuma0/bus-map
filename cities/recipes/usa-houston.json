@@ -1,0 +1,115 @@
+{
+ "id": "usa-houston",
+ "batch": "usa",
+ "area": "houston",
+ "place": "Houston",
+ "boundary": {
+  "name": "Houston",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1739.69
+ },
+ "center": [
+  -95.39,
+  29.79
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 2,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_DY_KM": -4.46,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min joins the freeway Park & Ride lines and cuts strobe 4%; grid stays thin lines, no white fusing",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp points on a phone, strobe 0.0052 to 0.0032 under the limit, whiteout halves",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (pm 111 to 94 min per 188 frames), strobe 0.0032 to 0.0030; night stays 6 s",
+   "rush.FRAME_DY_KM": "-4.46 km centres the inner network in the band and lifts its south edge off the clock; safe share equal",
+   "rush.TRAIL_MINUTES": "9 min makes the close-up corridors read as lines, not dot rows, and cuts strobe 3%; nothing fuses",
+   "rush.BUS_CORE_R": "day pick carried over by hand (apply skips rush): 1.6 px dots, rush strobe 0.0055 to 0.0033 under the limit"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "houmetro",
+    "rest": true,
+    "verified": true,
+    "source": "houmetro.zip routes.txt route_color 004080 on 105 of 106 bus routes (METRO blue)"
+   },
+   {
+    "id": "pnr",
+    "label": "Park & Ride",
+    "hex": "#009675",
+    "match": [
+     {
+      "feed": "houmetro",
+      "short": "^2\\d\\d$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: calm teal-green; METRO gives Park & Ride no colour (004080 in GTFS)"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#a864a2",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "houmetro",
+      "short": "^(1\\d\\d|500)$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: orchid; METRO gives Express no colour (004080); pinned at dL -0.12 (trail #b873b2) away from Local blue"
+   },
+   {
+    "id": "rail",
+    "label": "Rail",
+    "hex": "#ef0000",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "houmetro",
+      "route_ids": [
+       "700",
+       "800",
+       "900"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "houmetro.zip routes.txt route_color EF0000 on 700 METRORail Red Line; one group with Green 800 and Purple 900; pinned at dL -0.12 (trail #db6657) so it reads red"
+   }
+  ]
+ }
+}

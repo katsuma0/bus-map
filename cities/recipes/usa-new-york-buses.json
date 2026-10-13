@@ -1,0 +1,104 @@
+{
+ "id": "usa-new-york-buses",
+ "batch": "usa",
+ "area": "nyc",
+ "place": "New York City",
+ "boundary": {
+  "name": "New York",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1223.59
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -73.94,
+  40.71
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 2,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "rush": {
+    "TITLE_SCRIM": 1.5,
+    "PANEL_ALPHA": 1.2,
+    "BUS_CORE_R": 1.2,
+    "FRAME_ZOOM": 0.81,
+    "TRAIL_MINUTES": 14
+   },
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.2
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the Bronx at 1.4:1; 1.5 (alpha clamps at 1) holds 0.83 under it for 5.3:1",
+   "rush.PANEL_ALPHA": "the rush credit sat on Brooklyn at 4.1:1; 1.2 lifts it to 5.0:1",
+   "day.TRAIL_MINUTES": "18 min cuts strobe 0.0096 to 0.0087 and draws Brooklyn's corridors as thin lines; whiteout up only 0.0006",
+   "TRAIL_SHOULDER_W": "8 px leaves dark gaps between Brooklyn corridors, less haze; strobe 0.0087 same as 12, dots still sharp",
+   "day.BUS_CORE_R": "second sweep: 1.2 px dots still read as dots and cut strobe 0.0047 to 0.0033, under the limit; whiteout 0.010",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (8 to 9:41 am over 188 frames) and cuts am strobe 0.0059 to 0.0047; night still 7 s",
+   "rush.BUS_CORE_R": "day pick 1.2; --apply sends BUS_CORE_R to day only and the rush has no dotcore knob; strobe 0.0053 to 0.0035",
+   "rush.FRAME_ZOOM": "0.81 clears the safe share limit (0.855 vs 0.843) and is still a four-borough close-up, not the day frame",
+   "rush.TRAIL_MINUTES": "14 min cuts strobe 0.0040 to 0.0035 against 9 (1.2 px dots); avenues and the Brooklyn grid stay separate thin lines"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "mta-bus",
+    "rest": true,
+    "verified": false,
+    "source": "MTA blue (logo, classic 8 Av trunk 0039A6; cities/brands.json mta-bus, approximate); local routes carry arbitrary map colours in GTFS"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#00933c",
+    "match": [
+     {
+      "short": "^(BM|BxM|QM|SIM|X)\\d+[CX]?$"
+     }
+    ],
+    "verified": true,
+    "source": "bus-si.zip and busco.zip routes.txt route_color 00933C on every express route (SIM, BxM, QM, BM, X) and no local or SBS route in the build"
+   },
+   {
+    "id": "sbs",
+    "label": "Select Bus",
+    "hex": "#d9503f",
+    "dL": -0.12,
+    "match": [
+     {
+      "short": "-SBS$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: terra cotta, after the red-painted bus lanes SBS runs on; GTFS gives SBS no colour of its own; pinned at dL -0.12 (trail #db6656)"
+   }
+  ]
+ }
+}
