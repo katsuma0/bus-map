@@ -314,7 +314,12 @@ def main():
         counts = composite.trips_per_date(feed, svc, composite.first_times(st))
         tz = composite.feed_timezone(feed, timeline["timezone"])
         sel = composite.select_dates(counts, timeline, tz, max_t1)
-        classes = composite.trip_classes(feed, svc, sel, st)
+        # A feed whose timetable versions overlap (BODS files a short-term version beside the base
+        # one) runs a signature class once a date, and the guard measures it against those runs.
+        one_run = bool(fcfg.get("one_run"))
+        classes = composite.trip_classes(feed, svc, sel, st, one_run=one_run)
+        if one_run:
+            counts = composite.class_counts(classes)
         guard = composite.apply_guard(classes, sel, counts, timeline.get("guard", {}))
         built, shapes, routes, bstats = build_trips_v4(feed, classes, st, area_box, modes, chunk)
         del st
@@ -347,6 +352,10 @@ def main():
         }
         if feed.clip_stats:
             rec["clip"] = feed.clip_stats
+        if one_run:
+            rec["one_run"] = {"dropped": sum(c.dropped for c in classes)}
+            log(f"  {fid}: one run a date per class: {rec['one_run']['dropped']} duplicate runs on the selected dates "
+                f"left out")
         feed_recs.append(rec)
         timeline_feeds[fid] = {"dates": {k: by_class[k]["dates"] for k in kinds}, "excluded": excluded,
                                "rule": {k: by_class[k]["rule"] for k in kinds}}
