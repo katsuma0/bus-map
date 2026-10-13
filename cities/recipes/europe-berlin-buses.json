@@ -1,0 +1,157 @@
+{
+ "id": "europe-berlin-buses",
+ "batch": "europe",
+ "area": "berlin",
+ "place": "Berlin",
+ "boundary": {
+  "name": "Berlin",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 891.1
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  13.405,
+  52.52
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 32
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders leave dark ground between the inner-ring corridors at phone size; strobe within 0.0001",
+   "TRAIL_ALPHA": "0.44 lets the MetroBus yellow and tram red read as lines and cuts strobe 0.0006; lines stay thin, no white",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe from 0.0126 to 0.0113 and the lines read in their legend colours; widths unchanged, no white",
+   "day.BUS_CORE_R": "1.2 px dots are small sharp points on thin coloured lines and take strobe under the limit, 0.0062 to 0.0038",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day, so peak dots move less per frame: strobe 0.0038 to 0.0036; night buses still get frames",
+   "OUTSIDE_DIM": "0.75 quiets the Potsdam buses and Brandenburg roads past the line, so the Berlin shape reads at phone size",
+   "day.TRAIL_MINUTES": "40 min cuts strobe 0.0032 to 0.0028; the corridors stay separate thin coloured lines, whiteout 0.0035",
+   "rush.FRAME_ZOOM": "0.81 lifts safe_share 0.84 to 0.88, clears the clock off the south lines and Köpenick off the button column",
+   "rush.BUS_CORE_R": "1.2 px dots are the target's small sharp points on thin lines and cut close-up strobe 0.0053 to 0.0035",
+   "rush.TRAIL_MINUTES": "at 0.81, 32 min cuts close-up strobe 0.0025 to 0.0022; corridors stay thin coloured lines, whiteout 0.0031"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "hex": "#95276e",
+    "rest": true,
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the purple of the Berlin Bus signet, approximate; vbb.zip gives all 220 BVG bus routes no route_color"
+   },
+   {
+    "id": "metrobus",
+    "label": "MetroBus",
+    "hex": "#f0d722",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^M(11|19|21|27|29|32|36|37|41|43|44|45|46|48|49|76|77|82|85)$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: BVG yellow F0D722 (vbb.zip route_color of U4, the brands.json vbb colour) for BVG's Metro network; pinned at dL +0.10 (trail #e3d372) to clear the slate city line (0.080 at the source step)"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#be1414",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the red of the Berlin Tram signet, approximate; vbb.zip gives all 27 BVG tram routes no route_color; pinned at dL -0.12 (trail #cb6e62) so it reads red, not salmon, and sits 0.148 from Bus (0.087 at the source step)"
+   },
+   {
+    "id": "night",
+    "label": "Night bus",
+    "hex": "#2a4f9e",
+    "match": [
+     {
+      "feed": "vbb",
+      "agency": [
+       "Berliner Verkehrsbetriebe"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+X?$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: night blue for BVG's N routes, approximate; vbb.zip gives them no route_color"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

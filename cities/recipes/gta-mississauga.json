@@ -1,0 +1,96 @@
+{
+ "id": "gta-mississauga",
+ "batch": "gta",
+ "place": "Mississauga",
+ "boundary": {
+  "name": "Mississauga",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 292.74
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -79.674,
+  43.608
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.9
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "BUS_CORE_R": 1.6,
+    "FRAME_ZOOM": 0.81,
+    "FRAME_DY_KM": 1.93
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "OUTSIDE_DIM": "at 0.9 the Brampton and Etobicoke grids drop to a faint hint and Mississauga pops; the lakeshore still reads",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp and white after the round trip and cut strobe 0.0061 to 0.0035, under the limit",
+   "rush.BUS_CORE_R": "the rush has no dot knob and kept 2.2 px at strobe 0.0052; 1.6 px as on the day brings it to 0.0030",
+   "rush.FRAME_ZOOM": "a second step to 0.81 keeps the north tip and west end in frame: safe share 0.90, still 1.8x the day",
+   "rush.FRAME_DY_KM": "1.93 km south keeps the north tip clear of the title and lifts safe share to 0.91"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "miway",
+    "rest": true,
+    "verified": true,
+    "source": "miway.zip routes.txt route_color D33517 on all 59 non-express routes (MiLocal)"
+   },
+   {
+    "id": "express",
+    "label": "Express",
+    "hex": "#026bcd",
+    "match": [
+     {
+      "feed": "miway",
+      "short": "^1\\d\\d$"
+     }
+    ],
+    "verified": true,
+    "source": "miway.zip routes.txt route_color 026BCD on 101, 103, 107, 108, 109, 110, 126, 135 (MiExpress; cities/brands.json miway alt)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

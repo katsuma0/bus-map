@@ -1,0 +1,135 @@
+{
+ "id": "europe-london-trains",
+ "batch": "europe",
+ "area": "london",
+ "place": "London",
+ "limits": "region",
+ "missing": "The feed has no London Overground, Elizabeth line or National Rail trains, so they are not shown.",
+ "boundary": {
+  "name": "Greater London",
+  "file": "cities/boundaries/greater-london.geojson",
+  "area_km2": 1572.15
+ },
+ "modes": [
+  "tube"
+ ],
+ "center": [
+  -0.118,
+  51.509
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "BASE_ROADS_GAIN": 0.75,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "day": {
+    "FRAME_ZOOM": 1.1,
+    "FRAME_DX_KM": -6.02,
+    "FRAME_DY_KM": 6.02,
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 18
+   },
+   "week": {
+    "FRAME_ZOOM": 1.1,
+    "FRAME_DX_KM": -6.02,
+    "FRAME_DY_KM": 6.02
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "BUS_CORE_R": 1.6,
+    "TRAIL_MINUTES": 21
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.FRAME_ZOOM": "1.1 widens Greater London to 73% of the width; the centre gets room and title and clock stay clear",
+   "week.FRAME_ZOOM": "1.1 widens Greater London to 73% of the width; the centre gets room and title and clock stay clear",
+   "day.FRAME_DX_KM": "6 km west centres Greater London; Uxbridge and Heathrow leave the tall-phone crop",
+   "week.FRAME_DX_KM": "6 km west centres Greater London; Uxbridge and Heathrow leave the tall-phone crop",
+   "day.FRAME_DY_KM": "6 km south puts the Tube centre mid-band and clears the subtitle; the south tip stays above the clock",
+   "week.FRAME_DY_KM": "6 km south puts the Tube centre mid-band and clears the subtitle; the south tip stays above the clock",
+   "day.BUS_CORE_R": "1.6 px dots read as trains like the target; at 1.2 they sink into the 3 px lines and the Tube reads as streaks",
+   "BASE_ROADS_GAIN": "0.75 quiets the dense London road grid so the thin District and Piccadilly lines stand off it",
+   "day.TRAIL_MINUTES": "with 1.6 px dots 18 min cuts strobe to 0.00405; the grey corridors brighten but keep dark gaps",
+   "TIME_WARP_GAMMA": "1.5 lingers a few minutes longer on the peaks, unseen, and brings strobe to 0.00399, under the limit",
+   "rush.FRAME_ZOOM": "0.9 lifts Edgware and Cockfosters off the subtitle and pulls the Epping end off the buttons; the core still fills",
+   "rush.BUS_CORE_R": "1.6 px dots cut close-up strobe from 0.0068 to 0.0042 and match the day's dots",
+   "rush.TRAIL_MINUTES": "21 min gets close-up strobe to 0.00392; colours stay distinct and dots read, no white fusing"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "northern",
+    "label": "Northern",
+    "neutral": "#c9cfd2",
+    "match": [
+     {
+      "feed": "bods",
+      "short": "^Northern$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the Northern line is black (000000) in the TfL Colour Standard and has no hue; drawn as the light neutral #c9cfd2, the batch's neutral for a line with no hue (the Paris Métro uses the same)"
+   },
+   {
+    "id": "piccadilly",
+    "label": "Piccadilly",
+    "brand": "tfl:piccadilly",
+    "verified": false,
+    "source": "TfL Colour Standard, Piccadilly line 003688 (brands.json rule tfl:piccadilly, which carries the pin dL -0.12, trail #608cd5, darker than Victoria as on the Tube map); BODS routes.txt has no route_color and the standard could not be read from here"
+   },
+   {
+    "id": "district",
+    "label": "District",
+    "brand": "tfl:district",
+    "verified": false,
+    "source": "TfL Colour Standard, District line 00782A (brands.json rule tfl:district, pin dL -0.20 there, trail #3c8749, 0.228 from the slate city line); unverified as above"
+   },
+   {
+    "id": "central",
+    "label": "Central",
+    "brand": "tfl:central",
+    "verified": false,
+    "source": "TfL Colour Standard, Central line E32017 (brands.json rule tfl:central, pin dL -0.12 there, trail #cb6e61, reads red not salmon); unverified as above"
+   },
+   {
+    "id": "victoria",
+    "label": "Victoria",
+    "brand": "tfl:victoria",
+    "verified": false,
+    "source": "TfL Colour Standard, Victoria line 0098D4 (brands.json rule tfl:victoria, pin dL 0 there, trail #5bbdf3 at the source step); unverified as above"
+   },
+   {
+    "id": "dlr",
+    "label": "DLR",
+    "brand": "tfl:dlr",
+    "verified": false,
+    "source": "TfL Colour Standard, DLR 00A4A7 (brands.json rule tfl:dlr, pin dL -0.20 there, trail #008588). At -0.12 (#00a0a3) it was 0.023 from the Other grey under protanopia (0.056 deuteranopia) on the Stratford to Canning Town corridor it shares with the Jubilee line; at -0.20 it is 0.140 (0.122 deutan, 0.085 protan)"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope); Jubilee (grey A0A5A9 in the standard) reads true in it"
+   }
+  ]
+ }
+}

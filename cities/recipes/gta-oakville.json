@@ -1,0 +1,103 @@
+{
+ "id": "gta-oakville",
+ "batch": "gta",
+ "place": "Oakville",
+ "limits": "town",
+ "boundary": {
+  "name": "Oakville",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 138.88
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -79.716,
+  43.447
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 2,
+  "zoom": 0.95
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "BUS_HALO_R": 6
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_HALO_ALPHA": 0.07
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "FRAME_DX_KM": -1.1,
+    "FRAME_DY_KM": -1.1,
+    "PANEL_ALPHA": 1.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min cuts strobe 0.00220 to 0.00214 and traces Trafalgar and Dundas end to end; lines stay thin, no white",
+   "TRAIL_SHOULDER_W": "8 px shoulder drops the haze pooled round Oakville GO at 1:1; corridors and dots read the same, strobe equal",
+   "BUS_HALO_R": "6 px halo keeps the 2.2 px dots readable and tightens the blob at Oakville GO; strobe 0.00214 to 0.00213",
+   "day.BUS_HALO_ALPHA": "0.07 halo still leaves 2.2 px dots clear after the round trip, with less glow at stops; strobe 0.00213 to 0.00211",
+   "rush.FRAME_ZOOM": "0.9 shows more of the city and hides fewer buses under the panel (safe share 0.82 vs 0.78); all arms crop the south",
+   "rush.FRAME_DX_KM": "-1.1 km brings Bronte and Third Line into frame, safe share 0.84 vs 0.82; the east tip is lake shore above the buttons",
+   "rush.FRAME_DY_KM": "-1.1 km lifts the south shore out from under the panel, safe share 0.88, only the empty north tip nears the title",
+   "rush.PANEL_ALPHA": "the city line crosses the credit on the rush close-up; 1.15 lifts credit2 contrast from 3.6 to 4.6, over the 4.5 limit"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "local",
+    "label": "Local",
+    "brand": "oakville",
+    "rest": true,
+    "verified": true,
+    "source": "oakville.zip routes.txt route_color 004B8C on 32 of 35 routes (cities/brands.json oakville)"
+   },
+   {
+    "id": "school",
+    "label": "School",
+    "hex": "#f2b705",
+    "match": [
+     {
+      "feed": "oakville",
+      "short": "^(7\\d|8\\d)[A-Z]?$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: school-bus yellow (trail #e3ae28, mustard); oakville.zip colours the school specials 004B8C like every route"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

@@ -1,0 +1,128 @@
+{
+ "id": "europe-paris-buses",
+ "batch": "europe",
+ "area": "paris",
+ "place": "Paris",
+ "boundary": {
+  "name": "Paris",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 105.4
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  2.347,
+  48.857
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "FRAME_DY_KM": -1.15,
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 21
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px opens dark gaps between the central lines where 12 px hazes them; strobe 0.0184 to 0.0182",
+   "TRAIL_ALPHA": "0.44 cuts strobe 0.0182 to 0.0168; lines stay thin and teal with dark blocks between, no white",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe 0.0168 to 0.0147; at 6:45 pm the lines read brighter teal, dark blocks kept, no white",
+   "day.BUS_CORE_R": "2nd round: 1.2 px dots stay sharp white points after VP9 and cut strobe 0.0067 to 0.0039, under the limit",
+   "OUTSIDE_DIM": "0.75 quiets the suburban mesh so the Paris outline reads; roads and Seine stay, contrast 5.54 to 5.98",
+   "day.TRAIL_MINUTES": "3rd round: 40 min cuts strobe 0.0039 to 0.0036; at 6:45 pm the mesh stays teal lines with dark blocks, no white",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 fits the core of Paris across the fit box, the 16th no longer cut at x 0; safe share 0.87 to 0.90",
+   "rush.FRAME_DY_KM": "-1.15 km lifts the 13th and 14th off the clock so Paris sits inside the fit box; the north edge clears the subtitle",
+   "rush.BUS_CORE_R": "2nd round: 1.2 px dots, like the day's, stay sharp points after VP9; close-up strobe 0.0051 to 0.0033",
+   "rush.TRAIL_MINUTES": "3rd round: 21 min cuts close-up strobe 0.0030 to 0.0027; at 8 am the lines stay thin teal with dark blocks"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "hex": "#00aa91",
+    "rest": true,
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: RATP jade 00AA91 of the RATP logo, approximate; idfm.zip gives the 1967 bus routes 185 different route_colors (FFBE00 on 140, the most common), one per line, so none is the network's"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#ff5a00",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "idfm.zip routes.txt route_color FF5A00 on T3a (and T11); T3b 00643C, T2 A0006E, T9 3C91DC and the other trams of the frame join it; pinned at dL -0.12 (trail #c97152) so it reads orange, not peach"
+   },
+   {
+    "id": "noctilien",
+    "label": "Night bus",
+    "hex": "#3c3c96",
+    "match": [
+     {
+      "feed": "idfm",
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: Noctilien blue (a Noctilien stop shows a blue sign with an N, ratp.fr/noctiliens via a search extract), approximate; idfm.zip gives the 59 N routes 21 different route_colors; labelled 'Night bus' (the batch's English word for every night network: London, Paris, Berlin, Vienna); the brand is Noctilien, the Paris night network"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

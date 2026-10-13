@@ -1,0 +1,78 @@
+{
+ "id": "gta-whitby",
+ "batch": "gta",
+ "place": "Whitby",
+ "limits": "town",
+ "boundary": {
+  "name": "Whitby",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 146.68
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -78.961,
+  43.923
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.85
+  },
+  "variant_render": {},
+  "brand_colors": {},
+  "_why": {
+   "OUTSIDE_DIM": "0.85 dims the neighbouring DRT grid, the same green, so Whitby's buses stand out; at 0.55 Oshawa's read as Whitby's"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "drt",
+    "label": "Local",
+    "brand": "drt",
+    "rest": true,
+    "verified": true,
+    "source": "drt.zip routes.txt route_color 006633 on 32 of 38 routes (cities/brands.json drt)"
+   },
+   {
+    "id": "pulse",
+    "label": "PULSE",
+    "hex": "#cc6600",
+    "match": [
+     {
+      "feed": "drt",
+      "short": "^(900|901|915|916)$"
+     }
+    ],
+    "verified": true,
+    "source": "drt.zip routes.txt route_color CC6600 on exactly 900, 901, 915, 916"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)",
+    "why": "GO rides in this grey here: DRT's light green and GO's deep green differ by lightness only and read as one green on a phone (judged on stills); GO keeps its green in the nine other GTA videos"
+   }
+  ]
+ }
+}

@@ -1,0 +1,156 @@
+{
+ "id": "europe-rome",
+ "batch": "europe",
+ "area": "rome",
+ "place": "Rome",
+ "missing": "The feed has no FL regional trains, no Roma-Lido, Roma-Viterbo or Termini-Giardinetti trains and no Cotral buses, so they are not shown.",
+ "boundary": {
+  "name": "Roma",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 1287.4
+ },
+ "modes": [
+  "bus",
+  "tram",
+  "metro"
+ ],
+ "center": [
+  12.496,
+  41.903
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 1,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_LAYER_ALPHA": 0.8,
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 27
+   },
+   "rush": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 14,
+    "PANEL_ALPHA": 1.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the central bus corridors where 12 px fused them into one haze",
+   "day.BUS_CORE_R": "1.2 px dots still read as sharp points after VP9 and cut strobe 0.0049 to 0.0038; the red corridors show",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe 0.0053 to 0.0049; lines a shade brighter, the central corridors keep dark gaps",
+   "TIME_WARP_GAMMA": "1.5 slows both rushes (5:11 to 7:11 pm in 188 frames), strobe 0.0038 to 0.0035; the night still takes 6 s",
+   "day.TRAIL_MINUTES": "2nd round, 1.2 px dots: 27 min cuts strobe 0.0035 to 0.0032; red lines fill in, the centre no whiter",
+   "rush.BUS_CORE_R": "2nd round: 1.2 px dots, like the day's, stay sharp points after VP9; strobe 0.0057 to 0.0040",
+   "rush.TRAIL_MINUTES": "2nd round, 1.2 px dots: 14 min draws Metro B and C and tram 8 whole, no white; strobe 0.0040 to 0.0036",
+   "rush.PANEL_ALPHA": "1.0 leaves the credit line at 4.497 over a road, under the 4.5 floor; 1.15 gives 5.4 and looks the same"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "metro_a",
+    "label": "Metro A",
+    "hex": "#e27439",
+    "dL": 0,
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEA$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip routes.txt route_color E27439 on MEA; pinned at the source step (trail #f0986d) so a refresh cannot move it toward Atac red (0.127) or the tram yellow (0.137)"
+   },
+   {
+    "id": "metro_b",
+    "label": "Metro B",
+    "hex": "#0570b5",
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEB1?$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip routes.txt route_color 0570B5 on MEB and MEB1"
+   },
+   {
+    "id": "metro_c",
+    "label": "Metro C",
+    "hex": "#008456",
+    "dL": 0.1,
+    "legend": "Metro",
+    "match": [
+     {
+      "feed": "rsm",
+      "short": "^MEC$"
+     }
+    ],
+    "verified": true,
+    "source": "rsm.zip routes.txt route_color 008456 on MEC. Pinned at dL +0.10 (trail #85e9b6). At -0.20 (#16895c) it was 0.017 from Atac red under protanopia, and Atac buses run along 59% of Metro C (Via Casilina); now 0.311 (0.213 deutan, 0.308 protan)"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#f2c500",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "rsm",
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "chosen: yellow for tram 8, the only tram line running (route_color empty in rsm.zip); pinned at dL +0.10 (trail #edcf70): at the source step it is 0.095 from Metro A and 0.026 under deuteranopia"
+   },
+   {
+    "id": "atac",
+    "label": "ATAC bus",
+    "brand": "rsm",
+    "match": [
+     {
+      "feed": "rsm",
+      "agency": [
+       "Atac"
+      ],
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": false,
+    "source": "brands.json rsm, Atac red E2001A, approximate (rsm.zip gives buses no route_color); rsm carries the pin dL -0.12 (trail #cb6d64) so it reads red, 0.127 from Metro A orange"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "legend": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893: the contracted outer lines run by BIS, Troiani, ATR Mobility and Tuscia. Label Other, so the description reads 'with everything else in grey' instead of 'with Other bus in grey'"
+   }
+  ]
+ }
+}
