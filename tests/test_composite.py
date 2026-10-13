@@ -201,6 +201,60 @@ class Clip(unittest.TestCase):
         self.assertIsNone(feed("stable").clip_trips)
 
 
+def read_stop_times_whole(feed, trip_ids, chunksize, stops):
+    """read_stop_times as it was before the per-chunk reduction: every kept row kept as read, filtered at the end."""
+    keep, parts, max_t, rows = set(trip_ids), [], 0.0, 0
+    with feed.zf.open(feed.members["stop_times"]) as fh:
+        for chunk in pd.read_csv(fh, dtype=str, usecols=lambda c: c.strip() in set(composite.STOP_TIME_COLUMNS),
+                                 keep_default_na=False, na_filter=False, encoding="utf-8-sig", skipinitialspace=True,
+                                 chunksize=chunksize):
+            chunk.columns = [c.strip() for c in chunk.columns]
+            chunk = chunk[composite.STOP_TIME_COLUMNS].fillna("")
+            rows += len(chunk)
+            a, d = composite.parse_times(chunk["arrival_time"]), composite.parse_times(chunk["departure_time"])
+            m = np.fmax(a, d)
+            if len(m) and not np.all(np.isnan(m)):
+                max_t = max(max_t, float(np.nanmax(m)))
+            sel = chunk["trip_id"].str.strip().isin(keep).to_numpy()
+            parts.append(chunk[sel].assign(_arr=a[sel], _dep=d[sel]))
+    st = pd.concat(parts, ignore_index=True)
+    st = st.assign(trip_id=st["trip_id"].str.strip(), stop_id=st["stop_id"].str.strip())
+    st = st[st["stop_id"].isin(stops.keys())]
+    seq = pd.to_numeric(st["stop_sequence"].str.strip(), errors="coerce").fillna(0).to_numpy(dtype=np.int64)
+    perm, ranges = bn.grouped(st["trip_id"].to_numpy(), seq)
+    return composite.StopTimes(ranges=ranges, stop=st["stop_id"].to_numpy()[perm], arr=st["_arr"].to_numpy(dtype=float)[perm],
+                               dep=st["_dep"].to_numpy(dtype=float)[perm], arr_raw=st["arrival_time"].to_numpy()[perm],
+                               dep_raw=st["departure_time"].to_numpy()[perm], max_t=max_t, rows_read=rows)
+
+
+class ReadingPerChunk(unittest.TestCase):
+    """read_stop_times reduces each chunk as it reads it; the arrays are the whole-file reading's."""
+
+    def test_equal_to_the_whole_reading(self):
+        for name in ("stable", "golike", "drtlike"):
+            f = feed(name)
+            stops = composite.valid_stops(f)
+            trips = sorted({t["trip_id"] for t in f.table("trips")})
+            for chunk in (997, 1000000):
+                for pick in (trips, trips[::2], []):
+                    a = composite.read_stop_times(f, pick, chunk, stops)
+                    b = read_stop_times_whole(f, pick, chunk, stops)
+                    self.assertEqual(a.ranges, b.ranges, (name, chunk))
+                    for k in ("stop", "arr_raw", "dep_raw"):
+                        self.assertEqual(getattr(a, k).dtype, object)
+                        self.assertEqual(list(getattr(a, k)), list(getattr(b, k)), (name, chunk, k))
+                    for k in ("arr", "dep"):
+                        self.assertTrue(np.array_equal(getattr(a, k), getattr(b, k), equal_nan=True), (name, chunk, k))
+                    self.assertEqual((a.max_t, a.rows_read), (b.max_t, b.rows_read), (name, chunk))
+
+    def test_equal_strings_are_one_object(self):
+        f = feed("stable")
+        st = composite.read_stop_times(f, {t["trip_id"] for t in f.table("trips")}, 1000000)
+        for k in ("stop", "arr_raw"):
+            vals = list(getattr(st, k))
+            self.assertEqual(len({id(v) for v in vals}), len(set(vals)), k)
+
+
 class Classes(unittest.TestCase):
     """A-2."""
 
