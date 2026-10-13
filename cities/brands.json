@@ -50,6 +50,29 @@
   {"id": "burlington", "feeds": ["burlington"], "label": "Burlington", "color": "#00447c", "verified": false, "lines": "none", "alt": "#890a07",
    "source": "burlington.zip: 00447C and 890A07 on 6 routes each; blue taken as the brand, check", "rules": []},
   {"id": "milton", "feeds": ["milton"], "label": "Milton", "color": "#0071bc", "verified": false, "lines": "none", "alt": null,
-   "source": "milton.zip is mostly 000000; 0071BC is on one route, approximate", "rules": []}
+   "source": "milton.zip is mostly 000000; 0071BC is on one route, approximate", "rules": []},
+  {"id": "tfl", "feeds": ["bods"], "agency_names": ["London Underground (TfL)", "London Docklands Light Railway - TfL", "London Tramlink", "IFS Cloud Cable Car", "Thames Clippers", "Woolwich Free Ferry", "Arriva London", "Arriva London North", "Arriva London South", "Docklands Buses", "Go Ahead London", "London Sovereign", "London Transit", "London United", "Metroline Travel", "Quality Line", "Stagecoach London", "Sullivan Buses", "Transport UK", "Uno"], "label": "TfL", "credit": "Transport for London", "color": "#dc241f", "dL": -0.12, "verified": false, "lines": "none", "alt": null,
+   "source": "BODS routes.txt has no route_color; TfL red DC241F of the London bus roundel (TfL Colour Standard), approximate; the Underground lines, the DLR and the trams take TfL's own colours in the rules", "rules": [
+    {"id": "bakerloo", "label": "Bakerloo", "short": "^Bakerloo$", "color": "#b36305", "verified": false, "source": "TfL Colour Standard, Bakerloo line; BODS routes.txt has no route_color"},
+    {"id": "central", "label": "Central", "short": "^Central$", "color": "#e32017", "dL": -0.12, "verified": false, "source": "TfL Colour Standard, Central line; BODS routes.txt has no route_color"},
+    {"id": "circle", "label": "Circle", "short": "^Circle$", "color": "#ffd300", "verified": false, "source": "TfL Colour Standard, Circle line; BODS routes.txt has no route_color"},
+    {"id": "district", "label": "District", "short": "^District$", "color": "#00782a", "dL": -0.2, "verified": false, "source": "TfL Colour Standard, District line; BODS routes.txt has no route_color"},
+    {"id": "hammersmith_city", "label": "Hammersmith & City", "short": "^Hammersmith & City$", "color": "#f3a9bb", "verified": false, "source": "TfL Colour Standard, Hammersmith & City line; BODS routes.txt has no route_color"},
+    {"id": "jubilee", "label": "Jubilee", "short": "^Jubilee$", "color": "#a0a5a9", "verified": false, "source": "TfL Colour Standard, Jubilee line; BODS routes.txt has no route_color"},
+    {"id": "metropolitan", "label": "Metropolitan", "short": "^Metropolitan$", "color": "#9b0056", "verified": false, "source": "TfL Colour Standard, Metropolitan line; BODS routes.txt has no route_color"},
+    {"id": "northern", "label": "Northern", "short": "^Northern$", "color": "#000000", "verified": false, "source": "TfL Colour Standard, Northern line; BODS routes.txt has no route_color"},
+    {"id": "piccadilly", "label": "Piccadilly", "short": "^Piccadilly$", "color": "#003688", "dL": -0.12, "verified": false, "source": "TfL Colour Standard, Piccadilly line; BODS routes.txt has no route_color"},
+    {"id": "victoria", "label": "Victoria", "short": "^Victoria$", "color": "#0098d4", "dL": 0, "verified": false, "source": "TfL Colour Standard, Victoria line; BODS routes.txt has no route_color"},
+    {"id": "waterloo_city", "label": "Waterloo & City", "short": "^Waterloo & City$", "color": "#95cdba", "verified": false, "source": "TfL Colour Standard, Waterloo & City line; BODS routes.txt has no route_color"},
+    {"id": "dlr", "label": "DLR", "short": "^DLR$", "color": "#00a4a7", "dL": -0.2, "verified": false, "source": "TfL Colour Standard, DLR; BODS routes.txt has no route_color"},
+    {"id": "trams", "label": "Trams", "short": "^Tram$", "color": "#84b817", "dL": -0.2, "verified": false, "source": "TfL Colour Standard, London Trams; BODS routes.txt has no route_color"}]},
+  {"id": "idfm", "feeds": ["idfm"], "label": "IDFM", "credit": "Île-de-France Mobilités", "color": "#ffbe00", "verified": false, "lines": "all", "alt": null,
+   "source": "idfm.zip gives every line its own route_color (2026 routes, 100%), so none is the agency's; FFBE00 (Métro 1 and 140 bus lines) is the most common, approximate; every line keeps its colour", "rules": []},
+  {"id": "vbb", "feeds": ["vbb"], "label": "VBB", "color": "#f0d722", "verified": false, "lines": "rail", "alt": null,
+   "source": "vbb.zip: buses and most trams have no route_color; F0D722, the BVG yellow of its buses and of U4 (route_color F0D722), stands in, approximate; U-Bahn, S-Bahn and regional lines keep their colours", "rules": []},
+  {"id": "wienerlinien", "feeds": ["wienerlinien"], "label": "Wiener Linien", "color": "#0a295d", "verified": true, "lines": "rail", "alt": null,
+   "source": "wienerlinien.zip route_color 0A295D on 530 of 563 bus routes and the Badner Bahn; trams C00808 and the U-Bahn lines (U1 E3000F, U2 A862A4, U3 EF7C00, U4 319F49, U6 9D6830) keep their colours", "rules": []},
+  {"id": "rsm", "feeds": ["rsm"], "label": "Roma Mobilità", "credit": "Roma Servizi per la Mobilità", "color": "#e2001a", "dL": -0.12, "verified": false, "lines": "rail", "alt": null,
+   "source": "rsm.zip: buses and tram 8 have no route_color; Atac red E2001A, approximate; Metro A E27439, B and B1 0570B5, C 008456 keep their colours", "rules": []}
  ]
 }

@@ -1,0 +1,141 @@
+{
+ "id": "europe-vienna-trains",
+ "batch": "europe",
+ "area": "vienna",
+ "place": "Vienna",
+ "missing": "The feed has no S-Bahn trains, so they are not shown.",
+ "boundary": {
+  "name": "Wien",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 414.9
+ },
+ "modes": [
+  "ubahn"
+ ],
+ "center": [
+  16.373,
+  48.208
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "ROUTE_ALPHA": 0.3
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min keeps each U-Bahn line whole at 22:30, where 12 leaves gaps on U1 and U6; no white, strobe 0.00243 to 0.00241",
+   "TRAIL_SHOULDER_W": "8 px shoulders thin each line and keep U1 to U4 apart in the centre on the RT, colours still read; strobe ties",
+   "day.BUS_CORE_R": "1.6 px trains stay sharp points that read on the RT, as in the target; strobe 0.00242 to 0.00137, under the 0.002 target",
+   "ROUTE_ALPHA": "0.3 keeps the U-Bahn lines faintly drawn at 2:30, when no train runs; by day the trails cover it, no white",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 lifts U1 north off the y of weekday in the subtitle and U2 in to x 938; safe share 0.95 to 0.96",
+   "rush.TRAIL_MINUTES": "9 min joins the gaps on U1 and U2 into whole lines on the close-up, no white; strobe 0.00258 to 0.00255",
+   "rush.BUS_CORE_R": "1.6 px matches the day's small sharp dots and still reads on the RT close-up; strobe 0.00255 to 0.00143"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "u1",
+    "label": "U1",
+    "hex": "#e3000f",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U1$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color E3000F on U1; pinned at dL -0.12 (trail #cb6d62) so it reads red and U3 can keep its orange source step (0.134)"
+   },
+   {
+    "id": "u2",
+    "label": "U2",
+    "hex": "#a862a4",
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U2$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color A862A4 on U2; source step, trail #db95d6"
+   },
+   {
+    "id": "u3",
+    "label": "U3",
+    "hex": "#ef7c00",
+    "dL": 0,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U3$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color EF7C00 on U3; pinned at the source step (trail #ec9c63); free, it was laddered to dL -0.12 and sat 0.085 from U6 brown"
+   },
+   {
+    "id": "u4",
+    "label": "U4",
+    "hex": "#319f49",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U4$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color 319F49 on U4; pinned at dL +0.10 (trail #9ae7a3): at the source step it is 0.069 from the slate city line, and at -0.12 it is 0.010 from U1 red under deuteranopia"
+   },
+   {
+    "id": "u6",
+    "label": "U6",
+    "hex": "#9d6830",
+    "dL": -0.22,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "short": "^U6$"
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color 9D6830 on U6; pinned at dL -0.22 (trail #966129) so it reads brown, 0.123 from U1 red (0.108 at -0.20)"
+   },
+   {
+    "id": "other",
+    "label": "Other"
+   }
+  ]
+ }
+}

@@ -1,0 +1,91 @@
+{
+ "batch": "europe",
+ "title": "Europe: 5 of the 10 largest cities",
+ "theme": "slate",
+ "month": "2026-10",
+ "overture_release": "2026-09-23.1",
+ "render_epoch": 0,
+ "review_videos": ["europe-london-trains-day", "europe-paris-buses-rush", "europe-berlin-trains-week", "europe-rome-rush", "europe-vienna-buses-day"],
+ "areas": [
+  {
+   "id": "london",
+   "origin": [-0.12, 51.50],
+   "timezone": "Europe/London",
+   "country": "GB",
+   "region": "GB-ENG",
+   "holidays": "GB-ENG",
+   "area_box": [-0.88, 50.37, 0.9, 52.3],
+   "feeds": [
+    {"id": "bods", "name": "Transport for London", "publisher": "Bus Open Data Service, Department for Transport", "licence_id": "ogl-uk-3.0", "licence_text": "Open Government Licence v3.0", "area_clip": [-0.56, 51.25, 0.38, 51.73], "one_run": "BODS keeps a short-term timetable version beside the base one on the dates both are valid, so most Piccadilly, District, Circle and Hammersmith & City trips are in the feed twice on a few October weekdays", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-2014/mdb-2014-202610120032/mdb-2014-202610120032.zip", "sha256": "5d35193b894e38a23b3b8733be6e437e49a6724b0d389e384184ef22bb4e67b0"}}
+   ]
+  },
+  {
+   "id": "paris",
+   "origin": [2.35, 48.86],
+   "timezone": "Europe/Paris",
+   "country": "FR",
+   "region": "FR-IDF",
+   "holidays": "FR",
+   "area_box": [2.09, 48.49, 2.67, 49.13],
+   "feeds": [
+    {"id": "idfm", "name": "Île-de-France Mobilités", "publisher": "Île-de-France Mobilités", "licence_id": "idfm-odbl", "licence_text": "Open Database License 1.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tdg-80921/tdg-80921-202610120019/tdg-80921-202610120019.zip", "sha256": "d3f1e251c0d300f93a1e8e3456a647a3f0e000dd7fecc6ad091a33a6c884fa4f"}}
+   ]
+  },
+  {
+   "id": "berlin",
+   "origin": [13.40, 52.52],
+   "timezone": "Europe/Berlin",
+   "country": "DE",
+   "region": "DE-BE",
+   "holidays": "DE-BE",
+   "area_box": [12.79, 51.62, 14.22, 53.15],
+   "feeds": [
+    {"id": "vbb", "name": "VBB", "publisher": "Verkehrsverbund Berlin-Brandenburg", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-782/mdb-782-202610100043/mdb-782-202610100043.zip", "sha256": "8631548b1b4656d1a7eb9bbcda07a107337d16e28693731252ff2357a8e375ee"}}
+   ]
+  },
+  {
+   "id": "vienna",
+   "origin": [16.37, 48.21],
+   "timezone": "Europe/Vienna",
+   "country": "AT",
+   "region": "AT-9",
+   "holidays": "AT",
+   "area_box": [15.99, 47.64, 16.87, 48.64],
+   "feeds": [
+    {"id": "wienerlinien", "name": "Wiener Linien", "publisher": "Wiener Linien and Wiener Lokalbahnen", "licence_id": "cc-by-4.0", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-648/mdb-648-202610060105/mdb-648-202610060105.zip", "sha256": "6c085fe0bdb801b6631cd120ea499fc9693fc7737e03489c6d2c91643fe34088"}}
+   ]
+  },
+  {
+   "id": "rome",
+   "origin": [12.49, 41.89],
+   "timezone": "Europe/Rome",
+   "country": "IT",
+   "region": "IT-62",
+   "holidays": "IT-RM",
+   "area_box": [11.9, 40.8, 13.35, 42.69],
+   "feeds": [
+    {"id": "rsm", "name": "Roma Servizi per la Mobilità", "publisher": "Roma Servizi per la Mobilità", "licence_id": "rsm-open-data", "licence_text": "Roma Servizi per la Mobilità open data licence", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1294/mdb-1294-202610110011/mdb-1294-202610110011.zip", "sha256": "ffa1f378bf0f43611dc34c3edb924e9c4f776fe822743a400f1ec0506f8da02f"}}
+   ]
+  }
+ ],
+ "modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 11, 700, 701, 702, 704, 705, 711, 712, 715, 800]},
+  {"id": "tram", "label": "trams", "singular": "tram", "route_types": [0, 5, 900, 901, 902, 905, 906]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 12, 100, 101, 102, 103, 105, 106, 109, 400, 401, 402, 403, 405],
+   "routes": [{"feed": "idfm", "short": "^(ORLYVAL|CDG VAL)$", "why": "Orlyval and CDGVAL are automated metros with route_type 0"}]},
+  {"id": "tube", "label": "Tube and DLR trains", "singular": "Tube and DLR train", "route_types": [],
+   "routes": [{"feed": "bods", "short": "^(Bakerloo|Central|Circle|District|DLR|Hammersmith & City|Jubilee|Metropolitan|Northern|Piccadilly|Victoria|Waterloo & City)$", "why": "BODS has the Tube and the DLR but no Overground, Elizabeth line or National Rail, so London's titles say Tube and DLR, not every train"}]},
+  {"id": "ubahn", "label": "U-Bahn trains", "singular": "U-Bahn train", "route_types": [],
+   "routes": [{"feed": "wienerlinien", "short": "^U[1-6]$", "why": "the Wiener Linien feed has the U-Bahn but not the ÖBB S-Bahn, so Vienna's titles say U-Bahn, not every train"}]},
+  {"id": "metro", "label": "metro trains", "singular": "metro train", "route_types": [],
+   "routes": [{"feed": "rsm", "short": "^ME(A|B|B1|C)$", "why": "the RSM feed has Metro A, B and C but not the FL lines or the Lido, Viterbo and Giardinetti railways, so Rome's titles say metro, not every train"}]},
+  {"id": "ferry", "label": "ferries", "singular": "ferry", "route_types": [4, 1000, 1200]},
+  {"id": "cable", "label": "cable cars", "singular": "cable car", "route_types": [6, 7, 1300, 1400]},
+  {"id": "coach", "label": "coaches", "singular": "coach", "route_types": [200, 201, 202, 204]}
+ ],
+ "cities": ["europe-london-trains", "europe-paris-trains", "europe-berlin-trains", "europe-london-buses", "europe-rome", "europe-vienna-trains", "europe-paris-buses", "europe-berlin-buses", "europe-vienna-buses"],
+ "variants_default": ["day", "rush", "week"],
+ "hashtags": ["#shorts", "#transit", "#publictransport"],
+ "category": "Travel & Events",
+ "release": {"tag": "shorts-europe", "name": "Shorts: Europe"}
+}

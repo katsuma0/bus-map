@@ -1,0 +1,154 @@
+{
+ "id": "europe-london-buses",
+ "batch": "europe",
+ "area": "london",
+ "place": "London",
+ "limits": "region",
+ "boundary": {
+  "name": "Greater London",
+  "file": "cities/boundaries/greater-london.geojson",
+  "area_km2": 1572.15
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  -0.118,
+  51.509
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 2,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TIME_WARP_GAMMA": 1.5,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.0,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "TITLE_SCRIM": 1.0,
+    "FRAME_ZOOM": 1.1,
+    "BUS_CORE_R": 1.0,
+    "TRAIL_MINUTES": 32,
+    "PANEL_ALPHA": 1.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px leaves dark gaps between the bus corridors where 12 px fused them into a pink haze",
+   "day.BUS_CORE_R": "by hand under tune's 1.2 px floor: 1.0 px cuts strobe 0.0051 to 0.0036, under the limit; dots still read after VP9",
+   "rush.TITLE_SCRIM": "the rush subtitle sat on the north London bus grid with dots through its letters; 1.0 darkens the band behind it",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day so peak dots move less per frame: strobe 0.0060 vs 0.0065; night keeps its frames",
+   "OUTSIDE_DIM": "0.75 quiets the grey county buses past the line so the Greater London shape reads; roads and estuary stay",
+   "day.TRAIL_MINUTES": "40 min cuts strobe from 0.0055 to 0.0051; corridors stay thin lines with dark blocks between, no white fusing",
+   "rush.FRAME_ZOOM": "with 1.2 px dots 1.1 keeps the central corridors apart; 0.99 knots the centre, 1.21 puts the Croydon trams on the clock",
+   "rush.BUS_CORE_R": "by hand under tune's 1.2 px floor: 1.0 px cuts close-up strobe 0.0056 to 0.0037; dots stay sharp points after VP9",
+   "rush.TRAIL_MINUTES": "32 min cuts close-up strobe from 0.0060 to 0.0056; corridors stay thin red lines with dark blocks, no white",
+   "rush.PANEL_ALPHA": "1.15 dims the south London routes behind the legend and credit: contrast 4.70 vs 3.93, the only arm over 4.5"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "tfl",
+    "rest": true,
+    "match": [
+     {
+      "brand": "tfl",
+      "mode": [
+       "bus"
+      ]
+     },
+     {
+      "feed": "bods",
+      "agency": [
+       "Go Ahead Luton Parkway",
+       "FIRST CAPITAL EAST LIMI"
+      ],
+      "mode": [
+       "bus"
+      ]
+     },
+     {
+      "feed": "bods",
+      "agency": [
+       "Metrobus"
+      ],
+      "mode": [
+       "bus"
+      ],
+      "short": "^(127|264|320|35[389]|403|43[49]|450|463|633|R\\d+|S4)$"
+     }
+    ],
+    "verified": false,
+    "source": "TfL Colour Standard, London Buses DC241F (brands.json tfl, which carries the pin dL -0.12, trail #cb6e62, London red not salmon); read from a search extract because tfl.gov.uk does not resolve here; BODS has no route_color. The 2nd and 3rd clauses take TfL routes BODS files under Go Ahead Luton Parkway, FIRST CAPITAL EAST LIMI and Metrobus (all 22 Metrobus routes the regex takes run 64 to 100% of their length inside Greater London; the 20 it leaves (SL7 aside) run 0 to 11% inside)"
+   },
+   {
+    "id": "superloop",
+    "label": "Superloop",
+    "hex": "#e42313",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "bods",
+      "mode": [
+       "bus"
+      ],
+      "short": "^SL\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "Superloop Red RGB 228,35,19 (E42313) of TfL's Superloop logo and colour standards V3 (FOI-1086-2324), read from a search extract. It is the bus red's family, so it is pinned at dL +0.10 (trail #ffbfb4, a light red) to stand apart from Bus at -0.12 (0.223)"
+   },
+   {
+    "id": "night",
+    "label": "Night bus",
+    "hex": "#0019a8",
+    "match": [
+     {
+      "brand": "tfl",
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: TfL Corporate Blue (Pantone 072, digital Beck Blue 0019A8) for the N routes; TfL gives night routes no colour of their own. Source step, trail #8ab0fe"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "brand": "tfl:trams",
+    "verified": false,
+    "source": "TfL Colour Standard, London Trams 84B817 (brands.json rule tfl:trams, which carries the pin dL -0.20, trail #60812b); BODS has no route_color. Kept the brands.json hex rather than the unverified 5FB526: at -0.20 it is 0.068 from Bus red under protanopia (5FB526: 0.055) on the Croydon streets the trams share with buses"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "source": "web/themes.json slate.colors.foreign #8f9893: buses outside TfL (Heathrow hotel shuttles, rail replacement, county routes from Herts, Surrey, Kent, Essex and Berkshire)"
+   }
+  ]
+ }
+}

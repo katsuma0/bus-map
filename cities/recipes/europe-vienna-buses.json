@@ -1,0 +1,146 @@
+{
+ "id": "europe-vienna-buses",
+ "batch": "europe",
+ "area": "vienna",
+ "place": "Vienna",
+ "missing": "VOR's regional buses also run in Vienna but are not in the feed, so they are not shown.",
+ "boundary": {
+  "name": "Wien",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 414.9
+ },
+ "modes": [
+  "bus",
+  "tram"
+ ],
+ "center": [
+  16.373,
+  48.208
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 2,
+  "zoom": 0.95
+ },
+ "override": {
+  "render": {
+   "TRAIL_SHOULDER_W": 8,
+   "TRAIL_ALPHA": 0.44,
+   "TIME_WARP_GAMMA": 1.5,
+   "TRAIL_LAYER_ALPHA": 0.8
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 40
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "BUS_CORE_R": 1.2,
+    "TRAIL_MINUTES": 32
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TRAIL_SHOULDER_W": "8 px shoulders thin the lines and leave dark ground between the inner corridors; strobe 0.0117 to 0.0118, noise",
+   "TRAIL_ALPHA": "0.44 lets the tram red and bus blue read as thin lines and cuts strobe 0.0118 to 0.0114; no added white",
+   "day.BUS_CORE_R": "2nd round: 1.2 px dots are the target's small sharp points and still read after VP9; strobe 0.0064 to 0.0041",
+   "TIME_WARP_GAMMA": "1.5 lingers on the busy day so peak dots jump less per frame: strobe 0.0041 to 0.0038; the night still takes 6 s",
+   "day.TRAIL_MINUTES": "3rd round: 40 min cuts strobe 0.0035 to 0.0033; lines stay thin red and blue with dark blocks between, no white",
+   "TRAIL_LAYER_ALPHA": "0.8 cuts strobe 0.0114 to 0.0106 with no white; 0.95 cuts more but its brighter lines swallow the 1.2 px dots",
+   "rush.FRAME_ZOOM": "2nd round: 0.81 lifts safe share 0.89 to 0.92; Donaustadt stays above y 800, clear of the button column",
+   "rush.BUS_CORE_R": "2nd round: 1.2 px matches the day's small sharp dots and still reads after VP9; strobe 0.0066 to 0.0043",
+   "rush.TRAIL_MINUTES": "4th round: 32 min cuts close-up strobe 0.0036 to 0.0032; thin whole lines with dark blocks, as the target"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "bus",
+    "label": "Bus",
+    "brand": "wienerlinien",
+    "rest": true,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "mode": [
+       "bus"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color 0A295D on 530 of 563 bus routes (brands.json wienerlinien)"
+   },
+   {
+    "id": "tram",
+    "label": "Tram",
+    "hex": "#c00808",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "agency": [
+       "Wiener Linien GmbH & Co KG"
+      ],
+      "mode": [
+       "tram"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "wienerlinien.zip routes.txt route_color C00808 on all 243 tram routes; pinned at dL -0.12 (trail #cb6e61) so it reads red, not salmon"
+   },
+   {
+    "id": "nightline",
+    "label": "Night bus",
+    "hex": "#ffd200",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "mode": [
+       "bus"
+      ],
+      "short": "^N\\d+$"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: the yellow N of the blue NightLine stop sign (wien.info via a search extract), approximate; wienerlinien.zip gives the N routes the day buses' 0A295D or none; pinned at dL +0.10 (trail #eccf70) to clear the slate city line (0.086 at the source step, trail #cbaf4f); labelled 'Night bus' (the batch's English word for every night network: London, Paris, Berlin, Vienna); the brand is NightLine, Wiener Linien's night network"
+   },
+   {
+    "id": "badner_bahn",
+    "label": "Badner Bahn",
+    "neutral": true,
+    "match": [
+     {
+      "feed": "wienerlinien",
+      "agency": [
+       "Wiener Lokalbahnen GmbH"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is: Wiener Lokalbahnen is its own company, and wienerlinien.zip gives route BB the bus navy 0A295D"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json slate.colors.foreign #8f9893, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}
