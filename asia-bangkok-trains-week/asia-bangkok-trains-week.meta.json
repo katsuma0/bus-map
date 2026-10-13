@@ -1,0 +1,35 @@
+{
+ "file": "asia-bangkok-trains-week.mp4",
+ "title": "A week of every train in Bangkok",
+ "description": "A week of every train in Bangkok, Monday to Sunday, in 60 seconds.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Bangkok city limits are faded and not counted. Colours: BTS, Blue Line, Purple Line, Pink Line, Yellow Line and Red/ARL, with everything else in grey.\n\nBusiest moment: 214 trains, Monday at 7:30 pm.\nThe daily averages use every October 2026 date in each timetable and leave out King Bhumibol Memorial Day (October 13), Bangkok special holiday (October 16) and Chulalongkorn Day (October 23).\n\nNamtang (Office of Transport and Traffic Policy and Planning, Thailand): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #bangkok",
+ "tags": [
+  "Bangkok",
+  "Namtang",
+  "transit map",
+  "train map",
+  "GTFS"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#bangkok"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Namtang (Office of Transport and Traffic Policy and Planning, Thailand): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "namtang",
+   "licence_id": "otp-namtang",
+   "commercial": "yes",
+   "note": "namtang-api.otp.go.th/opendata: the data kept in the Namtang system is open data, copyright OTP, under Creative Commons CC-BY (the page names no version; the Mobility Database and the Transitland Atlas record 4.0); credit the Office of Transport and Traffic Policy and Planning, Thailand",
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 9,
+ "meta_key": "60db09c4b62bfe108018b7d1b7271bfb2eae7664a512200c4a12e892e9d16b59"
+}

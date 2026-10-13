@@ -1,0 +1,42 @@
+{
+ "name": "asia-kuala-lumpur-trains-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 16,
+ "kbps": 8922,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 60.9,
+ "query": "record=1&data=../build/asia-kuala-lumpur-trains/day/network.json.gz&basemap=../build/asia-kuala-lumpur-trains/basemap.json.gz&variant=rush&render=%7B%22BASE_ROADS_GAIN%22%3A0.75%2C%22CAMERA_PATH%22%3A%22pull-out-west%22%2C%22CARD_LINES%22%3A1%2C%22FRAME_DY_KM%22%3A-1.42%2C%22FRAME_ZOOM%22%3A0.9%2C%22LEGEND%22%3Afalse%2C%22TRAIL_MINUTES%22%3A9%7D&paint=%7B%22ampang%22%3A%7B%22dL%22%3A-0.1%2C%22hex%22%3A%22e57200%22%7D%2C%22kajang%22%3A%7B%22dL%22%3A-0.28%2C%22hex%22%3A%22047940%22%7D%2C%22kelana%22%3A%7B%22dL%22%3A-0.22%2C%22hex%22%3A%22d50032%22%7D%2C%22ktm%22%3A%7B%22hex%22%3A%223c5a9f%22%7D%2C%22monorail%22%3A%7B%22hex%22%3A%2284bd00%22%7D%2C%22putrajaya%22%3A%7B%22dL%22%3A0.12%2C%22hex%22%3A%22ffcd00%22%7D%7D",
+ "network_sha256": "8e1d3e6ca5625cd0d6cd156644bd8dd298ca22ac792d93dbea168c8c3dc7b780",
+ "basemap_sha256": "d81a6c2b4d2bb468a79907fd6d9665d45709318e3d7ac0a9eeaf9ca02f0dfd07",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "ee1c23f5324e284e9b100f0eca7c6e12fefccded",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001829, 4 cpus",
+ "started_at": "2026-10-12T20:03:36.317Z",
+ "key": "382425d8fd00df1b3d8e347ffb9be691754e580dd935df29850b25f1a3c520e1",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 7007
+  },
+  {
+   "crf": 16,
+   "kbps": 8922
+  }
+ ]
+}

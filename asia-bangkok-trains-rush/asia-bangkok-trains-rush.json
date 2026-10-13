@@ -1,0 +1,38 @@
+{
+ "name": "asia-bangkok-trains-rush",
+ "variant": "rush",
+ "tier": "final",
+ "frames": 750,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 25,
+ "crf": 18,
+ "kbps": 9843,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 34.8,
+ "query": "record=1&data=../build/asia-bangkok-trains/day/network.json.gz&basemap=../build/asia-bangkok-trains/basemap.json.gz&variant=rush&render=%7B%22BUS_CORE_R%22%3A1.6%2C%22CAMERA_PATH%22%3A%22drift-sway%22%2C%22CARD_LINES%22%3A0%2C%22FRAME_ZOOM%22%3A0.9%2C%22LEGEND%22%3Afalse%2C%22PANEL_ALPHA%22%3A1.15%2C%22TRAIL_MINUTES%22%3A9%7D&paint=%7B%22blue%22%3A%7B%22hex%22%3A%221964b7%22%7D%2C%22bts%22%3A%7B%22hex%22%3A%2265b724%22%7D%2C%22pink%22%3A%7B%22hex%22%3A%22cd4692%22%7D%2C%22purple%22%3A%7B%22dL%22%3A-0.2%2C%22hex%22%3A%22660066%22%7D%2C%22red%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22e10506%22%7D%2C%22yellow%22%3A%7B%22dL%22%3A0.1%2C%22hex%22%3A%22ffe547%22%7D%7D",
+ "network_sha256": "e9f919a25d0d63721acf38c5acc52c188485b48899962c302ab650f4ea982a9e",
+ "basemap_sha256": "e6200e900690a223b0ff989b29724307e4e76debb14c0dc450733c844ff0a778",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "ee1c23f5324e284e9b100f0eca7c6e12fefccded",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001821, 4 cpus",
+ "started_at": "2026-10-12T20:03:21.034Z",
+ "key": "fa1d665d546124dec466e7bedd0e6c9950908c7d7be790437dd7a89226fb1b2d",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 9843
+  }
+ ]
+}

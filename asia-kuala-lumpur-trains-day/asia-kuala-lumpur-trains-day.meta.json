@@ -1,0 +1,44 @@
+{
+ "file": "asia-kuala-lumpur-trains-day.mp4",
+ "title": "Every train in Kuala Lumpur in 24 hours",
+ "description": "Every train running in Kuala Lumpur on an average October weekday, from the morning rush to the next morning, in 50 seconds. The feed has no route shapes for the long-distance ETS and airport ERT trains, so they are left out.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Kuala Lumpur city limits. The faded ones are just outside. Colours: Kelana Jaya, Ampang lines, Kajang, Putrajaya, Monorail and KTM, with everything else in grey.\n\nBusiest moment: 109 trains at 8:37 am.\nThe weekday average uses every October 2026 weekday in each timetable.\n\nRapid Rail KL (Prasarana Malaysia, via data.gov.my): CC BY 4.0.\nKTMB (Keretapi Tanah Melayu, via data.gov.my): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #kualalumpur",
+ "tags": [
+  "Kuala Lumpur",
+  "Rapid Rail KL",
+  "KTMB",
+  "transit map",
+  "train map",
+  "GTFS"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#kualalumpur"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Rapid Rail KL (Prasarana Malaysia, via data.gov.my): CC BY 4.0.",
+  "KTMB (Keretapi Tanah Melayu, via data.gov.my): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "rapid-rail",
+   "licence_id": "data-gov-my",
+   "commercial": "yes",
+   "note": "developer.data.gov.my FAQ (Malaysia's national Open API, which serves the Prasarana and KTMB GTFS): the data is made open under CC BY 4.0, free to use; the page's source is github.com/data-gov-my/datagovmy-front apps/docs/pages/faq.en.mdx; credit the publisher and say the timetables were averaged",
+   "allow_nc": null
+  },
+  {
+   "feed": "ktmb",
+   "licence_id": "data-gov-my",
+   "commercial": "yes",
+   "note": "developer.data.gov.my FAQ (Malaysia's national Open API, which serves the Prasarana and KTMB GTFS): the data is made open under CC BY 4.0, free to use; the page's source is github.com/data-gov-my/datagovmy-front apps/docs/pages/faq.en.mdx; credit the publisher and say the timetables were averaged",
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 2,
+ "meta_key": "e662ba5ed1cd268b935a738e7d4d18380cf5ca95f9c367f06c0b53bc42a3a0fc"
+}

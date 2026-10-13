@@ -1,0 +1,38 @@
+{
+ "name": "asia-bangkok-buses-week",
+ "variant": "week",
+ "tier": "final",
+ "frames": 1800,
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "duration_s": 60,
+ "crf": 18,
+ "kbps": 8777,
+ "bitrate_floor_met": true,
+ "capture": "raw",
+ "ms_per_frame": 251.7,
+ "query": "record=1&data=../build/asia-bangkok-buses/week/network.json.gz&basemap=../build/asia-bangkok-buses/basemap.json.gz&variant=week&render=%7B%22BUS_HALO_ALPHA%22%3A0.06%2C%22CAMERA_PATH%22%3A%22pull-out-south%22%2C%22CARD_LINES%22%3A2%2C%22FRAME_ZOOM%22%3A1.0%2C%22LEGEND%22%3Atrue%2C%22TRAIL_SHOULDER_W%22%3A8%2C%22WEEKEND_BAND%22%3Afalse%7D&paint=%7B%22bmta%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ff0000%22%7D%2C%22boats%22%3A%7B%22hex%22%3A%22ffcc00%22%7D%2C%22minibus%22%3A%7B%22hex%22%3A%223fae5a%22%7D%2C%22tsb%22%3A%7B%22hex%22%3A%22063970%22%7D%2C%22vans%22%3A%7B%22dL%22%3A-0.12%2C%22hex%22%3A%22ff00ff%22%7D%7D",
+ "network_sha256": "64e5958ffd4f7d95bd6586b004aa8a505238db01650cbecb84e341684e5b9b41",
+ "basemap_sha256": "e6200e900690a223b0ff989b29724307e4e76debb14c0dc450733c844ff0a778",
+ "code_sha256": {
+  "app.js": "facf343bbcba6159d60dc0b3d1870a559afddf29c1910876e468479b9c40e4c1",
+  "index.html": "37e62113137f7fd44fdb6c30ec59e5a223a6b694729bfe98a357d5aea7dabadb",
+  "color.js": "8f02ae2aea564b5e97645d7d0eae87ac39a7d684098ea4e3cb8b5454e45a00ab",
+  "themes.json": "0c81611acb9360fe758ed2712637cc91b329e227acf8930bff4f9f1a74d0fae2",
+  "presets/shorts.json": "bed77f0b836d75638f18fa0f109a2b765e1f5f8b4a107f666784e5a47cfad335",
+  "render_video.mjs": "4878f02e78cfccb0865b41862eea936d500792d2aea20899ed3e69b0c630594f"
+ },
+ "git_commit": "ee1c23f5324e284e9b100f0eca7c6e12fefccded",
+ "chromium": "141.0.7390.37 (chromium-1194)",
+ "ffmpeg": "6.1.1-3ubuntu5",
+ "runner": "github-actions Linux X64 GitHub Actions 1000001824, 4 cpus",
+ "started_at": "2026-10-12T20:03:43.651Z",
+ "key": "9120bcf7cb18574a77248af0abc48c571e58e66911a728b5fa17f9b1c193a5a4",
+ "ladder": [
+  {
+   "crf": 18,
+   "kbps": 8777
+  }
+ ]
+}

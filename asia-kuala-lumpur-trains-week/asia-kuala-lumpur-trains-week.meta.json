@@ -1,0 +1,44 @@
+{
+ "file": "asia-kuala-lumpur-trains-week.mp4",
+ "title": "A week of every train in Kuala Lumpur",
+ "description": "A week of every train in Kuala Lumpur, Monday to Sunday, in 60 seconds. The feed has no route shapes for the long-distance ETS and airport ERT trains, so they are left out.\n\nEach day is the average of that weekday in October 2026, so Saturday is a typical Saturday, not one particular one. Vehicles outside the Kuala Lumpur city limits are faded and not counted. Colours: Kelana Jaya, Ampang lines, Kajang, Putrajaya, Monorail and KTM, with everything else in grey.\n\nBusiest moment: 109 trains, Monday at 8:37 am.\nThe daily averages use every October 2026 date in each timetable.\n\nRapid Rail KL (Prasarana Malaysia, via data.gov.my): CC BY 4.0.\nKTMB (Keretapi Tanah Melayu, via data.gov.my): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #kualalumpur",
+ "tags": [
+  "Kuala Lumpur",
+  "Rapid Rail KL",
+  "KTMB",
+  "transit map",
+  "train map",
+  "GTFS"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#kualalumpur"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Rapid Rail KL (Prasarana Malaysia, via data.gov.my): CC BY 4.0.",
+  "KTMB (Keretapi Tanah Melayu, via data.gov.my): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "rapid-rail",
+   "licence_id": "data-gov-my",
+   "commercial": "yes",
+   "note": "developer.data.gov.my FAQ (Malaysia's national Open API, which serves the Prasarana and KTMB GTFS): the data is made open under CC BY 4.0, free to use; the page's source is github.com/data-gov-my/datagovmy-front apps/docs/pages/faq.en.mdx; credit the publisher and say the timetables were averaged",
+   "allow_nc": null
+  },
+  {
+   "feed": "ktmb",
+   "licence_id": "data-gov-my",
+   "commercial": "yes",
+   "note": "developer.data.gov.my FAQ (Malaysia's national Open API, which serves the Prasarana and KTMB GTFS): the data is made open under CC BY 4.0, free to use; the page's source is github.com/data-gov-my/datagovmy-front apps/docs/pages/faq.en.mdx; credit the publisher and say the timetables were averaged",
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 10,
+ "meta_key": "9f8e2653daf0311b99e05f62a36fda37e570084341b415f7c994e80dd0780322"
+}

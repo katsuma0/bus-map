@@ -1,0 +1,35 @@
+{
+ "file": "asia-bangkok-buses-day.mp4",
+ "title": "Every bus and boat in Bangkok in 24 hours",
+ "description": "Every bus and boat running in Bangkok on an average October weekday, from the morning rush to the next morning, in 50 seconds.\n\nI took the October 2026 timetables, kept the trips that run on at least half of the weekdays, and put each vehicle where its schedule says it is. The count is the average for that minute and only includes vehicles inside the Bangkok city limits. The faded ones are just outside. Colours: BMTA, Thai Smile, Vans, Minibuses and Boats, with everything else in grey.\n\nBusiest moment: 7,268 vehicles at 8:01 am.\nThe weekday average uses every October 2026 weekday in each timetable and leaves out King Bhumibol Memorial Day (October 13), Bangkok special holiday (October 16) and Chulalongkorn Day (October 23).\n\nNamtang (Office of Transport and Traffic Policy and Planning, Thailand): CC BY 4.0.\nMap: Overture Maps Foundation, © OpenStreetMap contributors (ODbL).\nMade by SOtownships.\n\n#shorts #transit #publictransit #bangkok",
+ "tags": [
+  "Bangkok",
+  "Namtang",
+  "transit map",
+  "bus map",
+  "GTFS"
+ ],
+ "hashtags": [
+  "#shorts",
+  "#transit",
+  "#publictransit",
+  "#bangkok"
+ ],
+ "category": "Travel & Events",
+ "credits": [
+  "Namtang (Office of Transport and Traffic Policy and Planning, Thailand): CC BY 4.0."
+ ],
+ "licences": [
+  {
+   "feed": "namtang",
+   "licence_id": "otp-namtang",
+   "commercial": "yes",
+   "note": "namtang-api.otp.go.th/opendata: the data kept in the Namtang system is open data, copyright OTP, under Creative Commons CC-BY (the page names no version; the Mobility Database and the Transitland Atlas record 4.0); credit the Office of Transport and Traffic Policy and Planning, Thailand",
+   "allow_nc": null
+  }
+ ],
+ "flags": [],
+ "licence_flags": [],
+ "publish_order": 3,
+ "meta_key": "a6484e97673e2453679fff2e9f80d8dc5be8c89c83f1f19c1fbfe638c75365a9"
+}
