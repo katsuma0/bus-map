@@ -539,7 +539,8 @@ does today).
 | `batch` | str | yes | | `cities/batches/<batch>.json` must list this id |
 | `area` | str | no | the batch's only area | required when the batch has several areas |
 | `place` | str | yes | | name in title, card and count line ("412 vehicles in Markham") |
-| `limits` | `city`, `town`, `township`, `village` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; not with a boundary of several divisions; changes the meta key, not the render key |
+| `limits` | `city`, `town`, `township`, `village`, `region` | no | `city` | what the place is, for the description's "the Oakville town limits" and "inside the town"; `region` for a boundary that is no city's limits, named by its `boundary.name` ("inside Greater London"); not with a boundary of several divisions; changes the meta key, not the render key |
+| `missing` | str | no | | one or two sentences on what the feeds leave out ("VOR's regional buses are not in the feed, so they are not shown."), capital first, full stop last, one line, at most 200 characters in all, as `{missing}` right after the description's opening sentence; changes the meta key, not the render key |
 | `boundary` | obj or [obj] | yes | | one division, or a list of divisions whose union is the boundary (2.15); each has the keys below |
 | `boundary.name` | str | yes | | Overture `names.primary`, exact |
 | `boundary.subtypes` | [str] | no | `["locality", "localadmin", "county"]` | preference order; may also name `region`, for a city that is a state or province of its own (Berlin, Wien, Kuala Lumpur `MY-14`, Bangkok `TH-10`), which Overture holds only as a region; the area's divisions file then keeps regions (`<region>-<area>+region.geojson`) |
@@ -746,6 +747,7 @@ filled by B in the page: `{place}`, `{modes_singular}`, `{modes_plural}`, `{peak
 `{trips}`, `{month}`. A filled card line starts with a capital, so a place such as `the GTA` can
 open one. D adds in metadata `{agencies}`,
 `{dates_sentence}`, `{credits}`, `{author}`, `{hashtags}`, `{seconds}`, `{year}` (of `{month}`), `{peak_day}`,
+`{missing}` (a space and the recipe's `missing`, or nothing, after the description's opening sentence),
 and `{timetable_month}` and `{timetable_year}`: the batch month, which differs from `{month}` when a
 major fallback feed sets the label (Burlington: November), for sentences about the timetables;
 `{timetables}`, the variant's sentence about them (`sentences.timetables_<variant>`, "I took the
@@ -753,15 +755,19 @@ October 2026 timetables, ..."), which, when a major fallback feed sets the label
 reason instead (`timetables_<variant>_fallback` and `fallback_lead`: "Burlington Transit has no
 October timetable, so I used November 2 to 27 for it and October 2026 for the other agencies.");
 `{dates_sentence}` then says "in the other timetables" and leaves that feed's fallback out, so the
-description says it once. `{dates_sentence}` gives each caveat once: a feed's reduced days in one
-sentence (`low`, `low_many`: "GO Transit ran a reduced timetable on October 10 and 11, so those days
+description says it once. `{dates_sentence}` gives each caveat once: a feed's `start` days in one sentence
+(`start_one`, `start_many`: "Roma Servizi per la Mobilità starts its October timetable on October
+9, so the earlier days are left out.", leaving its holidays and clock changes before that date
+unsaid), its reduced days in one
+(`low`, `low_many`: "GO Transit ran a reduced timetable on October 10 and 11, so those days
 are left out."), its median-date classes in one (`median_changed`, `median_few`, `median_both`), and
 feeds with the same caveats in one ("Long Island Rail Road and Metro-North Railroad changed their
 timetables during October and have fewer than three usable October Mondays, so their Monday and
 Friday each use one typical date."); a feed's two sentences come together, busiest feed first;
 `{vehicles}` as the page fills it; `{limits}` (`sentences.limits_one`, "the Markham city limits",
 with the recipe's `limits` for `{kind}`: "the Oakville town limits"; `limits_one_city` for a place
-whose name has that word, "the New York City limits"; or
+whose name has that word, "the New York City limits"; `limits_region` for `limits` `region`, the
+boundary's name, which `the_city_region` gives `{the_city}` too: "Greater London"; or
 for a union boundary `limits_many`, the divisions' names joined: "Toronto, Peel Region, York
 Region, Durham Region and Halton Region") and `{the_city}` (`the_city_one` "the city" or "the town",
 `the_city_many` "the region"). In `tags`, the entry `{mode_tags}` stands for `mode_tags[<mode id>]` of
@@ -880,7 +886,8 @@ meta.feeds[]           {"id","name","publisher","licence_id","licence_text","ver
                         "dates": [...] (day) | {"mon": [...], ..., "sun": [...]} (week),
                         "rule": "half" | "median-date" (day) | {"mon": "half", ...} (week),
                         "median_date": "2026-10-20" | {"tue": "2026-10-20", ...} (only where rule is median-date),
-                        "excluded": [{"date","why": "holiday"|"dst"|"low"|"no service","trips","median","name"}],
+                        "excluded": [{"date","why": "holiday"|"dst"|"low"|"start"|"no service","trips","median","name"}]
+                                    ("starts" too on a "start" date, A3.2),
                         "classes","drawn","mean_trips_per_day",
                         "inside_vehicle_minutes","inside_share","major": bool}
 meta.trips_total       trips in this file (copies counted)
@@ -1349,6 +1356,14 @@ to last date with any service). `wd` = Monday to Friday.
 4. `low`: trips on the date `< (1 - drop_pct / 100) x median` (drop_pct 8), the median over the
    class's dates still in after steps 1 to 3. One pass. Every median in A3 is a lower median (for
    an even count, the lower of the two middle values), so all tests stay in integers.
+5. `start`: a `low` date before the feed's timetable starts, with `"starts"` that date: the first
+   date of the feed, in any month and any class of the timeline with dates left, that is no holiday
+   and is not low against that class's median of step 4. A feed published part-way through the
+   month carries only a few services before it: Rome's (`rsm`) runs one service a day from
+   September 21, nine on October 7 and 8 and 532 on October 9, so October 1 to 8 are `start` with
+   `"starts": "2026-10-09"`; a feed that ran its full timetable before a low date covered it, and
+   the date stays `low`. The description says when the timetable starts for a `start` date and that
+   the feed ran a reduced timetable only for a `low` one.
 
 **A3.3 Fallback.** If a class has no date left for a feed, the feed uses the dates of that class in
 `[first valid date, first valid date + fallback_days - 1]` (28 days) with the same exclusions, and

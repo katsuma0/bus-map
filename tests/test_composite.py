@@ -124,6 +124,59 @@ class Selection(unittest.TestCase):
         self.assertEqual([d.day for d in week["sat"]["dates"]], [7, 14, 21, 28])
         self.assertEqual(composite.feed_month_used(week, "2026-10"), "2026-11")
 
+    @staticmethod
+    def rome(full_from):
+        """Rome's feed of October 2026: one service runs from September 21 (2,350 trips a day), nine run on
+        October 7 and 8 (8,858), and the timetable proper runs from `full_from`."""
+        counts = collections.Counter()
+        d = D(2026, 9, 21)
+        while d <= D(2026, 11, 30):
+            if d >= full_from:
+                counts[d] = (37901, 37901, 37901, 37901, 37901, 29791, 20410)[d.weekday()]
+            else:
+                counts[d] = 8858 if d >= D(2026, 10, 7) else 2350
+            d += dt.timedelta(days=1)
+        return counts
+
+    def test_low_days_before_the_timetable_starts(self):
+        """Days that are low only because the feed's timetable starts part-way through the month say when it
+        starts (`start`), not that the feed ran a reduced timetable."""
+        hol = {"2026-10-04": "Saint Francis of Assisi"}
+        counts = self.rome(D(2026, 10, 9))
+        day = composite.select_dates(counts, dict(timeline("day", holidays=hol), timezone="Europe/Rome"),
+                                     "Europe/Rome", 26 * 3600)
+        ex = {e["date"]: e for e in day["wd"]["excluded"]}
+        self.assertEqual(sorted(ex), ["2026-10-01", "2026-10-02", "2026-10-05", "2026-10-06", "2026-10-07",
+                                      "2026-10-08"])
+        self.assertEqual({(e["why"], e["starts"]) for e in ex.values()}, {("start", "2026-10-09")})
+        self.assertEqual((ex["2026-10-07"]["trips"], ex["2026-10-07"]["median"]), (8858, 37901))
+        self.assertEqual(day["wd"]["dates"][0], D(2026, 10, 9))
+        week = composite.select_dates(counts, dict(timeline("week", holidays=hol), timezone="Europe/Rome"),
+                                      "Europe/Rome", 26 * 3600)
+        why = {e["date"]: e["why"] for k in week for e in week[k]["excluded"]}
+        self.assertEqual(why["2026-10-03"], "start", "a Saturday before the start, against the Saturday median")
+        self.assertEqual(why["2026-10-04"], "holiday")
+        self.assertEqual((why["2026-10-24"], why["2026-10-25"]), ("dst", "dst"))
+        self.assertNotIn("low", why.values())
+
+    def test_low_day_the_feed_covered(self):
+        """A feed that ran its full timetable before a low day covered that day: it stays `low`."""
+        counts = self.rome(D(2026, 9, 21))
+        counts[D(2026, 10, 1)] = 2350
+        counts[D(2026, 10, 2)] = 30000
+        day = composite.select_dates(counts, dict(timeline("day", holidays={}), timezone="Europe/Rome"),
+                                     "Europe/Rome", 26 * 3600)
+        ex = {e["date"]: e for e in day["wd"]["excluded"]}
+        self.assertEqual({d: e["why"] for d, e in ex.items()}, {"2026-10-01": "low", "2026-10-02": "low"})
+        self.assertNotIn("starts", ex["2026-10-01"])
+        # A full September before a part-way October still starts in September: nothing is `start`.
+        counts = self.rome(D(2026, 10, 9))
+        for i in range(10):
+            counts[D(2026, 9, 21) + dt.timedelta(days=i)] = 37901
+        day = composite.select_dates(counts, dict(timeline("day", holidays={}), timezone="Europe/Rome"),
+                                     "Europe/Rome", 26 * 3600)
+        self.assertEqual({e["why"] for e in day["wd"]["excluded"]}, {"low"})
+
     def test_no_dates_at_all(self):
         sel = composite.select_dates(collections.Counter(), timeline("day"), "America/Toronto", 0)
         self.assertEqual(sel["wd"]["dates"], [])

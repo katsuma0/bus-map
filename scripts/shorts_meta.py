@@ -162,6 +162,11 @@ def limits_words(recipe, place, templates):
     # The recipe's limits says what the place is: Oakville and Whitby are towns. A place that already
     # says it (New York City, Mexico City) would read "the New York City city limits".
     kind = recipe.get("limits") or "city"
+    if kind == "region":
+        # London's boundary is Greater London, a region and no city's limits: the description names it.
+        name = clean((b[0] if isinstance(b, list) else b)["name"])
+        return (fmt(s["limits_region"], {"place": place, "name": name}, "limits_region"),
+                fmt(s["the_city_region"], {"place": place, "name": name}, "the_city_region"))
     key = "limits_one_city" if re.search(rf"\b{re.escape(kind)}\b", place, re.IGNORECASE) else "limits_one"
     return (fmt(s[key], {"place": place, "kind": kind}, key),
             fmt(s["the_city_one"], {"place": place, "kind": kind}, "the_city_one"))
@@ -235,8 +240,17 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
     mname, year = month_name(month), month[:4]
     feeds = inside_feeds(netmeta)
     holidays, dst = {}, set()
+    # The day a feed's timetable starts (composite A3.2 step 5), for a feed of the month; a fallback
+    # feed's sentence already gives the range it uses.
+    begins = {}
+    for f in feeds:
+        found = [x["starts"] for x in f.get("excluded", []) or [] if x.get("why") == "start"]
+        begins[f["id"]] = min(found) if found and f.get("month_used", month) == month else None
     for f in feeds:
         for x in f.get("excluded", []) or []:
+            # A holiday or a clock change before the timetable starts is one of "the earlier days".
+            if begins[f["id"]] and x["date"] < begins[f["id"]]:
+                continue
             if x.get("why") == "holiday":
                 holidays[x["date"]] = clean(x.get("name") or "a holiday")
             elif x.get("why") == "dst":
@@ -265,6 +279,7 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
     # too few weekend dates), and New York's trains said the same two things of LIRR and Metro-North.
     caveats = []
     for f in feeds:
+        start = begins[f["id"]]
         low = tuple(sorted({x["date"] for x in f.get("excluded", []) or [] if x.get("why") == "low"}))
         rule, dates = f.get("rule"), f.get("dates")
         if isinstance(rule, dict):
@@ -273,12 +288,17 @@ def dates_sentence(netmeta, templates, week, lead=(), others=True):
             classes = ["wd"] if rule == "median-date" else []
         few = tuple(k for k in classes if len((dates.get(k, []) if isinstance(dates, dict) else dates) or []) < 3)
         changed = tuple(k for k in classes if k not in few)
-        caveats.append((clean(f["name"]), low or None, (changed, few) if classes else None))
-    lows = dict(grouped((low, name) for name, low, _ in caveats if low))
-    medians = dict(grouped((median, name) for name, _, median in caveats if median))
+        caveats.append((clean(f["name"]), start, low or None, (changed, few) if classes else None))
+    starts = dict(grouped((start, name) for name, start, _, _ in caveats if start))
+    lows = dict(grouped((low, name) for name, _, low, _ in caveats if low))
+    medians = dict(grouped((median, name) for name, _, _, median in caveats if median))
     # A feed's caveats come together, busiest feed first. With every reduced-day sentence first,
     # Oshawa's week read GO, then Durham Region Transit, then GO again.
-    for _, low, median in caveats:
+    for _, start, low, median in caveats:
+        if start in starts:
+            names = starts.pop(start)
+            out.append(fmt(s["start_one" if len(names) == 1 else "start_many"],
+                           {"feed": join_words(names), "month": mname, "date": date_label(start)}, "sentences"))
         if low in lows:
             names = lows.pop(low)
             if len(low) == 1:
@@ -486,6 +506,9 @@ def build_meta(*, batch, recipe, netmeta, templates, licences, defaults, publish
         "trips": with_commas(netmeta.get("trips_total") or 0),
         "dates_sentence": dates_sentence(netmeta, templates, variant == "week", lead, others),
         "colors": colors_sentence(netmeta, templates),
+        # What the feeds leave out of a title that says every vehicle (Vienna's VOR regional buses), in the
+        # recipe's own words, right after the opening sentence that makes the claim.
+        "missing": f" {clean(recipe['missing']).strip()}" if recipe.get("missing") else "",
         "credits": "\n".join(credits), "author": defaults.get("author", ""),
         "hashtags": " ".join(hashtags),
     }
