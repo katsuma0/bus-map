@@ -1,0 +1,191 @@
+{
+ "id": "gta-trains",
+ "batch": "gta",
+ "place": "the GTA",
+ "boundary": [
+  {
+   "name": "Toronto",
+   "subtypes": [
+    "county"
+   ],
+   "area_km2": 631.1
+  },
+  {
+   "name": "Peel Region",
+   "subtypes": [
+    "county"
+   ],
+   "area_km2": 1246.9
+  },
+  {
+   "name": "York Region",
+   "subtypes": [
+    "county"
+   ],
+   "area_km2": 1762.1
+  },
+  {
+   "name": "Durham Region",
+   "subtypes": [
+    "county"
+   ],
+   "area_km2": 2523.8
+  },
+  {
+   "name": "Halton Region",
+   "subtypes": [
+    "county"
+   ],
+   "area_km2": 964.0
+  }
+ ],
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -79.3,
+  43.9
+ ],
+ "frame": {
+  "km_vertical": 115.0,
+  "center_km": [
+   10.2,
+   -17.7
+  ]
+ },
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": false
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "BASE_ROADS_GAIN": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "FRAME_DX_KM": -4.6,
+    "BUS_CORE_R": 1.6,
+    "BUS_HALO_ALPHA": 0.07
+   },
+   "week": {
+    "FRAME_DX_KM": -4.6
+   },
+   "rush": {
+    "FRAME_DX_KM": -4.6,
+    "TRAIL_MINUTES": 12,
+    "BUS_CORE_R": 1.6,
+    "BUS_HALO_ALPHA": 0.07
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "frame": "115 km, Union low in the band: GO lines fill it and run off the edges, the lake sits under the panel (150 km: half lake)",
+   "rush.frame": "the day frame: the automatic 52 km close-up was only the subway, the Toronto trains rush right before it",
+   "day.FRAME_DX_KM": "4.6 km west puts 4 more Halton GO trains on screen (6 to 2 off the left edge) and loses none in Durham",
+   "week.FRAME_DX_KM": "4.6 km west puts 4 more Halton GO trains on screen (6 to 2 off the left edge) and loses none in Durham",
+   "day.BUS_CORE_R": "1.6 px dots still read as distinct dots on every line after VP9 and cut strobe from 0.0035 to 0.0021",
+   "day.BUS_HALO_ALPHA": "0.07 takes the faint glow off the dense subway lines, GO dots read the same, strobe down to 0.0020",
+   "BASE_ROADS_GAIN": "0.75 quiets the dense road grid of a 115 km frame so the thin GO corridors stand out; roads still show after VP9",
+   "rush.FRAME_DX_KM": "same 4.6 km west as the day: 2 to 4 more Halton GO trains on screen in every rush still, at most 1 lost east",
+   "rush.TRAIL_MINUTES": "12 min cuts strobe to 0.00215 and makes the sparse GO corridors legible on a phone; no line fuses into white",
+   "rush.BUS_CORE_R": "the day's 1.6 px dots, set by hand: the rush pass has no dot knobs; measured rush strobe 0.00215 to 0.00130",
+   "rush.BUS_HALO_ALPHA": "the day's 0.07 halo, set by hand with the dots (no rush halo knob); dots stay small and sharp after VP9"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "line1",
+    "label": "Line 1",
+    "hex": "#d5c82b",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^1$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 1 route_color D5C82B (Line 1 yellow)"
+   },
+   {
+    "id": "line2",
+    "label": "Line 2",
+    "hex": "#008000",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^2$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 2 route_color 008000 (Line 2 green)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "line5",
+    "label": "Line 5",
+    "hex": "#ff8000",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^5$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 5 route_color FF8000 (Line 5 Eglinton orange)"
+   },
+   {
+    "id": "line6",
+    "label": "Line 6",
+    "hex": "#808080",
+    "neutral": "#b4bac4",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^6$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 6 route_color 808080 (Line 6 grey). 808080 is uninformative to color.js, so it is drawn as the neutral silver #b4bac4 (808080 lifted to the trail lightness, L 0.79, C 0.016), outside the envelope; fallback: the lake foreign grey #8a93a0"
+   },
+   {
+    "id": "line4",
+    "label": "Line 4",
+    "hex": "#b300b3",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^4$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 4 route_color B300B3 (Line 4 Sheppard purple)"
+   },
+   {
+    "id": "up",
+    "label": "UP",
+    "brand": "up",
+    "verified": true,
+    "source": "upx.zip routes.txt route_color 0075D2 (cities/brands.json up)"
+   }
+  ]
+ }
+}

@@ -1,0 +1,144 @@
+{
+ "id": "gta-toronto-trains",
+ "batch": "gta",
+ "place": "Toronto",
+ "boundary": {
+  "name": "Toronto",
+  "subtypes": [
+   "county",
+   "locality"
+  ],
+  "area_km2": 631.1
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  -79.376,
+  43.718
+ ],
+ "frame": {
+  "km_vertical": 80.0,
+  "center_km": [
+   6.5,
+   -16.4
+  ]
+ },
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "TIME_WARP_GAMMA": 1.5
+  },
+  "variant_render": {
+   "rush": {
+    "FRAME_ZOOM": 0.9
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "TIME_WARP_GAMMA": "1.5 slows the pm rush (3:42 to 5:25 per eighth) and cuts midnight to 5 am to 3.3 s without a faster peak rate",
+   "CARD_LINES": "line 1 opens unlike the buses video before it (line 2) and the GTA trains after it (line 0)",
+   "frame": "80 km: the subway and LRT lines fill the band and GO runs off the edges; the fitted 119.5 km left them a third",
+   "rush.FRAME_ZOOM": "0.9 brings the Line 5 and Line 2 east ends into frame and lifts safe share 0.68 to 0.73; still a close-up"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "line1",
+    "label": "Line 1",
+    "hex": "#d5c82b",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^1$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 1 route_color D5C82B (Line 1 yellow)"
+   },
+   {
+    "id": "line2",
+    "label": "Line 2",
+    "hex": "#008000",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^2$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 2 route_color 008000 (Line 2 green)"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "line5",
+    "label": "Line 5",
+    "hex": "#ff8000",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^5$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 5 route_color FF8000 (Line 5 Eglinton orange)"
+   },
+   {
+    "id": "line6",
+    "label": "Line 6",
+    "hex": "#808080",
+    "neutral": "#b4bac4",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^6$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 6 route_color 808080 (Line 6 grey). 808080 is uninformative to color.js, so it is drawn as the neutral silver #b4bac4 (808080 lifted to the trail lightness, L 0.79, C 0.016), outside the envelope; fallback: the lake foreign grey #8a93a0"
+   },
+   {
+    "id": "line4",
+    "label": "Line 4",
+    "hex": "#b300b3",
+    "match": [
+     {
+      "feed": "ttc",
+      "short": "^4$"
+     }
+    ],
+    "verified": true,
+    "source": "ttc.zip routes.txt route_id 4 route_color B300B3 (Line 4 Sheppard purple)"
+   },
+   {
+    "id": "up",
+    "label": "UP",
+    "brand": "up",
+    "verified": true,
+    "source": "upx.zip routes.txt route_color 0075D2 (cities/brands.json up)"
+   }
+  ]
+ }
+}

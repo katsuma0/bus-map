@@ -1,0 +1,96 @@
+{
+ "id": "gta-vaughan",
+ "batch": "gta",
+ "place": "Vaughan",
+ "boundary": {
+  "name": "Vaughan",
+  "subtypes": [
+   "locality"
+  ],
+  "area_km2": 273.56
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  -79.566,
+  43.837
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "OUTSIDE_DIM": 0.8
+  },
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "OUTSIDE_DIM": "outside vehicles outnumber the city's 10.1 to 1 at the am peak",
+   "day.BUS_CORE_R": "1.6 px dots still read sharp after the VP9 trip (peak 238) and halve strobe to 0.0015; 2.8 breaks the limit",
+   "rush.FRAME_ZOOM": "0.9 still shows the Highway 7 core large and keeps the east edge inside x 800; 9 points more dots on screen",
+   "rush.TRAIL_MINUTES": "9 min joins Highway 7 and Jane into thin lit threads like the target crop; no fusing, strobe 1% lower",
+   "rush.BUS_CORE_R": "the day's 1.6 px dots, set by hand (no rush dot knob): strobe 0.0024 to 0.0013, dots still read after VP9"
+  }
+ },
+ "colors": {
+  "scheme": "agency",
+  "legend": true,
+  "groups": [
+   {
+    "id": "yrt",
+    "label": "YRT",
+    "brand": "yrt",
+    "verified": false,
+    "source": "cities/brands.json yrt 0058A9 (in yrt.zip on routes 004, 007, 032, 055 only, no agency majority); York Region's logo guide gives PMS 287C #00539B (scout, search summary), which lands on the same trail (dE 0.002)"
+   },
+   {
+    "id": "ttc",
+    "label": "TTC",
+    "brand": "ttc",
+    "verified": true,
+    "source": "ttc.zip routes.txt route_color ED1C24 on 146 bus and 11 streetcar routes (cities/brands.json ttc); pinned batch-wide at dL -0.12 (trail #df695e) so TTC is one red in every GTA video"
+   },
+   {
+    "id": "zum",
+    "label": "Züm",
+    "brand": "brampton:zum",
+    "verified": false,
+    "source": "cities/brands.json brampton rule zum: livery red, approximate (brampton.zip has no route_color; CPTDB: silver bus with a red front and roofline); pinned at the source step (trail #ff9592) in Brampton and Vaughan"
+   },
+   {
+    "id": "go",
+    "label": "GO",
+    "brand": "go",
+    "verified": true,
+    "source": "go.zip routes.txt route_color 00853E (Kitchener line and 8 GO bus routes; cities/brands.json go); pinned batch-wide at dL -0.12 (trail #3fab61) so GO is one deep green in every GTA video; GO's per-corridor line colours are not used"
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json lake.colors.foreign #8a93a0, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}
