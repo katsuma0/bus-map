@@ -73,6 +73,12 @@
   {"id": "wienerlinien", "feeds": ["wienerlinien"], "label": "Wiener Linien", "color": "#0a295d", "verified": true, "lines": "rail", "alt": null,
    "source": "wienerlinien.zip route_color 0A295D on 530 of 563 bus routes and the Badner Bahn; trams C00808 and the U-Bahn lines (U1 E3000F, U2 A862A4, U3 EF7C00, U4 319F49, U6 9D6830) keep their colours", "rules": []},
   {"id": "rsm", "feeds": ["rsm"], "label": "Roma Mobilità", "credit": "Roma Servizi per la Mobilità", "color": "#e2001a", "dL": -0.12, "verified": false, "lines": "rail", "alt": null,
-   "source": "rsm.zip: buses and tram 8 have no route_color; Atac red E2001A, approximate; Metro A E27439, B and B1 0570B5, C 008456 keep their colours", "rules": []}
+   "source": "rsm.zip: buses and tram 8 have no route_color; Atac red E2001A, approximate; Metro A E27439, B and B1 0570B5, C 008456 keep their colours", "rules": []},
+  {"id": "rapid-kl", "feeds": ["rapid-rail", "rapid-bus", "mrt-feeder"], "label": "Rapid KL", "color": "#008716", "verified": true, "lines": "rail", "alt": null,
+   "source": "rapid-bus.zip route_color 008716 on 79 of 137 routes, the most common (006CFF on the 48 trunk routes); the rail lines keep their colours (Kelana Jaya D50032, Ampang E57200, Sri Petaling 76232F, Kajang 047940, Putrajaya FFCD00, Monorail 84BD00, Shah Alam 00A9E0); mrt-feeder.zip gives none", "rules": []},
+  {"id": "ktm", "feeds": ["ktmb"], "label": "KTM", "color": "#3c5a9f", "verified": false, "lines": "rail", "alt": null,
+   "source": "ktmb.zip gives each line its own colour (Seremban 3C5A9F, Port Klang DC2420, ETS FFC72C, intercity grey 6E6E6E); the Seremban Line blue stands for KTM, approximate", "rules": []},
+  {"id": "otp", "feeds": ["namtang"], "label": "OTP", "credit": "OTP Thailand", "color": "#9400d3", "verified": true, "lines": "rail", "alt": null,
+   "source": "namtang.zip publishes 124 agencies; route_color 9400D3 (the joint suburban buses) is the most common, on 392 of 2,066 routes; BTS, MRT and the SRT lines keep their own colours", "rules": []}
  ]
 }

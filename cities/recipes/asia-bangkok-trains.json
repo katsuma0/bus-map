@@ -1,0 +1,165 @@
+{
+ "id": "asia-bangkok-trains",
+ "batch": "asia",
+ "area": "bangkok",
+ "place": "Bangkok",
+ "boundary": {
+  "name": "กรุงเทพมหานคร",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 1568.74
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  100.64,
+  13.76
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {},
+  "variant_render": {
+   "day": {
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "TRAIL_MINUTES": 9,
+    "BUS_CORE_R": 1.6,
+    "PANEL_ALPHA": 1.15
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.BUS_CORE_R": "1.6 px dots still read as trains on the RT, line colours show between them, strobe 0.0023 to 0.0014",
+   "rush.FRAME_ZOOM": "0.9 lifts the Green and Yellow south ends out from under the clock; safe share 0.959 to 0.985",
+   "rush.TRAIL_MINUTES": "9 min joins the Blue and Yellow beads into thin lines without white; strobe 0.00232 to 0.00225",
+   "rush.BUS_CORE_R": "1.6 px dots stay sharp points on the RT like the Markham target; strobe 0.00225 to 0.00133",
+   "rush.PANEL_ALPHA": "the city outline crosses the credit in the close-up; 1.15 lifts contrast from 4.50 to 5.41"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "bts",
+    "label": "BTS",
+    "hex": "#65b724",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "1",
+       "2",
+       "2025"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 65B724 on the BTS Sukhumvit Line (route_id 1), 66 of the group's 86 trains at 07:50. The Silom Line (2, 246B5B, 18) and the Gold Line (2025, A3862A, 2), both BTSC, join it. Drawn at the source step: trail #88d656, line #539027."
+   },
+   {
+    "id": "blue",
+    "label": "Blue Line",
+    "hex": "#1964b7",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "3"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 1964B7 on the MRT Blue Line (route_id 3, BEM), 55 trains at 07:50. Source step: trail #90c1ff, line #367ed3."
+   },
+   {
+    "id": "purple",
+    "label": "Purple Line",
+    "hex": "#660066",
+    "dL": -0.2,
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "4"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color 660066 on the MRT Purple Line (route_id 4, BEM). Pinned at dL -0.20 (trail #b356b1, line #924090) so it reads purple; the source step is the light orchid #f695f2."
+   },
+   {
+    "id": "pink",
+    "label": "Pink Line",
+    "hex": "#cd4692",
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2436"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color CD4692 on the Pink Line monorail (route_id 2436, MRTA). Source step: trail #ff97cb, line #bc528b."
+   },
+   {
+    "id": "yellow",
+    "label": "Yellow Line",
+    "hex": "#ffe547",
+    "dL": 0.1,
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2224"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color FFE547 on the Yellow Line monorail (route_id 2224, MRTA). Pinned at dL +0.10 (trail #f9df3f, line #b19c00) to clear the BTS green; at the source step #d8be00 is 0.107 from BTS (deuteranopia 0.044)."
+   },
+   {
+    "id": "red",
+    "label": "Red/ARL",
+    "hex": "#e10506",
+    "dL": -0.12,
+    "match": [
+     {
+      "feed": "namtang",
+      "route_ids": [
+       "2026",
+       "2027",
+       "5"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "namtang.zip routes.txt route_color E10506 on the SRT Dark Red Line (route_id 2026). The Airport Rail Link (5, E32020, 7 of the group's 14 trains at 07:50) and the Light Red Line (2027, FD5353) join it, all SRT Electrified Train. Pinned at dL -0.12 (trail #f36353, line #ab3a2f) so it reads red, not salmon #ffa193; E32020 would draw #f36356."
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

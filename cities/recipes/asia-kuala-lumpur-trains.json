@@ -1,0 +1,158 @@
+{
+ "id": "asia-kuala-lumpur-trains",
+ "batch": "asia",
+ "area": "kuala-lumpur",
+ "place": "Kuala Lumpur",
+ "missing": "The feed has no route shapes for the long-distance ETS and airport ERT trains, so they are left out.",
+ "boundary": {
+  "name": "Kuala Lumpur",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 243.0
+ },
+ "modes": [
+  "rail"
+ ],
+ "center": [
+  101.69,
+  3.14
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "right",
+  "card_line": 1,
+  "zoom": 1.0
+ },
+ "override": {
+  "render": {
+   "BASE_ROADS_GAIN": 0.75
+  },
+  "variant_render": {
+   "rush": {
+    "FRAME_ZOOM": 0.9,
+    "FRAME_DY_KM": -1.42,
+    "TRAIL_MINUTES": 9
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "BASE_ROADS_GAIN": "0.75 quiets the street mesh inside the city so the dark Kajang green and KTM blue lines stand out",
+   "rush.FRAME_ZOOM": "0.9 hides the fewest trains under the clock (safe share 0.85); 1.1 pushes the south lines further under it",
+   "rush.FRAME_DY_KM": "-1.42 lifts the core above the clock, safe share 0.87; the north end of the lines stays under the subtitle",
+   "rush.TRAIL_MINUTES": "9 min draws each line's colour end to end on the close-up, strobe 0.00239 to 0.00234, no fusing"
+  }
+ },
+ "colors": {
+  "scheme": "line",
+  "legend": false,
+  "groups": [
+   {
+    "id": "kelana",
+    "label": "Kelana Jaya",
+    "hex": "#d50032",
+    "dL": -0.22,
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "KJ"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color D50032 on KJ (LRT Kelana Jaya Line). Pinned at dL -0.22 (trail #cf3f49, line #ab383e): a full red, darker than the Ampang orange; deuteranopes see it lighter than the Kajang green and protanopes darker (0.080 and 0.071 apart)."
+   },
+   {
+    "id": "ampang",
+    "label": "Ampang lines",
+    "hex": "#e57200",
+    "dL": -0.1,
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "AG",
+       "PH"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color E57200 on AG (LRT Ampang Line, 14 trains at 08:18). The Sri Petaling Line (PH, 76232F, 25 trains) shares its trunk and joins it; maroon would draw the pink #ff9ea4. Pinned at dL -0.10 (trail #ee7a17, line #994a00): a true orange, and 0.093 from the Monorail lime for deuteranopes where the source step is 0.025."
+   },
+   {
+    "id": "kajang",
+    "label": "Kajang",
+    "hex": "#047940",
+    "dL": -0.28,
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "KGL"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color 047940 on KGL (MRT Kajang Line). Pinned at dL -0.28 (trail #0f7d44, line #00713b): dark green, as on the KL map, and apart from the Ampang orange (protanopia 0.098) and the Kelana Jaya red (0.071)."
+   },
+   {
+    "id": "putrajaya",
+    "label": "Putrajaya",
+    "hex": "#ffcd00",
+    "dL": 0.12,
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "PYL"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color FFCD00 on PYL (MRT Putrajaya Line). Pinned at dL +0.12 (trail #ffe291, line #c49d00) so it reads yellow, not mustard, and stays 0.098 from the Monorail lime for protanopes on their shared corridor north of KLCC."
+   },
+   {
+    "id": "monorail",
+    "label": "Monorail",
+    "hex": "#84bd00",
+    "match": [
+     {
+      "feed": "rapid-rail",
+      "route_ids": [
+       "MR"
+      ]
+     }
+    ],
+    "verified": true,
+    "source": "rapid-rail.zip routes.txt route_color 84BD00 on MR (KL Monorail Line). Free group, source step passes: trail #9bd343, line #638d0e."
+   },
+   {
+    "id": "ktm",
+    "label": "KTM",
+    "hex": "#3c5a9f",
+    "match": [
+     {
+      "feed": "ktmb"
+     }
+    ],
+    "verified": true,
+    "source": "ktmb.zip routes.txt route_color 3C5A9F on the Seremban Line (KC05_KB18). The Port Klang Line (KA15_KD19, DC2420) shares its tracks through Kuala Lumpur and joins it: 7 trains at 08:37. ETS and ERT have no shapes and go to the batch's dropped mode. Free group, source step passes: trail #9ebdff, line #5a7bc3."
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}

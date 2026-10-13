@@ -1,0 +1,54 @@
+{
+ "batch": "asia",
+ "title": "Asia: Kuala Lumpur and Bangkok, open timetables",
+ "theme": "teal",
+ "month": "2026-10",
+ "overture_release": "2026-09-23.1",
+ "render_epoch": 0,
+ "review_videos": ["asia-bangkok-trains-day", "asia-kuala-lumpur-trains-week", "asia-bangkok-buses-rush", "asia-kuala-lumpur-buses-day"],
+ "areas": [
+  {
+   "id": "kuala-lumpur",
+   "origin": [101.69, 3.14],
+   "timezone": "Asia/Kuala_Lumpur",
+   "country": "MY",
+   "region": "MY-14",
+   "holidays": "MY-14",
+   "area_box": [101.46, 2.64, 101.97, 3.5],
+   "feeds": [
+    {"id": "rapid-rail", "name": "Rapid Rail KL", "publisher": "Prasarana Malaysia, via data.gov.my", "licence_id": "data-gov-my", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tld-6771/tld-6771-202607230042/tld-6771-202607230042.zip", "sha256": "532afb6c518489ec612912cefe957c3f05ccb66efad9ce3f61b95981f67df669"}},
+    {"id": "ktmb", "name": "KTMB", "publisher": "Keretapi Tanah Melayu, via data.gov.my", "licence_id": "data-gov-my", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tld-6758/tld-6758-202610120020/tld-6758-202610120020.zip", "sha256": "a257e636a35875f69ec97bbccfc99fbee831130581e25f39488d24ccb8046785"}},
+    {"id": "rapid-bus", "name": "Rapid Bus KL", "publisher": "Prasarana Malaysia, via data.gov.my", "licence_id": "data-gov-my", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tld-6767/tld-6767-202610110105/tld-6767-202610110105.zip", "sha256": "3fb959443a64c8bd5bb21af5de98b1148ba0eb0bae0bac893f31a0463ee77e5b"}},
+    {"id": "mrt-feeder", "name": "MRT Feeder Bus", "publisher": "Prasarana Malaysia, via data.gov.my", "licence_id": "data-gov-my", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/tld-6769/tld-6769-202610120044/tld-6769-202610120044.zip", "sha256": "26040d9af988963d99772c4012d2a7e1eb7c066969afec59f1e6628b313b5f0d"}}
+   ]
+  },
+  {
+   "id": "bangkok",
+   "origin": [100.6, 13.75],
+   "timezone": "Asia/Bangkok",
+   "country": "TH",
+   "region": "TH-10",
+   "holidays": "TH-10",
+   "area_box": [100.07, 12.46, 101.34, 14.63],
+   "feeds": [
+    {"id": "namtang", "name": "Namtang", "publisher": "Office of Transport and Traffic Policy and Planning, Thailand", "licence_id": "otp-namtang", "licence_text": "CC BY 4.0", "source": {"url": "https://storage.googleapis.com/mobilitydata-datasets-prod/mdb-1831/mdb-1831-202610120004/mdb-1831-202610120004.zip", "sha256": "443c955d84e412ee227968a995ccb2515fa3e2679eafbd580d79fd8f3d4c3a10"}}
+   ]
+  }
+ ],
+ "modes": [
+  {"id": "bus", "label": "buses", "singular": "bus", "route_types": [3, 11, 700, 701, 702, 704, 711, 712, 715],
+   "routes": [{"feed": "rapid-rail", "route_id": "^BRT$", "why": "the BRT Sunway Line runs buses on a busway; rapid-rail gives it route_type 0"}]},
+  {"id": "rail", "label": "trains", "singular": "train", "route_types": [1, 2, 12, 100, 109, 400],
+   "routes": [{"feed": "namtang", "route_id": "^(1|2|2025|2026|2027)$", "why": "BTS Sukhumvit, Silom and Gold Lines and the SRT Dark and Light Red Lines have route_type 0"},
+              {"feed": "ktmb", "route_id": "^(KC05_KB18|KA15_KD19|100_9000|100_47300|SS)$", "why": "KTMB gives its Komuter lines route_type 0"}]},
+  {"id": "ferry", "label": "boats", "singular": "boat", "route_types": [4, 1000, 1200]},
+  {"id": "dropped", "label": "dropped routes", "singular": "dropped route", "route_types": [],
+   "routes": [{"feed": "rapid-bus", "route_id": "^B1000$", "why": "the BRT Sunway Line is in rapid-rail too, with its peak headways where rapid-bus runs it every 6 minutes all day; no recipe keeps this mode, so the line is drawn once"},
+              {"feed": "ktmb", "route_id": "^(ETS|ERT)$", "why": "ktmb.zip has no shapes.txt and its ETS and intercity trips list only their stops, 60 to 206 km apart, so they drew as straight lines across Kuala Lumpur; the Komuter lines stay"}]}
+ ],
+ "cities": ["asia-bangkok-trains", "asia-kuala-lumpur-trains", "asia-bangkok-buses", "asia-kuala-lumpur-buses"],
+ "variants_default": ["day", "rush", "week"],
+ "hashtags": ["#shorts", "#transit", "#publictransit"],
+ "category": "Travel & Events",
+ "release": {"tag": "shorts-asia", "name": "Shorts: Asia"}
+}

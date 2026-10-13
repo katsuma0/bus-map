@@ -1,0 +1,110 @@
+{
+ "id": "asia-kuala-lumpur-buses",
+ "batch": "asia",
+ "area": "kuala-lumpur",
+ "place": "Kuala Lumpur",
+ "boundary": {
+  "name": "Kuala Lumpur",
+  "subtypes": [
+   "region"
+  ],
+  "area_km2": 243.0
+ },
+ "modes": [
+  "bus"
+ ],
+ "center": [
+  101.69,
+  3.14
+ ],
+ "variants": [
+  "day",
+  "rush",
+  "week"
+ ],
+ "rush": {
+  "frame": null,
+  "auto": true
+ },
+ "variety": {
+  "panel_side": "left",
+  "card_line": 0,
+  "zoom": 1.05
+ },
+ "override": {
+  "render": {
+   "PANEL_ALPHA": 1.15,
+   "OUTSIDE_DIM": 0.75
+  },
+  "variant_render": {
+   "day": {
+    "TRAIL_MINUTES": 18,
+    "BUS_CORE_R": 1.6
+   },
+   "rush": {
+    "FRAME_ZOOM": 0.81,
+    "TRAIL_MINUTES": 9
+   }
+  },
+  "brand_colors": {},
+  "_why": {
+   "day.TRAIL_MINUTES": "18 min cuts strobe 0.0054 to 0.0052 and closes gaps on the trunk corridors; lines stay thin, not fused",
+   "day.BUS_CORE_R": "1.6 px dots stay sharp points at 1:1 after VP9; with the final picks strobe is 0.0020 vs 0.0036 at 2.2",
+   "PANEL_ALPHA": "Feeder trails cross the credit at 6 pm; 1.15 lifts its contrast 5.93 to 6.29, the blurred backdrop stays soft",
+   "OUTSIDE_DIM": "0.75 quiets the busy Selangor feeders so the KL shape reads at a glance; text contrast 6.87 to 7.01",
+   "rush.FRAME_ZOOM": "0.81 lifts safe share to 0.89, over the limit; the rush stays closer than the day and the core clears the clock",
+   "rush.TRAIL_MINUTES": "9 min joins the trunk and feeder beads into thin coloured lines, strobe 0.00285 to 0.00281, no white"
+  }
+ },
+ "colors": {
+  "scheme": "type",
+  "legend": true,
+  "groups": [
+   {
+    "id": "trunk",
+    "label": "Trunk",
+    "hex": "#006cff",
+    "match": [
+     {
+      "feed": "rapid-bus",
+      "short": "^\\d{3}$"
+     }
+    ],
+    "verified": true,
+    "source": "rapid-bus.zip routes.txt route_color 006CFF on all 47 numbered trunk routes (route_id U, short names 151 to 851). Source step: trail #98bfff, line #447bd5."
+   },
+   {
+    "id": "local",
+    "label": "Local",
+    "hex": "#008716",
+    "dL": -0.2,
+    "rest": true,
+    "match": [
+     {
+      "feed": "rapid-bus"
+     }
+    ],
+    "verified": true,
+    "source": "rapid-bus.zip routes.txt route_color 008716 on 79 of 137 routes (54 T local routes; PJ, AJ, KJ, MPS, SA and BTG free buses). Pinned at dL -0.20 (trail #26992e, line #0e7218) so deuteranopes can tell it from the MRT feeder amber."
+   },
+   {
+    "id": "feeder",
+    "label": "MRT feeder",
+    "hex": "#e8a33d",
+    "match": [
+     {
+      "feed": "mrt-feeder"
+     }
+    ],
+    "verified": false,
+    "source": "chosen: amber. mrt-feeder.zip routes.txt has no route_color column and no MRT feeder livery colour could be confirmed. Source step: trail #f4ae4a, line #aa6f00."
+   },
+   {
+    "id": "other",
+    "label": "Other",
+    "verified": true,
+    "source": "web/themes.json teal.colors.foreign #88999b, drawn as is (not through the envelope)"
+   }
+  ]
+ }
+}
